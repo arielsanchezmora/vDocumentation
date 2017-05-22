@@ -25,7 +25,7 @@
 #Update $vDCName Variable to run in your environment
 
 $outputCollection = @()
-$vDCName = "C03 Production Datacenter 00373"
+$vDCName = "Your virtual Datacenter name"
 $vDCHosts = Get-DataCenter $vDCName | Get-VMHost | Sort-Object -Property Name
 
 #-----------------------------------------------------------[Functions]------------------------------------------------------------
