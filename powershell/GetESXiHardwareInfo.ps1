@@ -157,7 +157,7 @@ Foreach($esxihost in $vHostList) {
 }
 
 # Display output on screen
-Write-Host -ForegroundColor Green "`n" "Hardwaer PCI/IO Details:"
+Write-Host -ForegroundColor Green "`n" "Hardware PCI/IO Details:"
 $outputCollection | Format-List 
 
 # Export combined object
