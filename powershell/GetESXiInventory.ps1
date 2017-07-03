@@ -3,8 +3,7 @@
     Retreives basic ESXi host information
 .DESCRIPTION
     This script will gather the following information for a vSphere Cluster, DataCenter or individual ESXi host:
-    Hostname, Management IP, RAC IP, ESXi Version, ESXi Build, Make, Model, Serial Number, CPU Model, Speed, 
-    Memory, Memory Slot Count, NIC Count.
+    Hostname, Management IP, RAC IP, ESXi Version information, Hardware information.
 .NOTES
     File Name     : GetESXiInventory.ps1
     Author        : Edgar Sanchez - @edmsanchez13
@@ -14,7 +13,7 @@
     Downloaded from: http://poshcode.org/?show=928
 .Link
   https://github.com/edmsanchez/vDocumentation
-  https://virtualcornerstone.com/vDocumentation/
+  https://virtualcornerstone.com/GetESXiInventory
 .INPUTS
    No inputs required
 .OUTPUTS
@@ -37,7 +36,7 @@
     GetESXiInventory.ps1 -cluster production-cluster -ExportCSV
 .PARAMETER ExportExcel
     Exports all data to Excel file (No need to have Excel Installed). This relies on ImportExcel Module to be installed.
-    ImportExcel Module can be installed directly from the Powershell Gallery. See https://github.com/dfinke/ImportExcel for more information
+    ImportExcel Module can be installed directly from the PowerShell Gallery. See https://github.com/dfinke/ImportExcel for more information
     the  File is saved on current userpath from where the script was executed.
 .EXAMPLE
     GetESXiInventory.ps1 -cluster production-cluster -ExportExcel
@@ -54,6 +53,7 @@ param (
 )
 
 $outputCollection = @()
+$skipCollection = @()
 $date = Get-Date -format s
 $date = $date -replace ":","-"
 $outputFile = "Inventory" + $date
@@ -204,19 +204,19 @@ Foreach ($esxihost in $vHostList) {
     }
 
     #Get ESXi version details
-    $VMHostView = $vmhost | Get-View
-    $EsxiVersion = $esxcli.system.version.get()
+    $vmhostView = $vmhost | Get-View
+    $esxiVersion = $esxcli.system.version.get()
     
     # Make a combined object
     $inventoryResults = New-Object -TypeName PSObject -Property ([ordered]@{
         'Hostname' = $vmhost
         'Management IP' = $mgmtIP
         'RAC IP' = $racIP
-        'Product' = $VMHostView.Config.Product.Name
-        'Version' = $VMHostView.Config.Product.Version
+        'Product' = $vmhostView.Config.Product.Name
+        'Version' = $vmhostView.Config.Product.Version
         'Build' = $Vminfo.Build
-        'Update' = $EsxiVersion.Update
-        'Patch' = $EsxiVersion.Patch
+        'Update' = $esxiVersion.Update
+        'Patch' = $esxiVersion.Patch
         'Make'= $hardware.Manufacturer
         'Model' = $hardware.Model
         'S/N' = $hardwarePlatfrom.serialNumber
@@ -239,19 +239,25 @@ Foreach ($esxihost in $vHostList) {
 Write-Host "`n" "ESXi Inventory:" -ForegroundColor Green
 $outputCollection | Format-List 
 
+# Display list of Hosts that were skipped
+If ($skipCollection.count -gt 0) {
+    Write-Host "`tSkipped hosts: " -ForegroundColor Yellow
+    $skipCollection | Format-Table -AutoSize
+}
+
 # Export combined object
+# Export to CSV
 if ($ExportCSV) {
-    Write-Host "`tData was saved to" ($outputFile + ".csv") "file" -ForegroundColor Green
+    Write-Host "`tData exported to" ($outputFile + ".csv") "file" -ForegroundColor Green
     $outputCollection | Export-Csv ($outputFile + ".csv") -NoTypeInformation
 }
 
+# Export to Excel
 if ($ExportExcel) {
     if (Get-Module -ListAvailable -Name ImportExcel) {
-        Write-Host "`tData was saved to" ($outputFile + ".xlsx") "file" -ForegroundColor Green
+        Write-Host "`tData exported to" ($outputFile + ".xlsx") "file" -ForegroundColor Green
         $outputCollection | Export-Excel ($outputFile + ".xlsx") -BoldTopRow -WorkSheetname Inventory
     } else {
         Write-Host "ImportExcel Module missing, see help for more information" -ForegroundColor Red
     }
 }
-
-
