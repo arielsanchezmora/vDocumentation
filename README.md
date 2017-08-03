@@ -34,3 +34,23 @@ AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
 LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
 OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 SOFTWARE.
+
+# Installation
+
+The scripts run inside a PowerShell window using PowerCLI modules. Powershell is available in all modern windows OS, with PowerShell core available for Mac and Linux. Make sure you have the latest PowerCLI installed (you can check here for a video on how to install https://blogs.vmware.com/PowerCLI/2017/05/powercli-6-5-1-install-walkthrough.html)
+
+From the video, these are the useful commands you should have completed before installing vDocumentation:
+
+$psversiontable [enter]  =  gives you the PowerShell version
+get-module VMware* -ListAvailable [enter]  =  Lists all installed PowerCLI modules, if return empty, install PowerCLI
+
+Installing PowerCLI
+  Find-Module -Name VMware.PowerCLI  =  checks connectivity to PowerShell Gallery and updates NuGet if needed (yes is default)
+  Install-Module -Name VMware.PowerCLI -Scope CurrentUser  =  install PowerCLI as long as you answer Y or A
+
+Installing vDocumentation
+
+vDocumentation are powershell modules as well, but are not yet in the PowerShell Gallery, so we can't use the Install-Module command.  For now, use this manual process:
+
+  1 Download the folder and files inside vDocumentation. 
+  2 Browse to the %USERPROFILE%\Documents\WindowsPowerShell\Modules and copy the files
