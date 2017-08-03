@@ -15,7 +15,7 @@ To a future where walking into a new place and asking for documentation is greet
 
 # Licensing
 
-Copyright (c) <2017> <Ariel Sanchez and Edgar Sanchez>
+Copyright (c) <2017> Ariel Sanchez and Edgar Sanchez
 
 Permission is hereby granted, free of charge, to any person obtaining a copy
 of this software and associated documentation files (the "Software"), to deal
