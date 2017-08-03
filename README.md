@@ -50,13 +50,19 @@ _get-module VMware* -ListAvailable_ [enter]  =  Lists all installed PowerCLI mod
   
   _Install-Module -Name VMware.PowerCLI -Scope CurrentUser_  =  install PowerCLI as long as you answer Y or A
 
-## Execution Policy
+## Execution Policy and Certificate Warnings
 
  Make sure that your execution policy allows you to run scripts downloaded from the internet. You do this with a command run in a powershell window that has been launched with "Run as Administrator"
  
  _Set-ExecutionPolicy RemoteSigned_
 
 and click Y or A
+
+Unless you have proper certificates in your vSphere environment, some of the data collections may fail silently due to a certificate warning. Run this command so you never have to wonder:
+
+_Set-PowerCLIConfiguration -InvalidCertificateAction Ignore_
+
+Y is default
 
 
 ## Adding the vDocumentation module
