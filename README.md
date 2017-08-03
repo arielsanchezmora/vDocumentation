@@ -15,13 +15,107 @@ To a future where walking into a new place and asking for documentation is greet
 
 # Usage
 
-Refer to the code's comments in the [vDocument Module File](https://github.com/arielsanchezmora/vDocumentation/blob/master/powershell/vDocument/vDocument.psm1) for usage and examples. Once you have installed the module, you will be able to use the following functions:
+. Once you have installed the module, you will be able to use the following functions:
 
 __Get-ESXInventory__
 
 __Get-ESXIODevice__
 
 __Get-ESXNetworking__
+
+Refer to the code's comments in the [vDocument Module File](https://github.com/arielsanchezmora/vDocumentation/blob/master/powershell/vDocument/vDocument.psm1) for full usage and examples, or use Get-Help and the module name:
+
+__Get-Help Get-ESXInventory__
+
+NAME
+    Get-ESXInventory
+
+SYNOPSIS
+    Get basic ESXi host information
+
+
+SYNTAX
+    Get-ESXInventory [[-esxi] <Object>] [[-cluster] <Object>] [[-datacenter] <Object>] [-ExportCSV] [-ExportExcel]
+    [[-folderPath] <Object>] [<CommonParameters>]
+
+
+DESCRIPTION
+    Will get inventory information for a vSphere Cluster, Datacenter or individual ESXi host
+    The following is gathered:
+    Hostname, Management IP, RAC IP, ESXi Version information, Hardware information
+
+
+RELATED LINKS
+    https://github.com/edmsanchez/vDocumentation
+
+REMARKS
+    To see the examples, type: "get-help Get-ESXInventory -examples".
+    For more information, type: "get-help Get-ESXInventory -detailed".
+    For technical information, type: "get-help Get-ESXInventory -full".
+    For online help, type: "get-help Get-ESXInventory -online"
+
+
+__Get-Help Get-ESXIODevice__
+
+NAME
+    Get-ESXIODevice
+
+SYNOPSIS
+    Get ESXi vmnic* and vmhba* VMKernel device information
+
+
+SYNTAX
+    Get-ESXIODevice [[-esxi] <Object>] [[-cluster] <Object>] [[-datacenter] <Object>] [-ExportCSV] [-ExportExcel]
+    [[-folderPath] <Object>] [<CommonParameters>]
+
+
+DESCRIPTION
+    Will get PCI/IO Device information including HCL IDs for the below VMkernel name(s):
+    Network Controller - vmnic*
+    Storage Controller - vmhba*
+    Graphic Device - vmgfx*
+    All this can be gathered for a vSphere Cluster, Datacenter or individual ESXi host
+
+
+RELATED LINKS
+    https://github.com/edmsanchez/vDocumentation
+
+REMARKS
+    To see the examples, type: "get-help Get-ESXIODevice -examples".
+    For more information, type: "get-help Get-ESXIODevice -detailed".
+    For technical information, type: "get-help Get-ESXIODevice -full".
+    For online help, type: "get-help Get-ESXIODevice -online"
+
+
+__Get-Help Get-ESXNetworking__
+
+NAME
+    Get-ESXNetworking
+
+SYNOPSIS
+    Get ESXi Networking Details.
+
+
+SYNTAX
+    Get-ESXNetworking [[-esxi] <Object>] [[-cluster] <Object>] [[-datacenter] <Object>] [-ExportCSV] [-ExportExcel]
+    [-VirtualSwitches] [-VMkernelAdapters] [-PhysicalAdapters] [[-folderPath] <Object>] [<CommonParameters>]
+
+
+DESCRIPTION
+    Will get Physical Adapters, Virtual Switches, and Port Groups
+    All this can be gathered for a vSphere Cluster, Datacenter or individual ESXi host
+
+
+RELATED LINKS
+    https://github.com/edmsanchez/vDocumentation
+
+REMARKS
+    To see the examples, type: "get-help Get-ESXNetworking -examples".
+    For more information, type: "get-help Get-ESXNetworking -detailed".
+    For technical information, type: "get-help Get-ESXNetworking -full".
+    For online help, type: "get-help Get-ESXNetworking -online"
+
+
 
 # Licensing
 
