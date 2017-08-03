@@ -54,7 +54,7 @@ _get-module VMware* -ListAvailable_ [enter]  =  Lists all installed PowerCLI mod
 
  Make sure that your execution policy allows you to run scripts downloaded from the internet. You do this with a command run in a powershell window that has been launched with "Run as Administrator"
  
- __Set-ExecutionPolicy RemoteSigned__
+ _Set-ExecutionPolicy RemoteSigned_
 
 and click Y or A
 
@@ -64,8 +64,11 @@ and click Y or A
 vDocumentation are powershell modules as well, but are not yet in the PowerShell Gallery, so we can't use the Install-Module command.  For now, use this manual process:
 
   1 Download the two files inside the vDocumentation folder.
+  
   2 Browse to the %USERPROFILE%\Documents\WindowsPowerShell\Modules and copy the files inside a folder named vDocumentation
+  
   3 Close all PowerShell windows
+  
   4 Launch PowerShell, you should be able to use the vDocumentation functions now
 
 
