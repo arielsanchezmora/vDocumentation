@@ -41,8 +41,8 @@ The scripts run inside a PowerShell window using PowerCLI modules. Powershell is
 
 From the video, these are the useful commands you should have completed before installing vDocumentation:
 
-__$psversiontable__ [enter]  =  gives you the PowerShell version
-_get-module VMware* -ListAvailable__ [enter]  =  Lists all installed PowerCLI modules, if return empty, install PowerCLI
+_$psversiontable_ [enter]  =  gives you the PowerShell version
+_get-module VMware* -ListAvailable_ [enter]  =  Lists all installed PowerCLI modules, if return empty, install PowerCLI
 
 ## Installing PowerCLI
   __Find-Module -Name VMware.PowerCLI__  =  checks connectivity to PowerShell Gallery and updates NuGet if needed (yes is default)
