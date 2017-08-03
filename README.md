@@ -13,7 +13,7 @@ Our goal is that this project is useful to others and it will be accepted in the
 
 To a future where walking into a new place and asking for documentation is greeted with "Yup, we use vDocument" and the interested party replies "Perfect!" :)
 
-#Licensing
+# Licensing
 
 Copyright (c) <2017> <Ariel Sanchez and Edgar Sanchez>
 
