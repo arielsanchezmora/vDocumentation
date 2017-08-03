@@ -42,11 +42,13 @@ The scripts run inside a PowerShell window using PowerCLI modules. Powershell is
 From the video, these are the useful commands you should have completed before installing vDocumentation:
 
 _$psversiontable_ [enter]  =  gives you the PowerShell version
+
 _get-module VMware* -ListAvailable_ [enter]  =  Lists all installed PowerCLI modules, if return empty, install PowerCLI
 
 ## Installing PowerCLI
-  __Find-Module -Name VMware.PowerCLI__  =  checks connectivity to PowerShell Gallery and updates NuGet if needed (yes is default)
-  __Install-Module -Name VMware.PowerCLI -Scope CurrentUser__  =  install PowerCLI as long as you answer Y or A
+  _Find-Module -Name VMware.PowerCLI_  =  checks connectivity to PowerShell Gallery and updates NuGet if needed (yes is default)
+  
+  _Install-Module -Name VMware.PowerCLI -Scope CurrentUser_  =  install PowerCLI as long as you answer Y or A
 
 ## Execution Policy
 
@@ -71,7 +73,10 @@ vDocumentation are powershell modules as well, but are not yet in the PowerShell
 
 Execute these lines in a PowerShell window that is in your home directory (tested with PS 5)
 
-__mkdir Documents\WindowsPowerShell\Modules\vDocument
-(new-object Net.WebClient).DownloadString("https://raw.githubusercontent.com/arielsanchezmora/vDocumentation/master/powershell/vDocument/vDocument.psd1") > Documents\WindowsPowerShell\Modules\vDocument\vDocument.psd1
-(new-object Net.WebClient).DownloadString("https://raw.githubusercontent.com/arielsanchezmora/vDocumentation/master/powershell/vDocument/vDocument.psm1") > Documents\WindowsPowerShell\Modules\vDocument\vDocument.psm1
-exit__
+_mkdir Documents\WindowsPowerShell\Modules\vDocument_
+
+_(new-object Net.WebClient).DownloadString("https://raw.githubusercontent.com/arielsanchezmora/vDocumentation/master/powershell/vDocument/vDocument.psd1") > Documents\WindowsPowerShell\Modules\vDocument\vDocument.psd1_
+
+_(new-object Net.WebClient).DownloadString("https://raw.githubusercontent.com/arielsanchezmora/vDocumentation/master/powershell/vDocument/vDocument.psm1") > Documents\WindowsPowerShell\Modules\vDocument\vDocument.psm1_
+
+_exit_
