@@ -17,9 +17,11 @@ To a future where walking into a new place and asking for documentation is greet
 
 Refer to the code's comments in the [vDocument Module File](https://github.com/arielsanchezmora/vDocumentation/blob/master/powershell/vDocument/vDocument.psm1) for usage and examples. Once you have installed the module, you will be able to use the following functions:
 
-Get-ESXInventory
+__Get-ESXInventory
+
 Get-ESXIODevice
-Get-ESXNetworking
+
+Get-ESXNetworking__
 
 # Licensing
 
