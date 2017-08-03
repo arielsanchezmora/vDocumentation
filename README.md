@@ -48,9 +48,32 @@ Installing PowerCLI
   Find-Module -Name VMware.PowerCLI  =  checks connectivity to PowerShell Gallery and updates NuGet if needed (yes is default)
   Install-Module -Name VMware.PowerCLI -Scope CurrentUser  =  install PowerCLI as long as you answer Y or A
 
-Installing vDocumentation
+Execution Policy
+
+ Make sure that your execution policy allows you to run scripts downloaded from the internet. You do this with a command run in a powershell window that has been launched with "Run as Administrator"
+ 
+ Set-ExecutionPolicy RemoteSigned
+
+and click Y or A
+
+
+Adding vDocumentation
 
 vDocumentation are powershell modules as well, but are not yet in the PowerShell Gallery, so we can't use the Install-Module command.  For now, use this manual process:
 
   1 Download the folder and files inside vDocumentation. 
   2 Browse to the %USERPROFILE%\Documents\WindowsPowerShell\Modules and copy the files
+  3 Close all PowerShell windows
+  4 Launch PowerShell, you should be able to use the vDocumentation functions
+
+One method to copy the needed files from Github to your PC using PowerShell:
+
+Execute these lines in a PowerShell window that is in your home directory (tested with PS 5)
+
+(new-object Net.WebClient).DownloadString("https://raw.githubusercontent.com/arielsanchezmora/vDocum
+entation/master/powershell/vDocument/vDocument.psd1") > Documents\WindowsPowerShell\Modules\vDocument\vDocument.psd1
+
+(new-object Net.WebClient).DownloadString("https://raw.githubusercontent.com/arielsanchezmora/vDocum
+entation/master/powershell/vDocument/vDocument.psm1") > Documents\WindowsPowerShell\Modules\vDocument\vDocument.psm1
+
+exit
