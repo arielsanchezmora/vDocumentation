@@ -168,6 +168,11 @@ _Set-PowerCLIConfiguration -InvalidCertificateAction Ignore_
 
 Y is default
 
+## Excel Module
+
+While not required, having this module installed is recommended, as you can export direct to Excel. [Read about ImportExcel module.](https://github.com/dfinke/ImportExcel)
+
+_Install-Module ImportExcel -scope CurrentUser_
 
 ## Adding the vDocumentation module
 
