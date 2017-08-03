@@ -13,6 +13,14 @@ Our goal is that this project is useful to others and it will be accepted in the
 
 To a future where walking into a new place and asking for documentation is greeted with "Yup, we use vDocument" and the interested party replies "Perfect!" :)
 
+# Usage
+
+Refer to the code's comments in the [vDocument Module File](https://github.com/arielsanchezmora/vDocumentation/blob/master/powershell/vDocument/vDocument.psm1) for usage and examples. Once you have installed the module, you will be able to use the following functions:
+
+Get-ESXInventory
+Get-ESXIODevice
+Get-ESXNetworking
+
 # Licensing
 
 Copyright (c) <2017> Ariel Sanchez and Edgar Sanchez
