@@ -741,7 +741,7 @@ function Get-ESXIODevice {
             Get IO Device info
         #>
         Write-Host "`tGathering information from $vmhost ..."
-        $pciDevices = $esxcli2.hardware.pci.list.Invoke() | Where-Object {$_.VMKernelName -like "vmhba*" -OR $_.VMKernelName -like "vmnic*" -OR $_.VMKernelName -like "vmgfx*" }
+        $pciDevices = $esxcli2.hardware.pci.list.Invoke() | Where-Object {$_.VMKernelName -like "vmhba*" -or $_.VMKernelName -like "vmnic*" -or $_.VMKernelName -like "vmgfx*" }
      
         foreach ($pciDevice in $pciDevices) {
             $device = $vmhost | Get-VMHostPciDevice | Where-Object { $pciDevice.Address -match $_.Id }
@@ -761,7 +761,7 @@ function Get-ESXIODevice {
                     Get NIC driver VIB package version
                 #>
                 Write-Verbose ((Get-Date -Format G) + "`tGet VIB details for: " + $pciDevice.ModuleName)
-                $driverVib = $esxcli2.software.vib.list.Invoke() | Select-Object -Property Name, Version | Where-Object {$_.Name -eq $vmnicDetail.DriverInfo.Driver} -or {$_.Name -eq "net-"+$vmnicDetail.DriverInfo.Driver} -or {$_.Name -eq "net55-"+$vmnicDetail.DriverInfo.Driver}
+                $driverVib = $esxcli2.software.vib.list.Invoke() | Select-Object -Property Name, Version | Where-Object {$_.Name -eq $vmnicDetail.DriverInfo.Driver -or $_.Name -eq "net-"+$vmnicDetail.DriverInfo.Driver -or $_.Name -eq "net55-"+$vmnicDetail.DriverInfo.Driver}
                 $vibName = $driverVib.Name
                 $vibVersion = $driverVib.Version
 
