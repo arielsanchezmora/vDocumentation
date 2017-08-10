@@ -314,7 +314,7 @@
         } #END if/else
 
         $esxcli2 = Get-EsxCli -VMHost $esxihost -V2
-        $hostHardware = $vmhost | Get-VMHostHardware -SkipAllSslCertificateChecks -WaitForAllData -ErrorAction SilentlyContinue
+        $hostHardware = $vmhost | Get-VMHostHardware -WaitForAllData -SkipAllSslCertificateChecks -ErrorAction SilentlyContinue
 
         <#
             Get ESXi version details
@@ -331,7 +331,7 @@
             $hardwarePlatfrom = $esxcli2.hardware.platform.get.Invoke()
 
             <#
-                Get RAC IP
+                Get RAC IP, and Firmware
                 Try with -class OMC_IPMIIPProtocolEndpoint First
                 Else try with -class CIM_IPProtocolEndpoint
             #>
@@ -350,6 +350,12 @@
                 } #END if
             } #END if/ese
 
+            if ($bmc = $vmhost.ExtensionData.Runtime.HealthSystemRuntime.SystemHealthInfo.NumericSensorInfo | Where-Object {$_.Name -match "BMC Firmware"}) {
+                $bmcFirmware = (($bmc.Name -split "firmware")[1]) -split " " | Select-Object -Last 1
+            } else {
+                $bmcFirmware = $null
+            } #END if/else
+
             <#
                 Use a custom object to store
 	            collected data
@@ -358,6 +364,7 @@
                 'Hostname' = $vmhost
                 'Management IP' = $mgmtIP
                 'RAC IP' = $racIP
+                'RAC Firmware' = $bmcFirmware
                 'Product' = $vmhostView.Config.Product.Name
                 'Version' = $vmhostView.Config.Product.Version
                 'Build' = $vmhost.Build
@@ -366,7 +373,8 @@
                 'Make'= $hostHardware.Manufacturer
                 'Model' = $hostHardware.Model
                 'S/N' = $hardwarePlatfrom.serialNumber
-                'BIOS Version' = $hostHardware.BiosVersion
+                'BIOS' = $hostHardware.BiosVersion
+                'BIOS Release Date' = (($vmhost.ExtensionData.Hardware.BiosInfo.ReleaseDate -split " ")[0])
                 'CPU Model' = $hostHardware.CpuModel
                 'CPU Count' = $hostHardware.CpuCount
                 'CPU Core Total' = $hostHardware.CpuCoreCountTotal
@@ -741,7 +749,7 @@ function Get-ESXIODevice {
             Get IO Device info
         #>
         Write-Host "`tGathering information from $vmhost ..."
-        $pciDevices = $esxcli2.hardware.pci.list.Invoke() | Where-Object {$_.VMKernelName -like "vmhba*" -or $_.VMKernelName -like "vmnic*" -or $_.VMKernelName -like "vmgfx*" }
+        $pciDevices = $esxcli2.hardware.pci.list.Invoke() | Where-Object {$_.VMKernelName -like "vmhba*" -or $_.VMKernelName -like "vmnic*" -or $_.VMKernelName -like "vmgfx*" } | Sort-Object -Property VMKernelName
      
         foreach ($pciDevice in $pciDevices) {
             $device = $vmhost | Get-VMHostPciDevice | Where-Object { $pciDevice.Address -match $_.Id }
@@ -766,14 +774,22 @@ function Get-ESXIODevice {
                 $vibVersion = $driverVib.Version
 
             <#
-                Skip if VMkernnel is vmhba* 
+                If HP Smart Array vmhba* (scsi-hpsa driver) then can get Firmware version
+                elese skip if VMkernnel is vmhba* 
                 Can't get HBA Firmware from Powercli at the moment
-                only through SSH or using Putty Plink+PowerCli
+                only through SSH or using Putty Plink+PowerCli.
             #>
             } elseif ($pciDevice.VMKernelName -like 'vmhba*') {
-                Write-Verbose ((Get-Date -Format G) + "`tSkip Firmware version check for: " + $pciDevice.DeviceName)
-                $firmwareVersion = $null
-
+                
+                if ($pciDevice.DeviceName -match "smart array") {
+                    Write-Verbose ((Get-Date -Format G) + "`tGet Firmware version for: " + $pciDevice.VMKernelName)
+                    $hpsa = $vmhost.ExtensionData.Runtime.HealthSystemRuntime.SystemHealthInfo.NumericSensorInfo | Where-Object {$_.Name -match "HP Smart Array"}
+                    $firmwareVersion = (($hpsa.Name -split "firmware")[1]).Trim()
+                } else {
+                    Write-Verbose ((Get-Date -Format G) + "`tSkip Firmware version check for: " + $pciDevice.DeviceName)
+                    $firmwareVersion = $null    
+                } #END if/ese
+                    
                 <#
                     Get HBA driver VIB package version
                 #>

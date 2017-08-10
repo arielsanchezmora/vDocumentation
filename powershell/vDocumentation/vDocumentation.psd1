@@ -12,7 +12,7 @@
 RootModule = '.\vDocumentation.psm1'
 
 # Version number of this module.
-ModuleVersion = '1.0.2'
+ModuleVersion = '1.0.3'
 
 # ID used to uniquely identify this module
 GUID = 'e38fbdc9-ac76-4e62-bb18-ae9feb9c23dc'
