@@ -32,6 +32,22 @@ _If the prompt returns without doing anything, you are running latest._
 Update-Module VMware.PowerCLI  
 Update-Module vDocumentation
 
+# Module Changelog
+
+__v1.04__ new functionality added:  
+ Updated export-excel so that it does no number conversion (IP addresses are now text) on any of the columns and it auto sizes them. Thanks to [@magneet_nl](https://twitter.com/Magneet_nl) for helping us discover this bug!
+
+__v1.03__ new functionality added:  
+ Get-ESXInventory: Added RAC Firmware version, BIOS release date.  
+ Get-ESXIODevice: Added support to get HP Smart Array Firmware from PowerCLI  
+ 
+__1.02__ Formatting & Manifest changes
+
+__1.01__ Changes to support displaying datastore multipathing
+
+__1.0__ First release to PowerShell Gallery with 4 commands: Get-ESXInventory, Get-ESXIODevice, Get-ESXNetworking & Get-ESXStorage
+
+
 # vDocumentation backstory
 
 Hi! I'm Ariel Sanchez (https://twitter.com/arielsanchezmor) and this is the result of a dream and the power of the vCommunity. I started a documentation template effort, which can be found [here](https://sites.google.com/site/arielsanchezmora/home/vmware/free-vmware-documentation-templates). There is a lot of work pending to be able to call the effort complete, but one very important component that my friend [Edgar Sanchez](https://github.com/edmsanchez) ( https://twitter.com/edmsanchez13 ) has advanced dramatically is the PowerCLI scripting. This repository stores them, and publishes them to the world so they can start being used. We open-sourced and placed in GitHub so they can be further improved by the vCommunity!
@@ -45,22 +61,6 @@ The license on these scripts is a MIT style license - use as you will. Like all 
 Our goal is that this project is useful to others and it will be accepted in the official VMware PowerCLI examples. Please, let us know if you found this useful, had trouble running it, or anything that you want to see changed. We are new to GitHub but actively learning - use GitHub or reach out to us on twitter or in the VMware Code Slack (https://code.vmware.com/web/code/join)
 
 To a future where walking into a new place and asking for documentation is greeted with "Yup, we use vDocumentation" and the interested party replies "Perfect!" :)
-
-# Module Changelog
-
-__v1.04__ new functionality added:  
- Updated export-excel so that it does no number conversion (IP addresses are now text) on any of the columns and it auto sizes them. Thanks to @magneet_nl for helping us discover this bug!
-
-__v1.03__ new functionality added:  
- Get-ESXInventory: Added RAC Firmware version, BIOS release date.  
- Get-ESXIODevice: Added support to get HP Smart Array Firmware from PowerCLI  
- 
-__1.02__ Formatting & Manifest changes
-
-__1.01__ Changes to support displaying datastore multipathing
-
-__1.0__ First release to PowerShell Gallery with 4 commands: Get-ESXInventory, Get-ESXIODevice, Get-ESXNetworking & Get-ESXStorage
-
 
 # Usage
 
