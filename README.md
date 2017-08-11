@@ -193,7 +193,7 @@ vDocumentation was created as a PowerShell module as well, and it's published in
 
 ![install_vDocumentation_1.03](https://github.com/arielsanchezmora/vDocumentation/blob/master/install_vDocumentation_1.03.png)
 
-For now, use this manual process:
+If you can't use the online method, use this manual process:
 
   1 Download the two files inside the vDocumentation folder.
   
@@ -201,17 +201,17 @@ For now, use this manual process:
   
   3 Close all PowerShell windows
   
-  4 Launch PowerShell, you should be able to use the vDocumentation functions now
+  4 Launch PowerShell again, you should be able to use the vDocumentation functions now
 
 
 ## One method to copy the needed files from Github to your PC using PowerShell:
 
 Execute these lines in a PowerShell window that is in your home directory (tested with PS 5)
 
-_mkdir Documents\WindowsPowerShell\Modules\vDocument_
+_mkdir Documents\WindowsPowerShell\Modules\vDocumentation_
 
-_(new-object Net.WebClient).DownloadString("https://raw.githubusercontent.com/arielsanchezmora/vDocumentation/master/powershell/vDocument/vDocument.psd1") > Documents\WindowsPowerShell\Modules\vDocument\vDocument.psd1_
+_(new-object Net.WebClient).DownloadString("https://raw.githubusercontent.com/arielsanchezmora/vDocumentation/master/powershell/vDocument/vDocument.psd1") > Documents\WindowsPowerShell\Modules\vDocument\vDocumentation.psd1_
 
-_(new-object Net.WebClient).DownloadString("https://raw.githubusercontent.com/arielsanchezmora/vDocumentation/master/powershell/vDocument/vDocument.psm1") > Documents\WindowsPowerShell\Modules\vDocument\vDocument.psm1_
+_(new-object Net.WebClient).DownloadString("https://raw.githubusercontent.com/arielsanchezmora/vDocumentation/master/powershell/vDocument/vDocument.psm1") > Documents\WindowsPowerShell\Modules\vDocument\vDocumentation.psm1_
 
 _exit_
