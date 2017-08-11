@@ -18,9 +18,13 @@ To a future where walking into a new place and asking for documentation is greet
 v1.0.3 new functionality added:
  Get-ESXInventory: Added RAC Firmware version, BIOS release date. 
  Get-ESXIODevice: Added support to get HP Smart Array Firmware from PowerCLI
+ 
 1.0.2 Formatting & Manifest changes
+
 1.0.1 Changes to support displaying datastore multipathing
+
 1.0 First release to PowerShell Gallery with 4 commands: Get-ESXInventory, Get-ESXIODevice, Get-ESXNetworking & Get-ESXStorage
+
 
 # Usage
 
