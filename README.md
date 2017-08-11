@@ -8,11 +8,11 @@ vDocumentation provides a community-created set of PowerCLI scripts that produce
 
 _Paste all of the below in a normal PowerShell console (Run as Administrator not needed)_
 
-Set-ExecutionPolicy RemoteSigned
-Install-Module -Name VMware.PowerCLI -Scope CurrentUser
-Set-PowerCLIConfiguration -InvalidCertificateAction Ignore
-Install-Module ImportExcel -scope CurrentUser
-Install-Module vDocumentation -Scope CurrentUser
+Set-ExecutionPolicy RemoteSigned  
+Install-Module -Name VMware.PowerCLI -Scope CurrentUser  
+Set-PowerCLIConfiguration -InvalidCertificateAction Ignore  
+Install-Module ImportExcel -scope CurrentUser  
+Install-Module vDocumentation -Scope CurrentUser  
 
 _Now connect to vCenter using PowerCLI_
 
@@ -20,10 +20,10 @@ Connect-VIServer [IP_or_FQDN_of_vCenter]  # Connect to your vCenter
 
 _You will now be able to use these commands:_
 
-Get-ESXInventory  _#Document host inventory and host config info into a Excel of CSV file_
-Get-ESXIODevice  _#Document information from HBAs, NICs and other PCIe devices such as firmware, drivers, etc_
-Get-ESXNetworking  _#Document networking configuration info such as NICs, vSwitches, VMKernel interfaces_
-Get-ESXStorage  _#Document storage information and configuration such as iSCSI, FibreChannel, Datastores, Multipathing_
+Get-ESXInventory  _#Document host inventory and host config info into a Excel of CSV file_  
+Get-ESXIODevice  _#Document information from HBAs, NICs and other PCIe devices such as firmware, drivers, etc_  
+Get-ESXNetworking  _#Document networking configuration info such as NICs, vSwitches, VMKernel interfaces_  
+Get-ESXStorage  _#Document storage information and configuration such as iSCSI, FibreChannel, Datastores, Multipathing_  
 
 ## Upgrading from a previous version
 
