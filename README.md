@@ -1,17 +1,18 @@
 # vDocumentation
-vDocumentation provides a community-created set of PowerCLI scripts that produce documentation of vSphere environments in Excel file format.
 
-Hi! I'm Ariel Sanchez (https://twitter.com/arielsanchezmor) and this is my brainchild. I started a documentation template effort, which can be found [here](https://sites.google.com/site/arielsanchezmora/home/vmware/free-vmware-documentation-templates). There is a lot of work to do in it, but one very important component that my friend [Edgar Sanchez](https://github.com/edmsanchez) ( https://twitter.com/edmsanchez13 ) has completed is the PowerCLI scripting. This repository stores them, and publishes them to the world so they can start being used and improved by the community!
+vDocumentation provides a community-created set of PowerCLI scripts that produce documentation of vSphere environments in CSV or Excel file format.
 
-The main motivation for this project was the sad state of reliable documentation available to many vSphere administrators. It is demoralizing to start a new job, ask for documentation, and find there is none, or what there is turns out to be outdated, or even worse, wrong! And it's also demoralizing to be tasked with creating documentation, realizing that creating it manually would take a long time, and that figuring out all the scripts will take probably longer.
+Hi! I'm Ariel Sanchez (https://twitter.com/arielsanchezmor) and this is the result of a dream and the power of the vCommunity. I started a documentation template effort, which can be found [here](https://sites.google.com/site/arielsanchezmora/home/vmware/free-vmware-documentation-templates). There is a lot of work pending to be able to call the effort complete, but one very important component that my friend [Edgar Sanchez](https://github.com/edmsanchez) ( https://twitter.com/edmsanchez13 ) has advanced dramatically is the PowerCLI scripting. This repository stores them, and publishes them to the world so they can start being used. We open-sourced and placed in GitHub so they can be further improved by the vCommunity!
 
-Thus, easy to create documentation "direct from vCenter" that is relevant to what your manager or another VMware administrator wants to see is our goal. The best part is, you only need to run the scripts and they create the needed Excel file for you. This means you can update your documentation at a moment's notice, and even better, use it to identify things in your environment that may not have been easily visible before.
+The main motivation for this project was the sad state of reliable documentation available to many vSphere administrators. It is demoralizing to start a new job, ask for documentation, and find there is none. It's sometimes worse that if there is documentation, it turns out to be outdated, or even worse, plain wrong! And it's also demoralizing to be tasked with creating documentation, realizing that creating it manually would take a long time, and that collecting and customizing all the scripts will take a long time as well.
 
-The license on these scripts is a BSD style license - use as you will. Like all the PowerCLI greats have told us before, steal and modify whatever you find useful. We definitely have stolen from all over the internet to create these (and have tried to credit those who we stole from). Special shout-outs to Luc Dekens, William Lam, Alan Renouf, Kyle Ruddy - and many more in the vCommunity.
+Thus, our goal is to be able to easily produce documentation "direct from vCenter" that is relevant to what your manager or another VMware administrator wants to see. The best part is, you only need to run the scripts and they create the needed CSV or Excel file for you. This means you can update your documentation at a moment's notice, and even better, review it to identify things in your environment that may not have been easily visible before.
 
-Our goal is that this project is useful to others and it will be accepted in the official VMware PowerCLI examples. Please, let us know if you found this useful, had trouble running it, or anything that you want to see changed. We are new to GitHub but actively learning - use GitHub or reach out to us on twitter or on the VMware Code Slack (https://code.vmware.com/web/code/join)
+The license on these scripts is a MIT style license - use as you will. Like all the PowerCLI greats have told us before, steal and modify whatever you find useful. We definitely have stolen from all over the internet to create these (and have tried to credit those who we stole from). Special shout-outs to Luc Dekens, William Lam, Alan Renouf, Kyle Ruddy - and many more in the vCommunity.
 
-To a future where walking into a new place and asking for documentation is greeted with "Yup, we use vDocument" and the interested party replies "Perfect!" :)
+Our goal is that this project is useful to others and it will be accepted in the official VMware PowerCLI examples. Please, let us know if you found this useful, had trouble running it, or anything that you want to see changed. We are new to GitHub but actively learning - use GitHub or reach out to us on twitter or in the VMware Code Slack (https://code.vmware.com/web/code/join)
+
+To a future where walking into a new place and asking for documentation is greeted with "Yup, we use vDocumentation" and the interested party replies "Perfect!" :)
 
 # Module Changelog
 
@@ -36,6 +37,8 @@ __Get-ESXIODevice__
 
 __Get-ESXNetworking__
 
+__Get-ESXStorage__
+
 Refer to the code's comments in the [vDocument Module File](https://github.com/arielsanchezmora/vDocumentation/blob/master/powershell/vDocument/vDocument.psm1) for full usage and examples, or use Get-Help and the module name:
 
 __Get-Help Get-ESXInventory__
@@ -49,17 +52,18 @@ SYNOPSIS
 
 SYNTAX
     Get-ESXInventory [[-esxi] <Object>] [[-cluster] <Object>] [[-datacenter] <Object>] [-ExportCSV] [-ExportExcel]
-    [[-folderPath] <Object>] [<CommonParameters>]
+    [-Hardware] [-Configuration] [[-folderPath] <Object>] [<CommonParameters>]
 
 
 DESCRIPTION
     Will get inventory information for a vSphere Cluster, Datacenter or individual ESXi host
     The following is gathered:
     Hostname, Management IP, RAC IP, ESXi Version information, Hardware information
+    and Host configuration
 
 
 RELATED LINKS
-    https://github.com/edmsanchez/vDocumentation
+    https://github.com/arielsanchezmora/vDocumentation
 
 REMARKS
     To see the examples, type: "get-help Get-ESXInventory -examples".
@@ -91,7 +95,7 @@ DESCRIPTION
 
 
 RELATED LINKS
-    https://github.com/edmsanchez/vDocumentation
+    https://github.com/arielsanchezmora/vDocumentation
 
 REMARKS
     To see the examples, type: "get-help Get-ESXIODevice -examples".
@@ -120,7 +124,7 @@ DESCRIPTION
 
 
 RELATED LINKS
-    https://github.com/edmsanchez/vDocumentation
+    https://github.com/arielsanchezmora/vDocumentation
 
 REMARKS
     To see the examples, type: "get-help Get-ESXNetworking -examples".
@@ -128,6 +132,34 @@ REMARKS
     For technical information, type: "get-help Get-ESXNetworking -full".
     For online help, type: "get-help Get-ESXNetworking -online"
 
+
+__Get-Help Get-ESXStorage__
+
+NAME
+    Get-ESXStorage
+
+SYNOPSIS
+    Get ESXi Storage Details
+
+
+SYNTAX
+    Get-ESXStorage [[-esxi] <Object>] [[-cluster] <Object>] [[-datacenter] <Object>] [-ExportCSV] [-ExportExcel]
+    [-StorageAdapters] [-Datastores] [[-folderPath] <Object>] [<CommonParameters>]
+
+
+DESCRIPTION
+    Will get iSCSI Software and Fibre Channel Adapter (HBA) details including Datastores
+    All this can be gathered for a vSphere Cluster, Datacenter or individual ESXi host
+
+
+RELATED LINKS
+    https://github.com/arielsanchezmora/vDocumentation
+
+REMARKS
+    To see the examples, type: "get-help Get-ESXStorage -examples".
+    For more information, type: "get-help Get-ESXStorage -detailed".
+    For technical information, type: "get-help Get-ESXStorage -full".
+    For online help, type: "get-help Get-ESXStorage -online"
 
 
 # Licensing
