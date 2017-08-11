@@ -13,6 +13,15 @@ Our goal is that this project is useful to others and it will be accepted in the
 
 To a future where walking into a new place and asking for documentation is greeted with "Yup, we use vDocument" and the interested party replies "Perfect!" :)
 
+# Module Changelog
+
+v1.0.3 new functionality added:
+ Get-ESXInventory: Added RAC Firmware version, BIOS release date. 
+ Get-ESXIODevice: Added support to get HP Smart Array Firmware from PowerCLI
+1.0.2 Formatting & Manifest changes
+1.0.1 Changes to support displaying datastore multipathing
+1.0 First release to PowerShell Gallery with 4 commands: Get-ESXInventory, Get-ESXIODevice, Get-ESXNetworking & Get-ESXStorage
+
 # Usage
 
 . Once you have installed the module, you will be able to use the following functions:
