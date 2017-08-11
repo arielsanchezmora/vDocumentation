@@ -25,6 +25,8 @@ Get-ESXIODevice  _#Document information from HBAs, NICs and other PCIe devices s
 Get-ESXNetworking  _#Document networking configuration info such as NICs, vSwitches, VMKernel interfaces_  
 Get-ESXStorage  _#Document storage information and configuration such as iSCSI, FibreChannel, Datastores, Multipathing_  
 
+_Each one of those scripts will create a Excel file on the path where PowerShell was running with a name and timestamp. You can customize CSV or Excel output, path, and whether it takes information from all vCenter or cluster/host with switches (read below)_
+
 ## Upgrading from a previous version
 
 _If the prompt returns without doing anything, you are running latest._
