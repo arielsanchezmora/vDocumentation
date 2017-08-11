@@ -273,8 +273,10 @@ If you can't use the online method, use this manual process:
 
 Execute these lines in a PowerShell window that is in your home directory (tested with PS 5)
 
-_mkdir Documents\WindowsPowerShell\Modules\vDocumentation_  
-_(new-object Net.WebClient).DownloadString("https://raw.githubusercontent.com/arielsanchezmora/vDocumentation/master/powershell/vDocument/vDocument.psd1") > Documents\WindowsPowerShell\Modules\vDocument\vDocumentation.psd1_  
+_mkdir Documents\WindowsPowerShell\Modules\vDocumentation_
+
+_(new-object Net.WebClient).DownloadString("https://raw.githubusercontent.com/arielsanchezmora/vDocumentation/master/powershell/vDocument/vDocument.psd1") > Documents\WindowsPowerShell\Modules\vDocument\vDocumentation.psd1_
+
 _(new-object Net.WebClient).DownloadString("https://raw.githubusercontent.com/arielsanchezmora/vDocumentation/master/powershell/vDocument/vDocument.psm1") > Documents\WindowsPowerShell\Modules\vDocument\vDocumentation.psm1_
 
 _exit_
