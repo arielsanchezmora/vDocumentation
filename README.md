@@ -29,7 +29,7 @@ Get-ESXStorage  _#Document storage information and configuration such as iSCSI, 
 
 _If the prompt returns without doing anything, you are running latest._
 
-Update-Module VMware.PowerCLI
+Update-Module VMware.PowerCLI  
 Update-Module vDocumentation
 
 # vDocumentation backstory
