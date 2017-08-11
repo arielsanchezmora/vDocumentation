@@ -492,7 +492,7 @@
         } #END if
 
         if ($ExportExcel) {
-            $hardwareCollection | Export-Excel ($outputFile + ".xlsx") -WorkSheetname Hardware_Inventory -BoldTopRow
+            $hardwareCollection | Export-Excel ($outputFile + ".xlsx") -WorkSheetname Hardware_Inventory -NoNumberConversion * -AutoSize -BoldTopRow
             Write-Host "`tData exported to" ($outputFile + ".xlsx") "file" -ForegroundColor Green
         } #END if
     } #END if
@@ -507,7 +507,7 @@
         } #END if
 
         if ($ExportExcel) {
-            $configurationCollection | Export-Excel ($outputFile + ".xlsx") -WorkSheetname Host_Configuration -BoldTopRow
+            $configurationCollection | Export-Excel ($outputFile + ".xlsx") -WorkSheetname Host_Configuration -NoNumberConversion * -AutoSize -BoldTopRow
             Write-Host "`tData exported to" ($outputFile + ".xlsx") "file" -ForegroundColor Green
         } #END if
     } #END if
@@ -853,7 +853,7 @@ function Get-ESXIODevice {
         } #END if
 
         if ($ExportExcel) {
-            $outputCollection | Export-Excel ($outputFile + ".xlsx") -WorkSheetname IO_Device -NoNumberConversion VID,DID,SVID,SSID -BoldTopRow
+            $outputCollection | Export-Excel ($outputFile + ".xlsx") -WorkSheetname IO_Device -NoNumberConversion * -AutoSize -BoldTopRow
             Write-Host "`tData exported to" ($outputFile + ".xlsx") "file" -ForegroundColor Green
         } #END if
     } else {
@@ -1528,7 +1528,7 @@ function Get-ESXNetworking {
         } #END if
 
         if ($ExportExcel) {
-            $PhysicalAdapterCollection | Export-Excel ($outputFile + ".xlsx") -WorkSheetname Physical_Adapters -BoldTopRow
+            $PhysicalAdapterCollection | Export-Excel ($outputFile + ".xlsx") -WorkSheetname Physical_Adapters -NoNumberConversion * -AutoSize -BoldTopRow
             Write-Host "`tData exported to" ($outputFile + ".xlsx") "file" -ForegroundColor Green
         } #END if
     } #END if
@@ -1543,7 +1543,7 @@ function Get-ESXNetworking {
         } #END if
 
         if ($ExportExcel) {
-            $VMkernelAdapterCollection | Export-Excel ($outputFile + ".xlsx") -WorkSheetname VMkernel_Adapters -BoldTopRow
+            $VMkernelAdapterCollection | Export-Excel ($outputFile + ".xlsx") -WorkSheetname VMkernel_Adapters -NoNumberConversion * -AutoSize -BoldTopRow
             Write-Host "`tData exported to" ($outputFile + ".xlsx") "file" -ForegroundColor Green
         } #END if
     } #END if
@@ -1558,7 +1558,7 @@ function Get-ESXNetworking {
         } #END if
 
         if ($ExportExcel) {
-            $VirtualSwitchesCollection | Export-Excel ($outputFile + ".xlsx") -WorkSheetname Virtual_Switches -BoldTopRow
+            $VirtualSwitchesCollection | Export-Excel ($outputFile + ".xlsx") -WorkSheetname Virtual_Switches -NoNumberConversion * -AutoSize -BoldTopRow
             Write-Host "`tData exported to" ($outputFile + ".xlsx") "file" -ForegroundColor Green
         } #END if
     } #END if
@@ -2041,7 +2041,7 @@ function Get-ESXStorage {
         } #END if
 
         if ($ExportExcel) {
-            $iSCSICollection | Export-Excel ($outputFile + ".xlsx") -WorkSheetname iSCSI_HBA -BoldTopRow
+            $iSCSICollection | Export-Excel ($outputFile + ".xlsx") -WorkSheetname iSCSI_HBA -NoNumberConversion * -AutoSize -BoldTopRow
             Write-Host "`tData exported to" ($outputFile + ".xlsx") "file" -ForegroundColor Green
         } #END if
     } #END if
@@ -2056,7 +2056,7 @@ function Get-ESXStorage {
         } #END if
 
         if ($ExportExcel) {
-            $FibreChannelCollection | Export-Excel ($outputFile + ".xlsx") -WorkSheetname FibreChannel_HBA -BoldTopRow
+            $FibreChannelCollection | Export-Excel ($outputFile + ".xlsx") -WorkSheetname FibreChannel_HBA -NoNumberConversion * -AutoSize -BoldTopRow
             Write-Host "`tData exported to" ($outputFile + ".xlsx") "file" -ForegroundColor Green
         } #END if
     } #END if
@@ -2071,7 +2071,7 @@ function Get-ESXStorage {
         } #END if
 
         if ($ExportExcel) {
-            $DatastoresCollection | Export-Excel ($outputFile + ".xlsx") -WorkSheetname Datastores -BoldTopRow
+            $DatastoresCollection | Export-Excel ($outputFile + ".xlsx") -WorkSheetname Datastores -NoNumberConversion * -AutoSize -BoldTopRow
             Write-Host "`tData exported to" ($outputFile + ".xlsx") "file" -ForegroundColor Green
         } #END if
     } #END if
