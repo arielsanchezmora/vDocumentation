@@ -189,7 +189,11 @@ _Install-Module ImportExcel -scope CurrentUser_
 
 ## Adding the vDocumentation module
 
-vDocumentation are powershell modules as well, but are not yet in the PowerShell Gallery, so we can't use the Install-Module command.  For now, use this manual process:
+vDocumentation was created as a PowerShell module as well, and it's published in the PowerShell Gallery, so we can use the Install-Module command:
+
+![install_vDocumentation_1.03](https://github.com/arielsanchezmora/vDocumentation/install_vDocumentation_1.03.png)
+
+For now, use this manual process:
 
   1 Download the two files inside the vDocumentation folder.
   
