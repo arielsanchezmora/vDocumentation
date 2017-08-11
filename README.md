@@ -2,6 +2,38 @@
 
 vDocumentation provides a community-created set of PowerCLI scripts that produce documentation of vSphere environments in CSV or Excel file format.
 
+# TL;DR
+
+## First time usage on a new machine
+
+_Paste all of the below in a normal PowerShell console (Run as Administrator not needed)_
+
+Set-ExecutionPolicy RemoteSigned
+Install-Module -Name VMware.PowerCLI -Scope CurrentUser
+Set-PowerCLIConfiguration -InvalidCertificateAction Ignore
+Install-Module ImportExcel -scope CurrentUser
+Install-Module vDocumentation -Scope CurrentUser
+
+_Now connect to vCenter using PowerCLI_
+
+Connect-VIServer [IP_or_FQDN_of_vCenter]  # Connect to your vCenter
+
+_You will now be able to use these commands:_
+
+Get-ESXInventory  _#Document host inventory and host config info into a Excel of CSV file_
+Get-ESXIODevice  _#Document information from HBAs, NICs and other PCIe devices such as firmware, drivers, etc_
+Get-ESXNetworking  _#Document networking configuration info such as NICs, vSwitches, VMKernel interfaces_
+Get-ESXStorage  _#Document storage information and configuration such as iSCSI, FibreChannel, Datastores, Multipathing_
+
+## Upgrading from a previous version
+
+_If the prompt returns without doing anything, you are running latest._
+
+Update-Module VMware.PowerCLI
+Update-Module vDocumentation
+
+# vDocumentation backstory
+
 Hi! I'm Ariel Sanchez (https://twitter.com/arielsanchezmor) and this is the result of a dream and the power of the vCommunity. I started a documentation template effort, which can be found [here](https://sites.google.com/site/arielsanchezmora/home/vmware/free-vmware-documentation-templates). There is a lot of work pending to be able to call the effort complete, but one very important component that my friend [Edgar Sanchez](https://github.com/edmsanchez) ( https://twitter.com/edmsanchez13 ) has advanced dramatically is the PowerCLI scripting. This repository stores them, and publishes them to the world so they can start being used. We open-sourced and placed in GitHub so they can be further improved by the vCommunity!
 
 The main motivation for this project was the sad state of reliable documentation available to many vSphere administrators. It is demoralizing to start a new job, ask for documentation, and find there is none. It's sometimes worse that if there is documentation, it turns out to be outdated, or even worse, plain wrong! And it's also demoralizing to be tasked with creating documentation, realizing that creating it manually would take a long time, and that collecting and customizing all the scripts will take a long time as well.
@@ -15,6 +47,9 @@ Our goal is that this project is useful to others and it will be accepted in the
 To a future where walking into a new place and asking for documentation is greeted with "Yup, we use vDocumentation" and the interested party replies "Perfect!" :)
 
 # Module Changelog
+
+v1.04 new functionality added:
+ Updated export-excel so that it does no number conversion (IP addresses are now text) on any of the columns and it auto sizes them. Thanks to @magneet_nl for helping us discover this bug!
 
 v1.0.3 new functionality added:
  Get-ESXInventory: Added RAC Firmware version, BIOS release date. 
