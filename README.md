@@ -48,18 +48,18 @@ To a future where walking into a new place and asking for documentation is greet
 
 # Module Changelog
 
-v1.04 new functionality added:  
+__v1.04__ new functionality added:  
  Updated export-excel so that it does no number conversion (IP addresses are now text) on any of the columns and it auto sizes them. Thanks to @magneet_nl for helping us discover this bug!
 
-v1.0.3 new functionality added:  
+__v1.03__ new functionality added:  
  Get-ESXInventory: Added RAC Firmware version, BIOS release date.  
  Get-ESXIODevice: Added support to get HP Smart Array Firmware from PowerCLI  
  
-1.0.2 Formatting & Manifest changes
+__1.02__ Formatting & Manifest changes
 
-1.0.1 Changes to support displaying datastore multipathing
+__1.01__ Changes to support displaying datastore multipathing
 
-1.0 First release to PowerShell Gallery with 4 commands: Get-ESXInventory, Get-ESXIODevice, Get-ESXNetworking & Get-ESXStorage
+__1.0__ First release to PowerShell Gallery with 4 commands: Get-ESXInventory, Get-ESXIODevice, Get-ESXNetworking & Get-ESXStorage
 
 
 # Usage
