@@ -48,12 +48,12 @@ To a future where walking into a new place and asking for documentation is greet
 
 # Module Changelog
 
-v1.04 new functionality added:
+v1.04 new functionality added:  
  Updated export-excel so that it does no number conversion (IP addresses are now text) on any of the columns and it auto sizes them. Thanks to @magneet_nl for helping us discover this bug!
 
-v1.0.3 new functionality added:
- Get-ESXInventory: Added RAC Firmware version, BIOS release date. 
- Get-ESXIODevice: Added support to get HP Smart Array Firmware from PowerCLI
+v1.0.3 new functionality added:  
+ Get-ESXInventory: Added RAC Firmware version, BIOS release date.  
+ Get-ESXIODevice: Added support to get HP Smart Array Firmware from PowerCLI  
  
 1.0.2 Formatting & Manifest changes
 
@@ -230,8 +230,7 @@ _$psversiontable_ [enter]  =  gives you the PowerShell version
 _get-module VMware* -ListAvailable_ [enter]  =  Lists all installed PowerCLI modules, if return empty, install PowerCLI
 
 ## Installing PowerCLI
-  _Find-Module -Name VMware.PowerCLI_  =  checks connectivity to PowerShell Gallery and updates NuGet if needed (yes is default)
-  
+  _Find-Module -Name VMware.PowerCLI_  =  checks connectivity to PowerShell Gallery and updates NuGet if needed (yes is default)  
   _Install-Module -Name VMware.PowerCLI -Scope CurrentUser_  =  install PowerCLI as long as you answer Y or A
 
 ## Execution Policy and Certificate Warnings
@@ -262,12 +261,9 @@ vDocumentation was created as a PowerShell module as well, and it's published in
 
 If you can't use the online method, use this manual process:
 
-  1 Download the two files inside the vDocumentation folder.
-  
-  2 Browse to the %USERPROFILE%\Documents\WindowsPowerShell\Modules and copy the files inside a folder named vDocumentation
-  
-  3 Close all PowerShell windows
-  
+  1 Download the two files inside the vDocumentation folder.  
+  2 Browse to the %USERPROFILE%\Documents\WindowsPowerShell\Modules and copy the files inside a folder named vDocumentation  
+  3 Close all PowerShell windows  
   4 Launch PowerShell again, you should be able to use the vDocumentation functions now
 
 
@@ -275,10 +271,8 @@ If you can't use the online method, use this manual process:
 
 Execute these lines in a PowerShell window that is in your home directory (tested with PS 5)
 
-_mkdir Documents\WindowsPowerShell\Modules\vDocumentation_
-
-_(new-object Net.WebClient).DownloadString("https://raw.githubusercontent.com/arielsanchezmora/vDocumentation/master/powershell/vDocument/vDocument.psd1") > Documents\WindowsPowerShell\Modules\vDocument\vDocumentation.psd1_
-
+_mkdir Documents\WindowsPowerShell\Modules\vDocumentation_  
+_(new-object Net.WebClient).DownloadString("https://raw.githubusercontent.com/arielsanchezmora/vDocumentation/master/powershell/vDocument/vDocument.psd1") > Documents\WindowsPowerShell\Modules\vDocument\vDocumentation.psd1_  
 _(new-object Net.WebClient).DownloadString("https://raw.githubusercontent.com/arielsanchezmora/vDocumentation/master/powershell/vDocument/vDocument.psm1") > Documents\WindowsPowerShell\Modules\vDocument\vDocumentation.psm1_
 
 _exit_
