@@ -259,7 +259,7 @@ _Install-Module ImportExcel -scope CurrentUser_
 
 vDocumentation was created as a PowerShell module as well, and it's published in the PowerShell Gallery, so we can use the Install-Module command:
 
-![install_vDocumentation_1.03](https://github.com/arielsanchezmora/vDocumentation/blob/master/install_vDocumentation_1.03.png)
+![install_vDocumentation_1.03](https://github.com/arielsanchezmora/vDocumentation/blob/master/pics/install_vDocumentation_1.03.png)
 
 If you can't use the online method, use this manual process:
 
