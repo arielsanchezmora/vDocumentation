@@ -6,7 +6,7 @@ vDocumentation provides a community-created set of PowerCLI scripts that produce
 
 ## First time usage on a *brand new machine*
 
-_Paste in a PowerShell window that has been Run as Administrator_
+_Paste in a PowerShell window that has been Run as Administrator and press Y twice_
 
 **Set-ExecutionPolicy RemoteSigned**  
 **Set-PowerCLIConfiguration -InvalidCertificateAction Ignore**
@@ -17,11 +17,14 @@ _Paste in a PowerShell window that has been Run as Administrator_
 
 _You can now close that PowerShell window that ran as Administrator_ 
 
-_Paste all of the below in a **normal** PowerShell console (this only affects your user and is very safe even in shared computers)_
+_Paste all of the below in a **normal** PowerShell console answering Y (this only affects your user and is very safe even in shared computers)_
 
 **Install-Module -Name VMware.PowerCLI -Scope CurrentUser**  
 **Install-Module ImportExcel -scope CurrentUser**  
 **Install-Module vDocumentation -Scope CurrentUser**  
+
+![Install PowerCLI, ImportExcel and vDocumentation modules](https://github.com/arielsanchezmora/vDocumentation/blob/master/pictures/install_PowerCLI_ImportExcel_vDocumentation.png)
+
 
 _vDocumentation is installed! You can verify with_
 
