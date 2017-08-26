@@ -13,6 +13,9 @@ Set-PowerCLIConfiguration -InvalidCertificateAction Ignore
 
 ![Run PowerShell as Administrator](https://github.com/arielsanchezmora/vDocumentation/blob/master/pictures/PowerShell_as_administrator.png)
 
+![Enable remote scripts and ignore certificate warnings](https://github.com/arielsanchezmora/vDocumentation/blob/master/pictures/enable_RemoteSigned_Invalid_Certificate.png)
+
+
 _Paste all of the below in a normal PowerShell console (Run as Administrator not needed)_
 
 Install-Module -Name VMware.PowerCLI -Scope CurrentUser  
