@@ -47,7 +47,7 @@ _You will now be able to use these commands:_
 |**Get-ESXNetworking**|Document networking configuration info such as NICs, vSwitches, VMKernel interfaces|
 |**Get-ESXStorage**|Document storage information and configuration such as iSCSI, FibreChannel, Datastores, Multipathing|
 
-_Each one of those scripts will create a Excel file on the path where PowerShell was running with a name and timestamp. You can customize CSV or Excel output, path, and whether it takes information from all vCenter or cluster/host with switches (read below)_
+_Each one of those scripts will output the corresponding data to terminal, and optionally create a file (XLSX or CSV) with the command name and timestamp. You can use command switches to customize CSV or Excel output, file path (default is powershell workind directory), and the command scope (report all vCenter or just cluster/host)._
 
 ## Upgrading from a previous version
 
