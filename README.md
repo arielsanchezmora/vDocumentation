@@ -32,7 +32,7 @@ _vDocumentation is installed! You can verify with_
 ![Confirm vDocumentation installation](https://github.com/arielsanchezmora/vDocumentation/blob/master/pictures/Confirm_vDocumentation_installation.png)
 
 
-##The vDocumentation script basically gives you new commands you can use to create documentation from a vSphere environment
+## The vDocumentation module gives you new PowerCLI Commands you can use to create documentation from a vSphere environment
 
 _Make sure to connect to vCenter using PowerCLI_
 
