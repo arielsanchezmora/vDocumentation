@@ -40,7 +40,7 @@ _Make sure to connect to vCenter using PowerCLI_
 
 _You will now be able to use these commands:_
 
-|Command|Description|
+|PowerCLI Command|Description|
 |---|---|
 |Get-ESXInventory|Document host inventory and host config info into a Excel of CSV file|
 |Get-ESXIODevice|Document information from HBAs, NICs and other PCIe devices such as firmware, drivers, etc|
