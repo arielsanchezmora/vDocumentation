@@ -17,7 +17,7 @@ _Paste in a PowerShell window that has been Run as Administrator and press Y twi
 
 _You can now close that PowerShell window that ran as Administrator_ 
 
-_Paste all of the below in a **normal** PowerShell console answering Y (this only affects your user and is very safe even in shared computers)_
+_Paste all of the below in a **normal** PowerShell console answering Y (this only affects your user, and it may take a while)_
 
 **Install-Module -Name VMware.PowerCLI -Scope CurrentUser**  
 **Install-Module ImportExcel -scope CurrentUser**  
@@ -53,8 +53,17 @@ _Each one of those scripts will output the corresponding data to terminal, and o
 
 _If the prompt returns without doing anything, you are running latest._
 
-Update-Module VMware.PowerCLI  
-Update-Module vDocumentation
+**Update-Module VMware.PowerCLI**  
+**Update-Module ImportExcel**  
+**Update-Module vDocumentation**
+
+![Upgrade Commands](https://github.com/arielsanchezmora/vDocumentation/blob/master/pictures/upgrade_commands.png)
+
+## Uninstalling the vDocumentation script
+
+**Uninstall-Module vDocumentation**
+
+![Uninstall vDocumentation](https://github.com/arielsanchezmora/vDocumentation/blob/master/pictures/uninstall_vDocumentation.png)
 
 # Module Changelog
 
