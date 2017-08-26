@@ -8,8 +8,8 @@ vDocumentation provides a community-created set of PowerCLI scripts that produce
 
 _Paste in a PowerShell window that has been Run as Administrator_
 
-Set-ExecutionPolicy RemoteSigned  
-Set-PowerCLIConfiguration -InvalidCertificateAction Ignore
+**Set-ExecutionPolicy RemoteSigned**  
+**Set-PowerCLIConfiguration -InvalidCertificateAction Ignore**
 
 ![Run PowerShell as Administrator](https://github.com/arielsanchezmora/vDocumentation/blob/master/pictures/PowerShell_as_administrator.png)
 
