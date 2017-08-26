@@ -41,11 +41,11 @@ _Make sure to connect to vCenter using PowerCLI_
 _You will now be able to use these commands:_
 
 |PowerCLI Command|Description|
-|---|---|
-|Get-ESXInventory|Document host inventory and host config info into a Excel of CSV file|
-|Get-ESXIODevice|Document information from HBAs, NICs and other PCIe devices such as firmware, drivers, etc|
-|Get-ESXNetworking|Document networking configuration info such as NICs, vSwitches, VMKernel interfaces|
-|Get-ESXStorage|Document storage information and configuration such as iSCSI, FibreChannel, Datastores, Multipathing|
+|----------------|---|
+|**Get-ESXInventory**|Document host inventory and host config info into a Excel of CSV file|
+|**Get-ESXIODevice**|Document information from HBAs, NICs and other PCIe devices such as firmware, drivers, etc|
+|**Get-ESXNetworking**|Document networking configuration info such as NICs, vSwitches, VMKernel interfaces|
+|**Get-ESXStorage**|Document storage information and configuration such as iSCSI, FibreChannel, Datastores, Multipathing|
 
 _Each one of those scripts will create a Excel file on the path where PowerShell was running with a name and timestamp. You can customize CSV or Excel output, path, and whether it takes information from all vCenter or cluster/host with switches (read below)_
 
