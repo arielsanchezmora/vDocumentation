@@ -25,14 +25,18 @@ _Paste all of the below in a **normal** PowerShell console answering Y (this onl
 
 ![Install PowerCLI, ImportExcel and vDocumentation modules](https://github.com/arielsanchezmora/vDocumentation/blob/master/pictures/install_PowerCLI_ImportExcel_vDocumentation.png)
 
-
 _vDocumentation is installed! You can verify with_
 
+**Get-Module vDocumentation -ListAvailable | Format-Table -AutoSize**
+
+![Confirm vDocumentation installation](https://github.com/arielsanchezmora/vDocumentation/blob/master/pictures/Confirm_vDocumentation_installation.png)
 
 
-_Now connect to vCenter using PowerCLI_
+##The vDocumentation script basically gives you new commands you can use to create documentation from a vSphere environment
 
-Connect-VIServer [IP_or_FQDN_of_vCenter]  # Connect to your vCenter
+_Make sure to connect to vCenter using PowerCLI_
+
+**Connect-VIServer [IP_or_FQDN_of_vCenter]**  # Connect to your vCenter
 
 _You will now be able to use these commands:_
 
