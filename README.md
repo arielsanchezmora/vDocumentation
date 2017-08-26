@@ -6,7 +6,7 @@ vDocumentation provides a community-created set of PowerCLI scripts that produce
 
 ## First time usage on a *brand new machine*
 
-_Paste in a PowerShell window that has been Run as Administrator and press Y twice_
+_Paste in a PowerShell window that has been Run as Administrator and answer Y_
 
 **Set-ExecutionPolicy RemoteSigned**  
 **Set-PowerCLIConfiguration -InvalidCertificateAction Ignore**
@@ -15,9 +15,9 @@ _Paste in a PowerShell window that has been Run as Administrator and press Y twi
 
 ![Enable remote scripts and ignore certificate warnings](https://github.com/arielsanchezmora/vDocumentation/blob/master/pictures/enable_RemoteSigned_Invalid_Certificate.png)
 
-_You can now close that PowerShell window that ran as Administrator_ 
+_You can now close the PowerShell window that ran as Administrator_ 
 
-_Paste all of the below in a **normal** PowerShell console answering Y (this only affects your user, and it may take a while)_
+_In a new **normal** PowerShell console paste all of the below answering Y (this only affects your user, and it may take a while)_
 
 **Install-Module -Name VMware.PowerCLI -Scope CurrentUser**  
 **Install-Module ImportExcel -scope CurrentUser**  
@@ -25,29 +25,29 @@ _Paste all of the below in a **normal** PowerShell console answering Y (this onl
 
 ![Install PowerCLI, ImportExcel and vDocumentation modules](https://github.com/arielsanchezmora/vDocumentation/blob/master/pictures/install_PowerCLI_ImportExcel_vDocumentation.png)
 
-_vDocumentation is installed! You can verify with_
+_vDocumentation is now installed! You can verify with_
 
 **Get-Module vDocumentation -ListAvailable | Format-Table -AutoSize**
 
 ![Confirm vDocumentation installation](https://github.com/arielsanchezmora/vDocumentation/blob/master/pictures/Confirm_vDocumentation_installation.png)
 
 
-## The vDocumentation module gives you new PowerCLI Commands you can use to create documentation from a vSphere environment
+## The vDocumentation module gives you new PowerCLI Commands you can use to create documentation of a vSphere environment
 
 _Make sure to connect to vCenter using PowerCLI_
 
-**Connect-VIServer [IP_or_FQDN_of_vCenter]**  # Connect to your vCenter
+**Connect-VIServer [IP_or_FQDN_of_vCenter]**  # Connect to one or many vCenters
 
-_You will now be able to use these commands:_
+_You are now able to use these commands:_
 
 |Command|Description|
 |----------------|---|
-|**Get-ESXInventory**|Document host inventory and host config info into a Excel of CSV file|
-|**Get-ESXIODevice**|Document information from HBAs, NICs and other PCIe devices such as firmware, drivers, etc|
-|**Get-ESXNetworking**|Document networking configuration info such as NICs, vSwitches, VMKernel interfaces|
-|**Get-ESXStorage**|Document storage information and configuration such as iSCSI, FibreChannel, Datastores, Multipathing|
+|**Get-ESXInventory**|Document host inventory and host config info|
+|**Get-ESXIODevice**|Document information from HBAs, MACs, NICs and other PCIe devices including firmware & drivers|
+|**Get-ESXNetworking**|Document networking configuration info such as NICs, vSwitches, VMKernel interface configuration|
+|**Get-ESXStorage**|Document storage information and configurations such as iSCSI, FibreChannel, Datastores & Multipathing|
 
-_Each one of those scripts will output the corresponding data to terminal, and optionally create a file (XLSX or CSV) with the command name and timestamp. You can use command switches to customize CSV or Excel output, file path (default is powershell working directory), and the command scope (report all vCenter or just cluster/host)._
+_Each script will output the corresponding data to terminal, and optionally create a file (XLSX, CSV) with the command name and a timestamp. You can use command switches to customize CSV or Excel output, file path (default is powershell working directory), and the command scope (report all vCenter or just cluster/host)._
 
 ## Upgrading from a previous version
 
