@@ -4,13 +4,16 @@ vDocumentation provides a community-created set of PowerCLI scripts that produce
 
 # TL;DR
 
-## First time usage on a new machine
+## First time usage on a *brand new machine*
+
+_Paste in a PowerShell window that has been Run as Administrator_
+
+Set-ExecutionPolicy RemoteSigned 
+Set-PowerCLIConfiguration -InvalidCertificateAction Ignore
 
 _Paste all of the below in a normal PowerShell console (Run as Administrator not needed)_
 
-Set-ExecutionPolicy RemoteSigned  
 Install-Module -Name VMware.PowerCLI -Scope CurrentUser  
-Set-PowerCLIConfiguration -InvalidCertificateAction Ignore  
 Install-Module ImportExcel -scope CurrentUser  
 Install-Module vDocumentation -Scope CurrentUser  
 
