@@ -99,7 +99,7 @@ What if I can't run PowerShell 5.x?
 
 Why do I get a warning about deprecated features when running the script?
 
-- This is native from PowerCLI as they plan future changes. You can disable the warnings with 'Set-PowerCLIConfiguration -DisplayDeprecationWarnings $false -Scope User'
+- This is native from PowerCLI as they plan future changes. You can disable the warnings with ''Set-PowerCLIConfiguration -DisplayDeprecationWarnings $false -Scope User''
 
 # Module Changelog
 
