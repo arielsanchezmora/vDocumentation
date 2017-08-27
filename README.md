@@ -1,6 +1,6 @@
 # vDocumentation
 
-vDocumentation provides a community-created set of PowerCLI scripts that produce documentation of vSphere environments in CSV or Excel file format.
+vDocumentation provides a community-created set of PowerCLI scripts that produce infrastructure documentation of vSphere environments in CSV or Excel file format.
 
 # TL;DR
 
@@ -64,6 +64,15 @@ _If the prompt returns without doing anything, you are running latest._
 **Uninstall-Module vDocumentation**
 
 ![Uninstall vDocumentation](https://github.com/arielsanchezmora/vDocumentation/blob/master/pictures/uninstall_vDocumentation.png)
+
+## Command switch options
+
+|Scope|Switch|Description|
+|---|---|---|
+|**Get-ESXInventory**|Document host inventory and host config info|
+|**Get-ESXIODevice**|Document information from HBAs, MACs, NICs and other PCIe devices including firmware & drivers|
+|**Get-ESXNetworking**|Document networking configuration info such as NICs, vSwitches, VMKernel interface configuration|
+|**Get-ESXStorage**|Document storage information and configurations such as iSCSI, FibreChannel, Datastores & Multipathing|
 
 # Module Changelog
 
