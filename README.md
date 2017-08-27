@@ -4,7 +4,7 @@ vDocumentation provides a community-created set of PowerCLI scripts that produce
 
 # TL;DR
 
-## First time usage on a *brand new machine* using a current PowerShell
+## First time usage on a *brand new machine* using PowerShell 5.x with an internet connection
 
 _Paste in a PowerShell window that has been Run as Administrator and answer Y_
 
@@ -38,6 +38,8 @@ _Make sure to connect to vCenter using PowerCLI_
 
 **Connect-VIServer [IP_or_FQDN_of_vCenter]**  # Connect to one or many vCenters
 
+_When prompted for credentials use an Administrator level account_
+
 _You are now able to use these commands:_
 
 |Command|Description|
@@ -69,10 +71,23 @@ _If the prompt returns without doing anything, you are running latest._
 
 |Scope|Switch|Description|
 |---|---|---|
-|**Get-ESXInventory**|Document host inventory and host config info|
-|**Get-ESXIODevice**|Document information from HBAs, MACs, NICs and other PCIe devices including firmware & drivers|
-|**Get-ESXNetworking**|Document networking configuration info such as NICs, vSwitches, VMKernel interface configuration|
-|**Get-ESXStorage**|Document storage information and configurations such as iSCSI, FibreChannel, Datastores & Multipathing|
+|Target|**-esxi**|Get information from a particular host (for several hosts use commas)|
+|Target|**-cluster**|Get information from a particular cluster |
+|Target|**-datacenter**| |
+|Output|**-ExportCSV**| |
+|Output|**-ExportExcel**| |
+|Info Tab|**-Hardware**| |
+|Info Tab|**-Configuration**| |
+
+## FAQ
+
+What if I don't have internet?
+
+https://blogs.vmware.com/PowerCLI/2017/04/powercli-install-process-powershell-gallery.html
+
+What if I can't run PowerShell 5.x?
+
+We have tested against PowerShell 4 and we know TLS 1.2
 
 # Module Changelog
 
