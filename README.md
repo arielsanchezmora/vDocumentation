@@ -4,7 +4,7 @@ vDocumentation provides a community-created set of PowerCLI scripts that produce
 
 # TL;DR
 
-## First time usage on a *brand new machine*
+## First time usage on a *brand new machine* using a current PowerShell
 
 _Paste in a PowerShell window that has been Run as Administrator and answer Y_
 
