@@ -4,7 +4,7 @@ vDocumentation provides a community-created set of PowerCLI scripts that produce
 
 # TL;DR
 
-## First time usage on a *brand new machine* using PowerShell 5.x with an internet connection
+## First time usage on a *brand new machine* with PowerShell 5.x and an internet connection
 
 _Paste in a PowerShell window that has been Run as Administrator and answer Y_
 
@@ -69,6 +69,13 @@ _If the prompt returns without doing anything, you are running latest._
 
 ## Command switch options
 
+_Running a command without switches will_
+- report on all virtual datacenters in all connected vCenters
+- output to PowerShell terminal only
+- include all data tabs
+
+_To change this behaviour use these switches:_
+
 |Scope|Switch|Description|
 |---|---|---|
 |Target|**-esxi**|Get information from a particular host (for several, use commas)|
@@ -87,7 +94,7 @@ https://blogs.vmware.com/PowerCLI/2017/04/powercli-install-process-powershell-ga
 
 What if I can't run PowerShell 5.x?
 
-We have tested against PowerShell 4 and we know TLS 1.2
+ESXi and vCenter can be hardened to only talk on TLS v1.2. You need .Net 4.6 or above for PowerShell to support this.
 
 # Module Changelog
 
