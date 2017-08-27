@@ -38,7 +38,7 @@ _Make sure to connect to vCenter using PowerCLI_
 
 **Connect-VIServer [IP_or_FQDN_of_vCenter]**  # Connect to one or many vCenters
 
-_When prompted for credentials use an Administrator level account_
+_When prompted for credentials use a vCenter Administrator-level account_
 
 _You are now able to use these commands:_
 
@@ -71,9 +71,9 @@ _If the prompt returns without doing anything, you are running latest._
 
 |Scope|Switch|Description|
 |---|---|---|
-|Target|**-esxi**|Get information from a particular host (for several hosts use commas)|
-|Target|**-cluster**|Get information from a particular cluster |
-|Target|**-datacenter**| |
+|Target|**-esxi**|Get information from a particular host (for several, use commas)|
+|Target|**-cluster**|Get information from a particular cluster (for several, use commas)|
+|Target|**-datacenter**|Get information from a particular virtual datacenter (for several, use commas)|
 |Output|**-ExportCSV**| |
 |Output|**-ExportExcel**| |
 |Info Tab|**-Hardware**| |
