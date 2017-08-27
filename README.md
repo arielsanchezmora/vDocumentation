@@ -84,7 +84,7 @@ _To change this behaviour use these switches:_
 |Output|**-folderPath**|Specify the path to save the file name|
 |Output|**-ExportCSV**|The output will be written to a CSV file|
 |Output|**-ExportExcel**|The output will be written to a XLSX file (if ImportExcel module is not installed will do CSV)|
-|Info Tab|**-Hardware**|For Get-ESXInventory: outputs Hardware |
+|Info Tab|**-Hardware**|For Get-ESXInventory: explicitly outputs the Hardware tab (instead of default, which is All)|
 |Info Tab|**-Configuration**| |
 
 ## FAQ
@@ -96,6 +96,10 @@ What if I don't have internet?
 What if I can't run PowerShell 5.x?
 
 - If ESXi and vCenter are hardened to only talk on TLS v1.2, you need .Net 4.5 or above for PowerShell to support this.
+
+Why do I get a warning about deprecated features when running the script?
+
+- This is native from PowerCLI as they plan future changes. You can disable the warnings with 
 
 # Module Changelog
 
@@ -117,7 +121,7 @@ __1.0__ First release to PowerShell Gallery with 4 commands: Get-ESXInventory, G
 
 Hi! I'm Ariel Sanchez (https://twitter.com/arielsanchezmor) and this is the result of a dream and the power of the vCommunity. I started a documentation template effort, which can be found [here](https://sites.google.com/site/arielsanchezmora/home/vmware/free-vmware-documentation-templates). There is a lot of work pending to be able to call the effort complete, but one very important component that my friend [Edgar Sanchez](https://github.com/edmsanchez) ( https://twitter.com/edmsanchez13 ) has advanced dramatically is the PowerCLI scripting. This repository stores them, and publishes them to the world so they can start being used. We open-sourced and placed in GitHub so they can be further improved by the vCommunity!
 
-The main motivation for this project was the sad state of vSphere infrastructure documentation accessible to many vSphere administrators. It is demoralizing to start a new job, ask for documentation, and find there is none. It's bad enough when the documentation is outdated, but even worse when it's plain wrong. And it's also demoralizing to be tasked with creating documentation, realizing that creating it manually would take a long time, and that collecting and customizing all the scripts will take a long time as well.
+The main motivation for this project was the sad state of vSphere infrastructure documentation accessible to many vSphere administrators. It is demoralizing to start a new job, ask for documentation, and find there is none. The situation is bad enough when the documentation is outdated, but even worse when it's plain wrong. And it's also demoralizing to be tasked with creating documentation, realizing that creating it manually would take a long time, and that collecting and customizing all the scripts will take a long time as well.
 
 Thus, our goal is to be able to easily produce documentation "direct from vCenter" that is relevant to what your manager or another VMware administrator wants to see. The best part is, you only need to run the scripts and they create the needed CSV or Excel file for you. This means you can update your documentation at a moment's notice, and even better, review it to identify things in your environment that may not have been easily visible before.
 
