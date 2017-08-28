@@ -121,10 +121,10 @@ Get-ESXStorage -Datastores
 
 Outputs thanks to [@magneet_nl](https://twitter.com/Magneet_nl) - full list in 
 
-![magneet_csv1](https://github.com/arielsanchezmora/vDocumentation/blob/master/pictures/magneet_csv_hardware_1.png)  
-![magneet_csv2](https://github.com/arielsanchezmora/vDocumentation/blob/master/pictures/magneet_csv_hardware_2.png)  
-![magneet_csv3](https://github.com/arielsanchezmora/vDocumentation/blob/master/pictures/magneet_csv_hardware_3.png)  
-![magneet_csv4](https://github.com/arielsanchezmora/vDocumentation/blob/master/pictures/magneet_csv_hardware_4.png)  
+![magneet_csv1](https://github.com/arielsanchezmora/vDocumentation/blob/master/example-outputs/Magneet_nl/magneet_csv_hardware_1.png)  
+![magneet_csv2](https://github.com/arielsanchezmora/vDocumentation/blob/master/example-outputs/Magneet_nl/magneet_csv_hardware_2.png)  
+![magneet_csv3](https://github.com/arielsanchezmora/vDocumentation/blob/master/example-outputs/Magneet_nl/magneet_csv_hardware_3.png)  
+![magneet_csv4](https://github.com/arielsanchezmora/vDocumentation/blob/master/example-outputs/Magneet_nl/magneet_csv_hardware_4.png)  
 
 Blog article thanks to [@mwVme](https://twitter.com/mwVme) https://notesfrommwhite.net/2017/08/16/document-your-vsphere-environment-yes-you-can/
 
