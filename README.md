@@ -20,7 +20,7 @@ _You can now close the PowerShell window that ran as Administrator_
 _In a new **normal** PowerShell console paste all of the below answering Y (this only affects your user, and it may take a while)_
 
 **Install-Module -Name VMware.PowerCLI -Scope CurrentUser**  
-**Install-Module ImportExcel -scope CurrentUser** ([About ImportExcel module](https://github.com/dfinke/ImportExcel))  
+**Install-Module ImportExcel -scope CurrentUser** ([Read about ImportExcel module](https://github.com/dfinke/ImportExcel))  
 **Install-Module vDocumentation -Scope CurrentUser**  
 
 ![Install PowerCLI, ImportExcel and vDocumentation modules](https://github.com/arielsanchezmora/vDocumentation/blob/master/pictures/install_PowerCLI_ImportExcel_vDocumentation.png)
