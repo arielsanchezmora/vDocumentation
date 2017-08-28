@@ -94,19 +94,21 @@ Get-ESXIODevice _(only has one tab)_
 
 ![Get-ESXIODevice](https://github.com/arielsanchezmora/vDocumentation/blob/master/pictures/Get-ESXIODevice_output.png)
 
-Get-ESXNetworking -VirtualSwitches
+Get-ESXNetworking -VirtualSwitches _(standard switch)_
 
 ![Get-ESXNetworking -VirtualSwitches](https://github.com/arielsanchezmora/vDocumentation/blob/master/pictures/Get-ESXNetworking-VirtualSwitches_output.png)
 
-Get-ESXNetworking -VirtualSwitches
+Get-ESXNetworking -VirtualSwitches _(distributed switch)_
 
-![Get-ESXNetworking -VirtualSwitches](https://github.com/arielsanchezmora/vDocumentation/blob/master/pictures/Get-ESXNetworking-VirtualSwitches_output.png)
+![Get-ESXNetworking -VirtualSwitches](https://github.com/arielsanchezmora/vDocumentation/blob/master/pictures/Get-ESXNetworking-VirtualSwitches_output2.png)
 
 Get-ESXNetworking -VMKernelAdapter
 
 ![Get-ESXNetworking -VMKernelAdapter](https://github.com/arielsanchezmora/vDocumentation/blob/master/pictures/Get-ESXNetworking-VMkernelAdapters_output.png)
 
+Get-ESXNetworking -PhysicalAdapters
 
+![Get-ESXNetworking -PhysicalAdapters](https://github.com/arielsanchezmora/vDocumentation/blob/master/pictures/Get-ESXNetworking-PhysicalAdapters_output.png)
 
 ## Upgrading from a previous version
 
