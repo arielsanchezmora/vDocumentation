@@ -51,7 +51,7 @@ _Each script will output the corresponding data to terminal, and optionally crea
 
 ## Command switch options
 
-_Running a command without switches will_
+_Running a command **without** switches will_
 - report on all virtual datacenters in all connected vCenters
 - output to PowerShell terminal only
 - include all data tabs for each command
@@ -71,7 +71,7 @@ _To change this behaviour use these switches:_
 |Info Tab|**-Configuration**|For Get-ESXInventory: explicitly outputs the Configuration tab (instead of default, which is All)|
 |Info Tab|**-Configuration**|For Get-ESXInventory: explicitly outputs the Configuration tab (instead of default, which is All)|
 
-You can alays see this information with the Get-Help command
+You can always see this information with the Get-Help command
 
 `get-help Get-ESXInventory -ShowWindow`
 
