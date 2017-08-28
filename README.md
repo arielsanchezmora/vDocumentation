@@ -110,6 +110,14 @@ Get-ESXNetworking -PhysicalAdapters
 
 ![Get-ESXNetworking -PhysicalAdapters](https://github.com/arielsanchezmora/vDocumentation/blob/master/pictures/Get-ESXNetworking-PhysicalAdapters_output.png)
 
+Get-ESXStorage -StorageAdapters
+
+![Get-ESXStorage -StorageAdapters](https://github.com/arielsanchezmora/vDocumentation/blob/master/pictures/Get-ESXStorage-StorageAdapters_output.png)
+
+Get-ESXStorage -Datastores
+
+![Get-ESXStorage -Datastores](https://github.com/arielsanchezmora/vDocumentation/blob/master/pictures/Get-ESXStorage-Datastores_output.png)
+
 ## Upgrading from a previous version
 
 _If the prompt returns without doing anything, you are running latest._
