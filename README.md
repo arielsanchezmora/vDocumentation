@@ -20,7 +20,7 @@ _You can now close the PowerShell window that ran as Administrator_
 _In a new **normal** PowerShell console paste all of the below answering Y (this only affects your user, and it may take a while)_
 
 **Install-Module -Name VMware.PowerCLI -Scope CurrentUser**  
-**Install-Module ImportExcel -scope CurrentUser**  ([Read about ImportExcel module](https://github.com/dfinke/ImportExcel))
+**Install-Module ImportExcel -scope CurrentUser** ([About ImportExcel module](https://github.com/dfinke/ImportExcel))  
 **Install-Module vDocumentation -Scope CurrentUser**  
 
 ![Install PowerCLI, ImportExcel and vDocumentation modules](https://github.com/arielsanchezmora/vDocumentation/blob/master/pictures/install_PowerCLI_ImportExcel_vDocumentation.png)
@@ -93,7 +93,7 @@ _To change this behaviour use these switches:_
 
 What if I don't have internet?
 
-- A great guide to follow is https://blogs.vmware.com/PowerCLI/2017/04/powercli-install-process-powershell-gallery.html
+- _A great guide to follow is https://blogs.vmware.com/PowerCLI/2017/04/powercli-install-process-powershell-gallery.html_
 
 How do I know which PowerShell version I am running?
 
@@ -106,15 +106,15 @@ How do I know which PowerShell version I am running?
 |Windows 10|5.0|Included|
 |Windows Server 2016|5.0|Included|
 
-To upgrade follow links such as https://docs.microsoft.com/en-us/powershell/scripting/setup/windows-powershell-system-requirements?view=powershell-5.1
+_To upgrade follow links such as https://docs.microsoft.com/en-us/powershell/scripting/setup/windows-powershell-system-requirements?view=powershell-5.1_
 
 What if I can't run PowerShell 5.x?
 
-- If ESXi and vCenter are hardened to only talk on TLS v1.2, you need .Net 4.5 or above for PowerShell to support this.
+- _If ESXi and vCenter are hardened to only talk on TLS v1.2, you need .Net 4.5 or above for PowerShell to support this._
 
 Why do I get a warning about deprecated features when running the script?
 
-- This is native from PowerCLI as they plan future changes. vDocumentation does not use any feature that is known to be in deprecation plans. You can disable the warnings with `Set-PowerCLIConfiguration -DisplayDeprecationWarnings $false -Scope User`
+- _This is native from PowerCLI as they plan future changes. vDocumentation does not use any feature that is known to be in deprecation plans. You can disable the warnings with `Set-PowerCLIConfiguration -DisplayDeprecationWarnings $false -Scope User`_
 
 # Module Changelog
 
