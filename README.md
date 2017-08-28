@@ -232,7 +232,7 @@ Refer to the code's comments in the [vDocument Module File](https://github.com/a
 
 __Get-Help Get-ESXInventory__
 
-`NAME
+NAME
     Get-ESXInventory
 
 SYNOPSIS
@@ -258,12 +258,12 @@ REMARKS
     To see the examples, type: "get-help Get-ESXInventory -examples".
     For more information, type: "get-help Get-ESXInventory -detailed".
     For technical information, type: "get-help Get-ESXInventory -full".
-    For online help, type: "get-help Get-ESXInventory -online"`
+    For online help, type: "get-help Get-ESXInventory -online"
 
 
 __Get-Help Get-ESXIODevice__
 
-`NAME
+NAME
     Get-ESXIODevice
 
 SYNOPSIS
@@ -290,12 +290,12 @@ REMARKS
     To see the examples, type: "get-help Get-ESXIODevice -examples".
     For more information, type: "get-help Get-ESXIODevice -detailed".
     For technical information, type: "get-help Get-ESXIODevice -full".
-    For online help, type: "get-help Get-ESXIODevice -online"`
+    For online help, type: "get-help Get-ESXIODevice -online"
 
 
 __Get-Help Get-ESXNetworking__
 
-`NAME
+NAME
     Get-ESXNetworking
 
 SYNOPSIS
@@ -319,12 +319,12 @@ REMARKS
     To see the examples, type: "get-help Get-ESXNetworking -examples".
     For more information, type: "get-help Get-ESXNetworking -detailed".
     For technical information, type: "get-help Get-ESXNetworking -full".
-    For online help, type: "get-help Get-ESXNetworking -online"`
+    For online help, type: "get-help Get-ESXNetworking -online"
 
 
 __Get-Help Get-ESXStorage__
 
-`NAME
+NAME
     Get-ESXStorage
 
 SYNOPSIS
@@ -348,7 +348,7 @@ REMARKS
     To see the examples, type: "get-help Get-ESXStorage -examples".
     For more information, type: "get-help Get-ESXStorage -detailed".
     For technical information, type: "get-help Get-ESXStorage -full".
-    For online help, type: "get-help Get-ESXStorage -online"`
+    For online help, type: "get-help Get-ESXStorage -online"
 
 
 # Licensing
@@ -410,6 +410,8 @@ _Install-Module ImportExcel -scope CurrentUser_
 ## Adding the vDocumentation module
 
 vDocumentation was created as a PowerShell module as well, and it's published in the PowerShell Gallery, so we can use the Install-Module command:
+
+_Install-Module vDocumentation -scope CurrentUser_
 
 ![install_vDocumentation_1.03](https://github.com/arielsanchezmora/vDocumentation/blob/master/pictures/install_vDocumentation_1.03.png)
 
