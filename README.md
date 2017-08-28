@@ -89,6 +89,13 @@ _To change this behaviour use these switches:_
 |Info Tab|**-Configuration**|For Get-ESXInventory: explicitly outputs the Configuration tab (instead of default, which is All)|
 |Info Tab|**-Configuration**|For Get-ESXInventory: explicitly outputs the Configuration tab (instead of default, which is All)|
 
+You can alays see this information with the Get-Help command
+
+`get-help Get-ESXInventory -ShowWindow`
+
+![Get-Help Example](https://github.com/arielsanchezmora/vDocumentation/blob/master/pictures/get-help_example.png)
+
+
 ## FAQ
 
 What if I don't have internet?
