@@ -98,6 +98,16 @@ Get-ESXNetworking -VirtualSwitches
 
 ![Get-ESXNetworking -VirtualSwitches](https://github.com/arielsanchezmora/vDocumentation/blob/master/pictures/Get-ESXNetworking-VirtualSwitches_output.png)
 
+Get-ESXNetworking -VirtualSwitches
+
+![Get-ESXNetworking -VirtualSwitches](https://github.com/arielsanchezmora/vDocumentation/blob/master/pictures/Get-ESXNetworking-VirtualSwitches_output.png)
+
+Get-ESXNetworking -VMKernelAdapter
+
+![Get-ESXNetworking -VMKernelAdapter](https://github.com/arielsanchezmora/vDocumentation/blob/master/pictures/Get-ESXNetworking-VMkernelAdapters_output.png)
+
+
+
 ## Upgrading from a previous version
 
 _If the prompt returns without doing anything, you are running latest._
