@@ -126,7 +126,7 @@ Get-ESXStorage -Datastores
 ![magneet_csv3](https://github.com/arielsanchezmora/vDocumentation/blob/master/example-outputs/Magneet_nl/magneet_csv_hardware_3.png)  
 ![magneet_csv4](https://github.com/arielsanchezmora/vDocumentation/blob/master/example-outputs/Magneet_nl/magneet_csv_hardware_4.png)  
 
-Blog article thanks to [@mwVme](https://twitter.com/mwVme) https://notesfrommwhite.net/2017/08/16/document-your-vsphere-environment-yes-you-can/
+Blog article with Excel outputs thanks to [@mwVme](https://twitter.com/mwVme) [Document your vSphere Environment Yes You Can](https://notesfrommwhite.net/2017/08/16/document-your-vsphere-environment-yes-you-can/)
 
 ## Upgrading from a previous version
 
