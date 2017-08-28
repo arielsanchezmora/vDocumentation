@@ -40,7 +40,7 @@ _Before you can use them, connect to your vCenter(s) using PowerCLI_
 
 _When prompted for credentials use a vCenter Administrator-level account_
 
-_You are now able to use these commands:_
+_Once connected you can execute these commands:_
 
 |Command|Description|
 |----------------|---|
