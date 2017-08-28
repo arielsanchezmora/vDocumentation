@@ -119,14 +119,14 @@ Get-ESXStorage -Datastores
 
 ![Get-ESXStorage -Datastores](https://github.com/arielsanchezmora/vDocumentation/blob/master/pictures/Get-ESXStorage-Datastores_output.png)
 
-**iSCSI output thanks to [@michael_rudloff](https://twitter.com/michael_rudloff), see ![Full List](https://github.com/arielsanchezmora/vDocumentation/blob/master/example-outputs/michael_rudloff/README.MD)**
+**iSCSI output thanks to [@michael_rudloff](https://twitter.com/michael_rudloff), see his ![full output](https://github.com/arielsanchezmora/vDocumentation/blob/master/example-outputs/michael_rudloff/README.MD)**
 
 ![michael_iscsi_physical](https://github.com/arielsanchezmora/vDocumentation/blob/master/example-outputs/michael_rudloff/michael_iscsi_physical.png)  
 ![michael_iscsi_VMKernel](https://github.com/arielsanchezmora/vDocumentation/blob/master/example-outputs/michael_rudloff/michael_iscsi_VMKernel.png)  
 ![michael_iscsi_iSCSI](https://github.com/arielsanchezmora/vDocumentation/blob/master/example-outputs/michael_rudloff/michael_iscsi_iSCSI.png)  
 ![michael_iscsi_datastore](https://github.com/arielsanchezmora/vDocumentation/blob/master/example-outputs/michael_rudloff/michael_iscsi_datastore.png)  
 
-**CSV output thanks to [@magneet_nl](https://twitter.com/Magneet_nl), see ![Full List](https://github.com/arielsanchezmora/vDocumentation/blob/master/example-outputs/Magneet_nl/README.MD)**
+**CSV outputs thanks to [@magneet_nl](https://twitter.com/Magneet_nl), see his ![full output](https://github.com/arielsanchezmora/vDocumentation/blob/master/example-outputs/Magneet_nl/README.MD)**
 
 ![magneet_csv1](https://github.com/arielsanchezmora/vDocumentation/blob/master/example-outputs/Magneet_nl/magneet_csv_hardware_1.png)   
 ![magneet_csv2](https://github.com/arielsanchezmora/vDocumentation/blob/master/example-outputs/Magneet_nl/magneet_csv_hardware_2.png)  
