@@ -1,4 +1,4 @@
-# Examples outputs by [Wouter Kursten](https://twitter.com/Magneet_nl)
+# Examples outputs by [Wouter Kursten](https://twitter.com/Magneet_nl) on v1.03
 
 ![2017-08-12_10_04_50-Windows_PowerShell](https://github.com/arielsanchezmora/vDocumentation/blob/master/example-outputs/Magneet_nl/2017-08-12_10_04_50-Windows_PowerShell.png)
 ![2017-08-1_10_05_03-Windows_PowerShell](https://github.com/arielsanchezmora/vDocumentation/blob/master/example-outputs/Magneet_nl/2017-08-1_10_05_03-Windows_PowerShell.png)
