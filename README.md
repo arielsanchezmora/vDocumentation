@@ -27,9 +27,9 @@ _In a new **normal** PowerShell console paste all of the below answering Y (this
 
 _vDocumentation is now installed! You can verify with_
 
-**Get-Module vDocumentation -ListAvailable | Format-Table -AutoSize**
+**Get-Module vDocumentation -ListAvailable | Format-List**
 
-![Confirm vDocumentation installation](https://github.com/arielsanchezmora/vDocumentation/blob/master/pictures/Confirm_vDocumentation_installation.png)
+![Confirm vDocumentation installation](https://github.com/arielsanchezmora/vDocumentation/blob/master/pictures/Confirm_vDocumentation_installation2.png)
 
 
 ## The vDocumentation module gives you new PowerCLI Commands you can use to create documentation of a vSphere environment
