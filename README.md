@@ -67,6 +67,7 @@ _To change this behaviour use these switches:_
 |Output|**-ExportCSV**|The output will be written to a CSV file|
 |Output|**-ExportExcel**|The output will be written to a XLSX file (if ImportExcel module is not installed will do CSV)|
 |Info Tab|**-Hardware**|For Get-ESXInventory: explicitly outputs the Hardware tab|
+|Info Tab|**-Configuration**|For Get-ESXInventory: explicitly outputs the Configuration tab|
 |Info Tab|**-VirtualSwitches**|For Get-ESXNetworking: explicitly outputs the VirtualSwitches tab|
 |Info Tab|**-VMkernelAdapters**|For Get-ESXNetworking: explicitly outputs the VMkernelAdapters tab|
 |Info Tab|**-PhysicalAdapters**|For Get-ESXNetworking: explicitly outputs the PhysicalAdapters tab|
