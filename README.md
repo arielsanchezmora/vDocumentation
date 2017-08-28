@@ -90,9 +90,13 @@ Get-ESXInventory -Configuration
 
 ![Get-ESXInventory -Configuration](https://github.com/arielsanchezmora/vDocumentation/blob/master/pictures/get-esxinventory-configuration_output.png)
 
-Get-ESXIODevice _(only one tab)_
+Get-ESXIODevice _(only has one tab)_
 
 ![Get-ESXIODevice](https://github.com/arielsanchezmora/vDocumentation/blob/master/pictures/Get-ESXIODevice_output.png)
+
+Get-ESXNetworking -VirtualSwitches
+
+![Get-ESXNetworking -VirtualSwitches](https://github.com/arielsanchezmora/vDocumentation/blob/master/pictures/Get-ESXNetworking-VirtualSwitches_output)
 
 ## Upgrading from a previous version
 
