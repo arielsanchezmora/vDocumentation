@@ -86,6 +86,10 @@ Get-ESXInventory -Hardware
 
 ![Get-ESXInventory -Hardware](https://github.com/arielsanchezmora/vDocumentation/blob/master/pictures/get-esxinventory-hardware_output.png)
 
+Get-ESXInventory -Configuration
+
+![Get-ESXInventory -Configuration](https://github.com/arielsanchezmora/vDocumentation/blob/master/pictures/get-esxinventory-configuration_output.png)
+
 ## Upgrading from a previous version
 
 _If the prompt returns without doing anything, you are running latest._
