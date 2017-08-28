@@ -42,7 +42,7 @@ _When prompted for credentials use a vCenter Administrator-level account. Once c
 
 |Command|Description|
 |----------------|---|
-|**Get-ESXInventory**|Document host inventory and host config info|
+|**Get-ESXInventory**|Document host hardware inventory and host configuration|
 |**Get-ESXIODevice**|Document information from HBAs, NICs and other PCIe devices including PCI IDs, MACs, firmware & drivers|
 |**Get-ESXNetworking**|Document networking configuration information such as NICs, vSwitches, VMKernel details|
 |**Get-ESXStorage**|Document storage configurations such as iSCSI details, FibreChannel, Datastores & Multipathing|
