@@ -96,7 +96,7 @@ Get-ESXIODevice _(only has one tab)_
 
 Get-ESXNetworking -VirtualSwitches
 
-![Get-ESXNetworking -VirtualSwitches](https://github.com/arielsanchezmora/vDocumentation/blob/master/pictures/Get-ESXNetworking-VirtualSwitches_output)
+![Get-ESXNetworking -VirtualSwitches](https://github.com/arielsanchezmora/vDocumentation/blob/master/pictures/Get-ESXNetworking-VirtualSwitches_output.png)
 
 ## Upgrading from a previous version
 
