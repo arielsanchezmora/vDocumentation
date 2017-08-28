@@ -84,7 +84,7 @@ You can always see this information with the Get-Help command
 
 Get-ESXInventory -Hardware
 
-![Get-ESXInventory -Hardware](https://github.com/arielsanchezmora/vDocumentation/blob/master/pictures/get-esxinventory -hardware_output.png)
+![Get-ESXInventory -Hardware](https://github.com/arielsanchezmora/vDocumentation/blob/master/pictures/get-esxinventory-hardware_output.png)
 
 ## Upgrading from a previous version
 
