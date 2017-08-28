@@ -38,9 +38,7 @@ _Before you can use them, connect to your vCenter(s) using PowerCLI_
 
 **Connect-VIServer [IP_or_FQDN_of_vCenter]**      _# Connect to one, or repeat for many vCenters_
 
-_When prompted for credentials use a vCenter Administrator-level account_
-
-_Once connected you can execute these commands:_
+_When prompted for credentials use a vCenter Administrator-level account. Once connected you can execute these commands:_
 
 |Command|Description|
 |----------------|---|
