@@ -20,7 +20,7 @@ _You can now close the PowerShell window that ran as Administrator_
 _In a new **normal** PowerShell console paste all of the below answering Y (this only affects your user, and it may take a while)_
 
 **Install-Module -Name VMware.PowerCLI -Scope CurrentUser**  
-**Install-Module ImportExcel -scope CurrentUser**  
+**Install-Module ImportExcel -scope CurrentUser**  ([Read about ImportExcel module](https://github.com/dfinke/ImportExcel))
 **Install-Module vDocumentation -Scope CurrentUser**  
 
 ![Install PowerCLI, ImportExcel and vDocumentation modules](https://github.com/arielsanchezmora/vDocumentation/blob/master/pictures/install_PowerCLI_ImportExcel_vDocumentation.png)
@@ -72,7 +72,7 @@ _If the prompt returns without doing anything, you are running latest._
 _Running a command without switches will_
 - report on all virtual datacenters in all connected vCenters
 - output to PowerShell terminal only
-- include all data tabs
+- include all data tabs for each command
 
 _To change this behaviour use these switches:_
 
@@ -85,13 +85,28 @@ _To change this behaviour use these switches:_
 |Output|**-ExportCSV**|The output will be written to a CSV file|
 |Output|**-ExportExcel**|The output will be written to a XLSX file (if ImportExcel module is not installed will do CSV)|
 |Info Tab|**-Hardware**|For Get-ESXInventory: explicitly outputs the Hardware tab (instead of default, which is All)|
-|Info Tab|**-Configuration**| |
+|Info Tab|**-Configuration**|For Get-ESXInventory: explicitly outputs the Configuration tab (instead of default, which is All)|
+|Info Tab|**-Configuration**|For Get-ESXInventory: explicitly outputs the Configuration tab (instead of default, which is All)|
+|Info Tab|**-Configuration**|For Get-ESXInventory: explicitly outputs the Configuration tab (instead of default, which is All)|
 
 ## FAQ
 
 What if I don't have internet?
 
 - A great guide to follow is https://blogs.vmware.com/PowerCLI/2017/04/powercli-install-process-powershell-gallery.html
+
+How do I know which PowerShell version I am running?
+
+|OS|Default Version|Upgradeable to 5.x|
+|---|---|---|
+|Windows 7|2.0|Yes, manually|
+|Windows Server 2008 R2|2.0|Yes, manually|
+|Windows 8|3.0|Yes, manually|
+|Windows Server 2012|3.0|Yes, manually|
+|Windows 10|5.0|Included|
+|Windows Server 2016|5.0|Included|
+
+To upgrade follow links such as https://docs.microsoft.com/en-us/powershell/scripting/setup/windows-powershell-system-requirements?view=powershell-5.1
 
 What if I can't run PowerShell 5.x?
 
