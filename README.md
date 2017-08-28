@@ -119,7 +119,7 @@ Get-ESXStorage -Datastores
 
 ![Get-ESXStorage -Datastores](https://github.com/arielsanchezmora/vDocumentation/blob/master/pictures/Get-ESXStorage-Datastores_output.png)
 
-**CSV Outputs thanks to [@magneet_nl](https://twitter.com/Magneet_nl) ![Full List](https://github.com/arielsanchezmora/vDocumentation/tree/master/example-outputs/Magneet_nl)**
+**CSV Outputs thanks to [@magneet_nl](https://twitter.com/Magneet_nl), see ![Full List](https://github.com/arielsanchezmora/vDocumentation/tree/master/example-outputs/Magneet_nl)**
 
 ![magneet_csv1](https://github.com/arielsanchezmora/vDocumentation/blob/master/example-outputs/Magneet_nl/magneet_csv_hardware_1.png)  
 ![magneet_csv2](https://github.com/arielsanchezmora/vDocumentation/blob/master/example-outputs/Magneet_nl/magneet_csv_hardware_2.png)  
