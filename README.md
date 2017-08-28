@@ -66,10 +66,13 @@ _To change this behaviour use these switches:_
 |Output|**-folderPath**|Specify the path to save the file name|
 |Output|**-ExportCSV**|The output will be written to a CSV file|
 |Output|**-ExportExcel**|The output will be written to a XLSX file (if ImportExcel module is not installed will do CSV)|
-|Info Tab|**-Hardware**|For Get-ESXInventory: explicitly outputs the Hardware tab (instead of default, which is All)|
-|Info Tab|**-Configuration**|For Get-ESXInventory: explicitly outputs the Configuration tab (instead of default, which is All)|
-|Info Tab|**-Configuration**|For Get-ESXInventory: explicitly outputs the Configuration tab (instead of default, which is All)|
-|Info Tab|**-Configuration**|For Get-ESXInventory: explicitly outputs the Configuration tab (instead of default, which is All)|
+|Info Tab|**-Hardware**|For Get-ESXInventory: explicitly outputs the Hardware tab|
+|Info Tab|**-VirtualSwitches**|For Get-ESXNetworking: explicitly outputs the VirtualSwitches tab|
+|Info Tab|**-VMkernelAdapters**|For Get-ESXNetworking: explicitly outputs the VMkernelAdapters tab|
+|Info Tab|**-PhysicalAdapters**|For Get-ESXNetworking: explicitly outputs the PhysicalAdapters tab|
+|Info Tab|**-StorageAdapters**|For Get-ESXStorage: explicitly outputs the StorageAdapters tab|
+|Info Tab|**-Datastores**|For Get-ESXStorage: explicitly outputs the Datastores tab|
+
 
 You can always see this information with the Get-Help command
 
