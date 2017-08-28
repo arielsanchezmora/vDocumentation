@@ -36,7 +36,7 @@ _vDocumentation is now installed! You can verify with_
 
 _Before you can use them, connect to your vCenter(s) using PowerCLI_
 
-**Connect-VIServer [IP_or_FQDN_of_vCenter]**  # Connect to one or repeat for many vCenters
+**Connect-VIServer [IP_or_FQDN_of_vCenter]**   _# Connect to one, or repeat for many vCenters_
 
 _When prompted for credentials use a vCenter Administrator-level account_
 
