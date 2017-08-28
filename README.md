@@ -184,7 +184,7 @@ What is the ImportExcel module?
 
 Does this run on PowerCLI core?
 
-- _We'd love to know! We haven't tested it yet but expect an update soon._
+- _We'd love to know! We haven't tested it yet; expect an update soon._
 
 Why do I get a warning about deprecated features when running the script?
 
