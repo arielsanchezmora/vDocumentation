@@ -75,7 +75,7 @@ _To change this behaviour use these switches:_
 |Info Tab|**-Datastores**|For Get-ESXStorage: explicitly outputs the Datastores tab|
 
 
-You can always see this information with the Get-Help command
+You can see the full syntax with the **Get-Help** command
 
 `get-help Get-ESXInventory -ShowWindow`
 
