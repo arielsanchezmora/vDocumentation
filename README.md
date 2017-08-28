@@ -34,9 +34,9 @@ _vDocumentation is now installed! You can verify with_
 
 ## The vDocumentation module gives you new PowerCLI Commands you can use to create documentation of a vSphere environment
 
-_Make sure to connect to vCenter using PowerCLI_
+_Before you can use them, connect to your vCenter(s) using PowerCLI_
 
-**Connect-VIServer [IP_or_FQDN_of_vCenter]**  # Connect to one or many vCenters
+**Connect-VIServer [IP_or_FQDN_of_vCenter]**  # Connect to one or repeat for many vCenters
 
 _When prompted for credentials use a vCenter Administrator-level account_
 
