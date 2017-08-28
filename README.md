@@ -19,8 +19,8 @@ _You can now close the PowerShell window that ran as Administrator_
 
 _In a new **normal** PowerShell console paste all of the below answering Y (this only affects your user, and it may take a while)_
 
-**Install-Module -Name VMware.PowerCLI -Scope CurrentUser**  ([Read about PowerCLI](https://blogs.vmware.com/PowerCLI/2017/05/powercli-6-5-1-install-walkthrough.html))  
-**Install-Module ImportExcel -scope CurrentUser** ([Read about ImportExcel](https://github.com/dfinke/ImportExcel))  
+**Install-Module -Name VMware.PowerCLI -Scope CurrentUser**  
+**Install-Module ImportExcel -scope CurrentUser**  
 **Install-Module vDocumentation -Scope CurrentUser**  
 
 ![Install PowerCLI, ImportExcel and vDocumentation modules](https://github.com/arielsanchezmora/vDocumentation/blob/master/pictures/install_PowerCLI_ImportExcel_vDocumentation.png)
@@ -45,9 +45,9 @@ _Once connected you can execute these commands:_
 |Command|Description|
 |----------------|---|
 |**Get-ESXInventory**|Document host inventory and host config info|
-|**Get-ESXIODevice**|Document information from HBAs, MACs, NICs and other PCIe devices including firmware & drivers|
-|**Get-ESXNetworking**|Document networking configuration info such as NICs, vSwitches, VMKernel interface configuration|
-|**Get-ESXStorage**|Document storage information and configurations such as iSCSI, FibreChannel, Datastores & Multipathing|
+|**Get-ESXIODevice**|Document information from HBAs, NICs and other PCIe devices including PCI IDs, MACs, firmware & drivers|
+|**Get-ESXNetworking**|Document networking configuration information such as NICs, vSwitches, VMKernel interfaces|
+|**Get-ESXStorage**|Document storage configurations such as iSCSI details, FibreChannel, Datastores & Multipathing|
 
 _Each script will output the corresponding data to terminal, and optionally create a file (XLSX, CSV) with the command name and a timestamp. You can use command switches to customize CSV or Excel output, file path (default is powershell working directory), and the command scope (report on all connected vCenters or just cluster or host)._
 
@@ -118,6 +118,10 @@ _To upgrade follow links such as https://docs.microsoft.com/en-us/powershell/scr
 What if I can't run PowerShell 5.x?
 
 - _If ESXi and vCenter are hardened to only talk on TLS v1.2, you need .Net 4.5 or above for PowerShell to support this._
+
+What is the ImportExcel module?
+
+- _[Read about ImportExcel](https://github.com/dfinke/ImportExcel)_
 
 Why do I get a warning about deprecated features when running the script?
 
