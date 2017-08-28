@@ -216,19 +216,7 @@ Our goal is that this project is useful to others and it will be accepted in the
 
 To a future where walking into a new place and asking for documentation is greeted with "Yup, we use vDocumentation" and the interested party replies "Perfect!" :)
 
-# Usage
-
-. Once you have installed the module, you will be able to use the following functions:
-
-__Get-ESXInventory__
-
-__Get-ESXIODevice__
-
-__Get-ESXNetworking__
-
-__Get-ESXStorage__
-
-Refer to the code's comments in the [vDocument Module File](https://github.com/arielsanchezmora/vDocumentation/blob/master/powershell/vDocument/vDocument.psm1) for full usage and examples, or use Get-Help and the module name:
+# Syntax
 
 __Get-Help Get-ESXInventory__
 
