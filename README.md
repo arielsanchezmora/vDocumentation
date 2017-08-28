@@ -49,22 +49,6 @@ _When prompted for credentials use a vCenter Administrator-level account. Once c
 
 _Each script will output the corresponding data to terminal, and optionally create a file (XLSX, CSV) with the command name and a timestamp. You can use command switches to customize CSV or Excel output, file path (default is powershell working directory), and the command scope (report on all connected vCenters or just cluster or host)._
 
-## Upgrading from a previous version
-
-_If the prompt returns without doing anything, you are running latest._
-
-**Update-Module VMware.PowerCLI**  
-**Update-Module ImportExcel**  
-**Update-Module vDocumentation**
-
-![Upgrade Commands](https://github.com/arielsanchezmora/vDocumentation/blob/master/pictures/upgrade_commands.png)
-
-## Uninstalling the vDocumentation script
-
-**Uninstall-Module vDocumentation**
-
-![Uninstall vDocumentation](https://github.com/arielsanchezmora/vDocumentation/blob/master/pictures/uninstall_vDocumentation.png)
-
 ## Command switch options
 
 _Running a command without switches will_
@@ -93,6 +77,27 @@ You can alays see this information with the Get-Help command
 
 ![Get-Help Example](https://github.com/arielsanchezmora/vDocumentation/blob/master/pictures/get-help_example.png)
 
+## Example Outputs
+
+Get-ESXInventory -Hardware
+
+![Get-ESXInventory -Hardware](https://github.com/arielsanchezmora/vDocumentation/blob/master/pictures/get-esxinventory -hardware_output.png)
+
+## Upgrading from a previous version
+
+_If the prompt returns without doing anything, you are running latest._
+
+**Update-Module VMware.PowerCLI**  
+**Update-Module ImportExcel**  
+**Update-Module vDocumentation**
+
+![Upgrade Commands](https://github.com/arielsanchezmora/vDocumentation/blob/master/pictures/upgrade_commands.png)
+
+## Uninstalling the vDocumentation script
+
+**Uninstall-Module vDocumentation**
+
+![Uninstall vDocumentation](https://github.com/arielsanchezmora/vDocumentation/blob/master/pictures/uninstall_vDocumentation.png)
 
 ## FAQ
 
