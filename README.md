@@ -182,6 +182,10 @@ What is the ImportExcel module?
 
 - _[Read about ImportExcel](https://github.com/dfinke/ImportExcel)_
 
+Does this run on PowerCLI core?
+
+- _We'd love to know! We haven't tested it yet but expect an update soon._
+
 Why do I get a warning about deprecated features when running the script?
 
 - _This is native from PowerCLI as they plan future changes. vDocumentation does not use any feature that is known to be in deprecation plans. You can disable the warnings with `Set-PowerCLIConfiguration -DisplayDeprecationWarnings $false -Scope User`_
