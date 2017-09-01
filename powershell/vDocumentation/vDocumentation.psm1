@@ -137,7 +137,7 @@
     Write-Verbose ((Get-Date -Format G) + "`tValidate connection to to a vSphere server")
 
     if ($Global:DefaultViServers.Count -gt 0) {
-        Clear-Host
+        
         Write-Host "`tConnected to $Global:DefaultViServers" -ForegroundColor Green
     } else {
         Write-Error "You must be connected to a vSphere server before running this cmdlet."
@@ -593,7 +593,7 @@ function Get-ESXIODevice {
     Write-Verbose ((Get-Date -Format G) + "`tValidate connection to to a vSphere server")
 
     if ($Global:DefaultViServers.Count -gt 0) {
-        Clear-Host
+        
         Write-Host "`tConnected to $Global:DefaultViServers" -ForegroundColor Green
     } else {
         Write-Error "You must be connected to a vSphere server before running this cmdlet."
@@ -956,7 +956,7 @@ function Get-ESXNetworking {
     Write-Verbose ((Get-Date -Format G) + "`tValidate connection to to a vSphere server")
 
     if ($Global:DefaultViServers.Count -gt 0) {
-        Clear-Host
+        
         Write-Host "`tConnected to $Global:DefaultViServers" -ForegroundColor Green
     } else {
         Write-Error "You must be connected to a vSphere server before running this cmdlet."
@@ -1655,7 +1655,7 @@ function Get-ESXStorage {
     Write-Verbose ((Get-Date -Format G) + "`tValidate connection to to a vSphere server")
 
     if ($Global:DefaultViServers.Count -gt 0) {
-        Clear-Host
+        
         Write-Host "`tConnected to $Global:DefaultViServers" -ForegroundColor Green
     } else {
         Write-Error "You must be connected to a vSphere server before running this cmdlet."
