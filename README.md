@@ -1,10 +1,216 @@
 # vDocumentation
 
-vDocumentation provides a community-created set of PowerCLI scripts that produce documentation of vSphere environments in CSV or Excel file format.
+vDocumentation provides a community-created set of PowerCLI scripts that produce infrastructure documentation of vSphere environments in CSV or Excel file format.
+
+# Quickstart for VMworld 2017
+
+## First time usage on a *brand new machine* with PowerShell 5.x and an internet connection
+
+_Paste in a PowerShell window that has been Run as Administrator and answer Y_
+
+**Set-ExecutionPolicy RemoteSigned**  
+**Set-PowerCLIConfiguration -InvalidCertificateAction Ignore**
+
+![Run PowerShell as Administrator](https://github.com/arielsanchezmora/vDocumentation/blob/master/pictures/PowerShell_as_administrator.png)
+
+![Enable remote scripts and ignore certificate warnings](https://github.com/arielsanchezmora/vDocumentation/blob/master/pictures/enable_RemoteSigned_Invalid_Certificate.png)
+
+_You can now close the PowerShell window that ran as Administrator_ 
+
+_In a new **normal** PowerShell console paste all of the below answering Y (this only affects your user, and it may take a while)_
+
+**Install-Module -Name VMware.PowerCLI -Scope CurrentUser**  
+**Install-Module ImportExcel -scope CurrentUser**  
+**Install-Module vDocumentation -Scope CurrentUser**  
+
+![Install PowerCLI, ImportExcel and vDocumentation modules](https://github.com/arielsanchezmora/vDocumentation/blob/master/pictures/install_PowerCLI_ImportExcel_vDocumentation.png)
+
+_vDocumentation is now installed! You can verify with_
+
+**Get-Module vDocumentation -ListAvailable | Format-List**
+
+![Confirm vDocumentation installation](https://github.com/arielsanchezmora/vDocumentation/blob/master/pictures/Confirm_vDocumentation_installation2.png)
+
+
+## The vDocumentation module gives you four _new_ PowerCLI Commands you can use to create documentation of a vSphere environment
+
+_Before you can use them, connect to your vCenter(s) using PowerCLI_
+
+**Connect-VIServer [IP_or_FQDN_of_vCenter]**      _# Connect to one, or repeat for many vCenters_
+
+_When prompted for credentials use a vCenter Administrator-level account. Once connected you can execute these commands:_
+
+|Command|Description|
+|----------------|---|
+|**Get-ESXInventory**|Document host hardware inventory and host configuration|
+|**Get-ESXIODevice**|Document information from HBAs, NICs and other PCIe devices including PCI IDs, MACs, firmware & drivers|
+|**Get-ESXNetworking**|Document networking configuration information such as NICs, vSwitches, VMKernel details|
+|**Get-ESXStorage**|Document storage configurations such as iSCSI details, FibreChannel, Datastores & Multipathing|
+
+_Each script will output the corresponding data to terminal, and optionally create a file (XLSX, CSV) with the command name and a timestamp. You can use command switches to customize CSV or Excel output, file path (default is powershell working directory), and the command scope (report on all connected vCenters or just cluster or host)._
+
+## Command switch options
+
+_Running a command **without** switches will_
+- report on all virtual datacenters in all connected vCenters
+- output to PowerShell terminal only
+- include all data tabs for each command
+
+_To change this behaviour use these switches:_
+
+|Scope|Switch|Description|
+|---|---|---|
+|Target|**-esxi**|Get information from a particular host (for several, use commas)|
+|Target|**-cluster**|Get information from a particular cluster (for several, use commas)|
+|Target|**-datacenter**|Get information from a particular virtual datacenter (for several, use commas)|
+|Output|**-folderPath**|Specify the path to save the file name|
+|Output|**-ExportCSV**|The output will be written to a CSV file|
+|Output|**-ExportExcel**|The output will be written to a XLSX file (if ImportExcel module is not installed will do CSV)|
+|Info Tab|**-Hardware**|For Get-ESXInventory: explicitly outputs the Hardware tab|
+|Info Tab|**-Configuration**|For Get-ESXInventory: explicitly outputs the Configuration tab|
+|Info Tab|**-VirtualSwitches**|For Get-ESXNetworking: explicitly outputs the VirtualSwitches tab|
+|Info Tab|**-VMkernelAdapters**|For Get-ESXNetworking: explicitly outputs the VMkernelAdapters tab|
+|Info Tab|**-PhysicalAdapters**|For Get-ESXNetworking: explicitly outputs the PhysicalAdapters tab|
+|Info Tab|**-StorageAdapters**|For Get-ESXStorage: explicitly outputs the StorageAdapters tab|
+|Info Tab|**-Datastores**|For Get-ESXStorage: explicitly outputs the Datastores tab|
+
+
+You can see the full syntax with the **Get-Help** command
+
+`get-help Get-ESXInventory -ShowWindow`
+
+![Get-Help Example](https://github.com/arielsanchezmora/vDocumentation/blob/master/pictures/get-help_example.png)
+
+## Example Outputs
+
+Get-ESXInventory -Hardware
+
+![Get-ESXInventory -Hardware](https://github.com/arielsanchezmora/vDocumentation/blob/master/pictures/get-esxinventory-hardware_output.png)
+
+Get-ESXInventory -Configuration
+
+![Get-ESXInventory -Configuration](https://github.com/arielsanchezmora/vDocumentation/blob/master/pictures/get-esxinventory-configuration_output.png)
+
+Get-ESXIODevice _(only has one tab)_
+
+![Get-ESXIODevice](https://github.com/arielsanchezmora/vDocumentation/blob/master/pictures/Get-ESXIODevice_output.png)
+
+Get-ESXNetworking -VirtualSwitches _(standard switch)_
+
+![Get-ESXNetworking -VirtualSwitches](https://github.com/arielsanchezmora/vDocumentation/blob/master/pictures/Get-ESXNetworking-VirtualSwitches_output.png)
+
+Get-ESXNetworking -VirtualSwitches _(distributed switch)_
+
+![Get-ESXNetworking -VirtualSwitches](https://github.com/arielsanchezmora/vDocumentation/blob/master/pictures/Get-ESXNetworking-VirtualSwitches_output2.png)
+
+Get-ESXNetworking -VMKernelAdapter
+
+![Get-ESXNetworking -VMKernelAdapter](https://github.com/arielsanchezmora/vDocumentation/blob/master/pictures/Get-ESXNetworking-VMkernelAdapters_output.png)
+
+Get-ESXNetworking -PhysicalAdapters
+
+![Get-ESXNetworking -PhysicalAdapters](https://github.com/arielsanchezmora/vDocumentation/blob/master/pictures/Get-ESXNetworking-PhysicalAdapters_output.png)
+
+Get-ESXStorage -StorageAdapters
+
+![Get-ESXStorage -StorageAdapters](https://github.com/arielsanchezmora/vDocumentation/blob/master/pictures/Get-ESXStorage-StorageAdapters_output.png)
+
+Get-ESXStorage -Datastores
+
+![Get-ESXStorage -Datastores](https://github.com/arielsanchezmora/vDocumentation/blob/master/pictures/Get-ESXStorage-Datastores_output.png)
+
+**iSCSI output thanks to [@michael_rudloff](https://twitter.com/michael_rudloff), see his ![full output](https://github.com/arielsanchezmora/vDocumentation/blob/master/example-outputs/michael_rudloff/README.MD)**
+
+![michael_iscsi_physical](https://github.com/arielsanchezmora/vDocumentation/blob/master/example-outputs/michael_rudloff/michael_iscsi_physical.png)  
+![michael_iscsi_VMKernel](https://github.com/arielsanchezmora/vDocumentation/blob/master/example-outputs/michael_rudloff/michael_iscsi_VMKernel.png)  
+![michael_iscsi_iSCSI](https://github.com/arielsanchezmora/vDocumentation/blob/master/example-outputs/michael_rudloff/michael_iscsi_iSCSI.png)  
+![michael_iscsi_datastore](https://github.com/arielsanchezmora/vDocumentation/blob/master/example-outputs/michael_rudloff/michael_iscsi_datastore.png)  
+
+**CSV outputs thanks to [@magneet_nl](https://twitter.com/Magneet_nl), see his ![full output](https://github.com/arielsanchezmora/vDocumentation/blob/master/example-outputs/Magneet_nl/README.MD)**
+
+![magneet_csv1](https://github.com/arielsanchezmora/vDocumentation/blob/master/example-outputs/Magneet_nl/magneet_csv_hardware_1.png)   
+![magneet_csv2](https://github.com/arielsanchezmora/vDocumentation/blob/master/example-outputs/Magneet_nl/magneet_csv_hardware_2.png)  
+![magneet_csv3](https://github.com/arielsanchezmora/vDocumentation/blob/master/example-outputs/Magneet_nl/magneet_csv_hardware_3.png)  
+![magneet_csv4](https://github.com/arielsanchezmora/vDocumentation/blob/master/example-outputs/Magneet_nl/magneet_csv_hardware_4.png)  
+
+
+
+**[Document your vSphere environment? Yes you can!](https://notesfrommwhite.net/2017/08/16/document-your-vsphere-environment-yes-you-can/) Blog article with Excel outputs thanks to [@mwVme](https://twitter.com/mwVme)**
+
+
+
+## Upgrading from a previous version
+
+_If the prompt returns without doing anything, you are running latest._
+
+**Update-Module VMware.PowerCLI**  
+**Update-Module ImportExcel**  
+**Update-Module vDocumentation**
+
+![Upgrade Commands](https://github.com/arielsanchezmora/vDocumentation/blob/master/pictures/upgrade_commands.png)
+
+## Uninstalling the vDocumentation script
+
+**Uninstall-Module vDocumentation**
+
+![Uninstall vDocumentation](https://github.com/arielsanchezmora/vDocumentation/blob/master/pictures/uninstall_vDocumentation.png)
+
+## FAQ
+
+What if I don't have internet?
+
+- _A great guide to follow is https://blogs.vmware.com/PowerCLI/2017/04/powercli-install-process-powershell-gallery.html_
+
+How do I know which PowerShell version I am running?
+
+|OS|Default Version|Upgradeable to 5.x|
+|---|---|---|
+|Windows 7|2.0|Yes, manually|
+|Windows Server 2008 R2|2.0|Yes, manually|
+|Windows 8|3.0|Yes, manually|
+|Windows Server 2012|3.0|Yes, manually|
+|Windows 10|5.0|Included|
+|Windows Server 2016|5.0|Included|
+
+_To upgrade follow links such as https://docs.microsoft.com/en-us/powershell/scripting/setup/windows-powershell-system-requirements?view=powershell-5.1_
+
+What if I can't run PowerShell 5.x?
+
+- _If ESXi and vCenter are hardened to only talk on TLS v1.2, you need .Net 4.5 or above for PowerShell to support this._
+
+What is the ImportExcel module?
+
+- _[Read about ImportExcel](https://github.com/dfinke/ImportExcel)_
+
+Does this run on PowerCLI core?
+
+- _We'd love to know! We haven't tested it yet; expect an update soon._
+
+Why do I get a warning about deprecated features when running the script?
+
+- _This is native from PowerCLI as they plan future changes. vDocumentation does not use any feature that is known to be in deprecation plans. You can disable the warnings with `Set-PowerCLIConfiguration -DisplayDeprecationWarnings $false -Scope User`_
+
+# Module Changelog
+
+__v1.04__ new functionality added:  
+ Updated export-excel so that it does no number conversion (IP addresses are now text) on any of the columns and it auto sizes them. Thanks to [@magneet_nl](https://twitter.com/Magneet_nl) for helping us discover this bug!
+
+__v1.03__ new functionality added:  
+ Get-ESXInventory: Added RAC Firmware version, BIOS release date.  
+ Get-ESXIODevice: Added support to get HP Smart Array Firmware from PowerCLI  
+ 
+__1.02__ Formatting & Manifest changes
+
+__1.01__ Changes to support displaying datastore multipathing
+
+__1.0__ First release to PowerShell Gallery with 4 commands: Get-ESXInventory, Get-ESXIODevice, Get-ESXNetworking & Get-ESXStorage
+
+
+# vDocumentation backstory
 
 Hi! I'm Ariel Sanchez (https://twitter.com/arielsanchezmor) and this is the result of a dream and the power of the vCommunity. I started a documentation template effort, which can be found [here](https://sites.google.com/site/arielsanchezmora/home/vmware/free-vmware-documentation-templates). There is a lot of work pending to be able to call the effort complete, but one very important component that my friend [Edgar Sanchez](https://github.com/edmsanchez) ( https://twitter.com/edmsanchez13 ) has advanced dramatically is the PowerCLI scripting. This repository stores them, and publishes them to the world so they can start being used. We open-sourced and placed in GitHub so they can be further improved by the vCommunity!
 
-The main motivation for this project was the sad state of reliable documentation available to many vSphere administrators. It is demoralizing to start a new job, ask for documentation, and find there is none. It's sometimes worse that if there is documentation, it turns out to be outdated, or even worse, plain wrong! And it's also demoralizing to be tasked with creating documentation, realizing that creating it manually would take a long time, and that collecting and customizing all the scripts will take a long time as well.
+The main motivation for this project was the sad state of vSphere infrastructure documentation accessible to many vSphere administrators. It is demoralizing to start a new job, ask for documentation, and find there is none. The situation is bad enough when the documentation is outdated, but even worse when it's plain wrong. It's also challenging to be tasked with creating documentation, realizing that creating it manually would take a long time, and that collecting and customizing all the scripts will take a long time as well.
 
 Thus, our goal is to be able to easily produce documentation "direct from vCenter" that is relevant to what your manager or another VMware administrator wants to see. The best part is, you only need to run the scripts and they create the needed CSV or Excel file for you. This means you can update your documentation at a moment's notice, and even better, review it to identify things in your environment that may not have been easily visible before.
 
@@ -14,32 +220,7 @@ Our goal is that this project is useful to others and it will be accepted in the
 
 To a future where walking into a new place and asking for documentation is greeted with "Yup, we use vDocumentation" and the interested party replies "Perfect!" :)
 
-# Module Changelog
-
-v1.0.3 new functionality added:
- Get-ESXInventory: Added RAC Firmware version, BIOS release date. 
- Get-ESXIODevice: Added support to get HP Smart Array Firmware from PowerCLI
- 
-1.0.2 Formatting & Manifest changes
-
-1.0.1 Changes to support displaying datastore multipathing
-
-1.0 First release to PowerShell Gallery with 4 commands: Get-ESXInventory, Get-ESXIODevice, Get-ESXNetworking & Get-ESXStorage
-
-
-# Usage
-
-. Once you have installed the module, you will be able to use the following functions:
-
-__Get-ESXInventory__
-
-__Get-ESXIODevice__
-
-__Get-ESXNetworking__
-
-__Get-ESXStorage__
-
-Refer to the code's comments in the [vDocument Module File](https://github.com/arielsanchezmora/vDocumentation/blob/master/powershell/vDocument/vDocument.psm1) for full usage and examples, or use Get-Help and the module name:
+# Syntax
 
 __Get-Help Get-ESXInventory__
 
@@ -195,8 +376,7 @@ _$psversiontable_ [enter]  =  gives you the PowerShell version
 _get-module VMware* -ListAvailable_ [enter]  =  Lists all installed PowerCLI modules, if return empty, install PowerCLI
 
 ## Installing PowerCLI
-  _Find-Module -Name VMware.PowerCLI_  =  checks connectivity to PowerShell Gallery and updates NuGet if needed (yes is default)
-  
+  _Find-Module -Name VMware.PowerCLI_  =  checks connectivity to PowerShell Gallery and updates NuGet if needed (yes is default)  
   _Install-Module -Name VMware.PowerCLI -Scope CurrentUser_  =  install PowerCLI as long as you answer Y or A
 
 ## Execution Policy and Certificate Warnings
@@ -223,16 +403,15 @@ _Install-Module ImportExcel -scope CurrentUser_
 
 vDocumentation was created as a PowerShell module as well, and it's published in the PowerShell Gallery, so we can use the Install-Module command:
 
-![install_vDocumentation_1.03](https://github.com/arielsanchezmora/vDocumentation/blob/master/install_vDocumentation_1.03.png)
+_Install-Module vDocumentation -scope CurrentUser_
+
+![install_vDocumentation_1.03](https://github.com/arielsanchezmora/vDocumentation/blob/master/pictures/install_vDocumentation_1.03.png)
 
 If you can't use the online method, use this manual process:
 
-  1 Download the two files inside the vDocumentation folder.
-  
-  2 Browse to the %USERPROFILE%\Documents\WindowsPowerShell\Modules and copy the files inside a folder named vDocumentation
-  
-  3 Close all PowerShell windows
-  
+  1 Download the two files inside the vDocumentation folder.  
+  2 Browse to the %USERPROFILE%\Documents\WindowsPowerShell\Modules and copy the files inside a folder named vDocumentation  
+  3 Close all PowerShell windows  
   4 Launch PowerShell again, you should be able to use the vDocumentation functions now
 
 
