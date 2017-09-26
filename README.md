@@ -1,6 +1,11 @@
 # vDocumentation
 
-vDocumentation provides a community-created set of PowerCLI scripts that produce infrastructure documentation of vSphere environments in CSV or Excel file format.
+vDocumentation provides a community-created set of PowerCLI scripts that produce infrastructure documentation of vSphere environments in CSV or Excel file format. It was presented for general public use in VMworld 2017, session SER2077BU. You can watch the video here
+
+https://www.youtube.com/watch?v=-KK0ih8tuTo
+
+Original slides are [here](https://www.dropbox.com/s/f5e9hpxgzz0unq1/vmworld2017-Ariel%20and%20Edgar%20Sanchez-SER2077BU-Achieve%20Maximum%20vSphere%20Stability%20with%20PowerCLI%20Assisted%20Documentation%20From%20Buildout%20to%20Daily%20Administration.pptx?dl=0) as well as the [mindmap](https://www.dropbox.com/s/19jdgup6ldah3u9/SER2077BU%20Achieve%20maximum%20vSphere%20stability%20with%20PowerCLI%20assisted%20documentation%20%20from%20buildout%20to%20daily%20administration-mindmap201707231829EST.png?dl=0) we used to create this talk. We are passionate about this subject so please use the slides or let us know what you would like to add to the MindMap, and we can continue improving this presentation.
+
 
 # Quickstart for VMworld 2017
 
