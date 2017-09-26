@@ -192,6 +192,30 @@ Why do I get a warning about deprecated features when running the script?
 
 # Module Changelog
 
+__v2.00__ Major update, on the backend, mostly safe for actual users  
+ *Code cleaning:*  
+ Each script module exists now in its own .ps1 file which will allow easier editing by the community  
+ Scripts code optimization and formatting updated  
+ [@jpsider](https://github.com/jpsider) removed the CLS command that would clear screen before starting screen output  
+ 
+ *Removed:*  
+ Get-ESXInventory function (and thus, a report column) removed: Deprecated script Cmdlet - Software/Patch Name(s) from host configuration has been deprecated. What Patches gets pushed can be manually verified using the Build ID  
+ 
+ *Additions:*  
+  [@jpsider](https://github.com/jpsider) added -passthru option  
+ Get-ESXInventory - Host Configuration script now has the following:  
+ - Gather ESXi Installation Type and Boot source
+ - Gather ESXi Image Profile
+ - Gather ESXi Software Acceptance Level
+ - Gather ESXi Uptime (thanks to the person who asked in #SER2077BU, send us your name to give you credit!)
+ - Gather ESXi Install Date
+ 
+ Get-ESXIODevice - NIC and HBA script now has the following:
+ - Updated string match to check for HPSA firmware, as it changed between 5.5, and 6.0 and possibly between firmware versions.
+ 
+ *Bug Fixes:*  
+ Fixed Get-ESXNetworking script Cmdlet when querying UCS environment, or 3rd party Distributed switches.  While the information retrieved is not the same (due to the powershell command, not because of vDocumentation) the script will no longer fail, and will produce what it can.
+ 
 __v1.04__ new functionality added:  
  Updated export-excel so that it does no number conversion (IP addresses are now text) on any of the columns and it auto sizes them. Thanks to [@magneet_nl](https://twitter.com/Magneet_nl) for helping us discover this bug!
 
