@@ -196,13 +196,13 @@ __v2.00__ Major update, on the backend, mostly safe for actual users
  *Code cleaning:*  
  Each script module exists now in its own .ps1 file which will allow easier editing by the community  
  Scripts code optimization and formatting updated  
- [@jpsider](https://github.com/jpsider) removed the CLS command that would clear screen before starting screen output  
+ [@jpsider](https://github.com/jpsider) championed the removal of the CLS command that would clear screen before starting screen output, and contributed the code, which was included in this release.  
  
  *Removed:*  
  Get-ESXInventory function (and thus, a report column) removed: Deprecated script Cmdlet - Software/Patch Name(s) from host configuration has been deprecated. What Patches gets pushed can be manually verified using the Build ID  
  
  *Additions:*  
-  [@jpsider](https://github.com/jpsider) added -passthru option  
+  [@jpsider](https://github.com/jpsider) championed the addition of a -passthru option and contributed the code, which was included in this release.  
  Get-ESXInventory - Host Configuration script now has the following:  
  - Gather ESXi Installation Type and Boot source
  - Gather ESXi Image Profile
