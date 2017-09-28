@@ -195,6 +195,10 @@ Why do I get a warning about deprecated features when running the script?
 
 - _This is native from PowerCLI as they plan future changes. vDocumentation does not use any feature that is known to be in deprecation plans. You can disable the warnings with `Set-PowerCLIConfiguration -DisplayDeprecationWarnings $false -Scope User`_
 
+I get this error "Get-EsxCli : A parameter cannot be found that matches parameter name 'V2'" why?
+
+- _This probably means you are running a version of PowerCLI that is older than 6.3. We encourage uninstalling all versions and then using the latest version - that should take care of this error, which comes from a feature that was added in PowerCLI 6.3_
+
 # Module Changelog
 
 __v2.00__ Major update, on the backend, mostly safe for actual users  
