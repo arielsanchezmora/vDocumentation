@@ -12,14 +12,14 @@
 RootModule = '.\vDocumentation.psm1'
 
 # Version number of this module.
-ModuleVersion = '1.0.4'
+ModuleVersion = '2.0.0'
 
 # ID used to uniquely identify this module
 GUID = 'e38fbdc9-ac76-4e62-bb18-ae9feb9c23dc'
 
 # Author of this module
 Author = 'Ariel Sanchez, @arielsanchezmor, arielsanchezmora.com', 
-        'Edgar Sanchez, @edmsanchez13, virtualcornerstone.com'
+         'Edgar Sanchez, @edmsanchez13, virtualcornerstone.com'
 
 # Company or vendor of this module
 CompanyName = 'Edgar Sanchez'
@@ -31,7 +31,7 @@ Copyright = '(c) 2017 Ariel Sanchez and Edgar Sanchez. MIT License (MIT).'
 Description = 'PowerShell module that produces documentation of a vSphere environment'
 
 # Minimum version of the Windows PowerShell engine required by this module
-#PowerShellVersion = '3.0'
+PowerShellVersion = '3.0'
 
 # Name of the Windows PowerShell host required by this module
 # PowerShellHostName = ''
@@ -46,34 +46,34 @@ Description = 'PowerShell module that produces documentation of a vSphere enviro
 # CLRVersion = ''
 
 # Processor architecture (None, X86, Amd64) required by this module
-ProcessorArchitecture = ''
+# ProcessorArchitecture = ''
 
 # Modules that must be imported into the global environment prior to importing this module
 # RequiredModules = @()
 
 # Assemblies that must be loaded prior to importing this module
-RequiredAssemblies = @()
+# RequiredAssemblies = @()
 
 # Script files (.ps1) that are run in the caller's environment prior to importing this module.
-ScriptsToProcess = @()
+# ScriptsToProcess = @()
 
 # Type files (.ps1xml) to be loaded when importing this module
-TypesToProcess = @()
+# TypesToProcess = @()
 
 # Format files (.ps1xml) to be loaded when importing this module
-FormatsToProcess = @()
+# FormatsToProcess = @()
 
 # Modules to import as nested modules of the module specified in RootModule/ModuleToProcess
 # NestedModules = @()
 
 # Functions to export from this module
-FunctionsToExport = '*'
+FunctionsToExport = @('Get-ESXStorage','Get-ESXNetworking','Get-ESXIODevice','Get-ESXInventory')
 
 # Cmdlets to export from this module
 CmdletsToExport = @()
 
 # Variables to export from this module
-VariablesToExport = @()
+# VariablesToExport = @()
 
 # Aliases to export from this module
 AliasesToExport = @()
@@ -85,7 +85,10 @@ AliasesToExport = @()
 # ModuleList = @()
 
 # List of all files packaged with this module
-FileList = @()
+FileList = @(
+             '.\vDocumentation.psd1','.\vDocumentation.psm1','.\Public\Get-ESXStorage.ps1','.\Public\Get-ESXNetworking.ps1','.\Public\Get-ESXIODevice.ps1',
+             '.\Public\Get-ESXInventory.ps1'
+            )
 
 # Private data to pass to the module specified in RootModule/ModuleToProcess. This may also contain a PSData hashtable with additional module metadata used by PowerShell.
 PrivateData = @{

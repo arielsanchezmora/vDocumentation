@@ -1,6 +1,11 @@
 # vDocumentation
 
-vDocumentation provides a community-created set of PowerCLI scripts that produce infrastructure documentation of vSphere environments in CSV or Excel file format.
+vDocumentation provides a community-created set of PowerCLI scripts that produce infrastructure documentation of vSphere environments in CSV or Excel file format. It was presented for general public use in VMworld 2017, session SER2077BU. You can watch the video here
+
+https://www.youtube.com/watch?v=-KK0ih8tuTo
+
+Original slides are [here](https://www.dropbox.com/s/f5e9hpxgzz0unq1/vmworld2017-Ariel%20and%20Edgar%20Sanchez-SER2077BU-Achieve%20Maximum%20vSphere%20Stability%20with%20PowerCLI%20Assisted%20Documentation%20From%20Buildout%20to%20Daily%20Administration.pptx?dl=0) as well as the [mindmap](https://www.dropbox.com/s/19jdgup6ldah3u9/SER2077BU%20Achieve%20maximum%20vSphere%20stability%20with%20PowerCLI%20assisted%20documentation%20%20from%20buildout%20to%20daily%20administration-mindmap201707231829EST.png?dl=0) we used to create this talk. We are passionate about this subject so please use the slides or let us know what you would like to add to the MindMap, and we can continue improving this presentation.
+
 
 # Quickstart for VMworld 2017
 
@@ -190,8 +195,36 @@ Why do I get a warning about deprecated features when running the script?
 
 - _This is native from PowerCLI as they plan future changes. vDocumentation does not use any feature that is known to be in deprecation plans. You can disable the warnings with `Set-PowerCLIConfiguration -DisplayDeprecationWarnings $false -Scope User`_
 
+I get this error "Get-EsxCli : A parameter cannot be found that matches parameter name 'V2'" why?
+
+- _This probably means you are running a version of PowerCLI that is older than 6.3. We encourage uninstalling all versions and then using the latest version - that should take care of this error, which comes from a feature that was added in PowerCLI 6.3_
+
 # Module Changelog
 
+__v2.00__ Major update, on the backend, mostly safe for actual users  
+ *Code cleaning:*  
+ Each script module exists now in its own .ps1 file which will allow easier editing by the community  
+ Scripts code optimization and formatting updated  
+ [@jpsider](https://github.com/jpsider) championed the removal of the CLS command that would clear screen before starting screen output, and contributed the code, which was included in this release.  
+ 
+ *Removed:*  
+ Get-ESXInventory function (and thus, a report column) removed: Deprecated script Cmdlet - Software/Patch Name(s) from host configuration has been deprecated. What Patches gets pushed can be manually verified using the Build ID  
+ 
+ *Additions:*  
+  [@jpsider](https://github.com/jpsider) championed the addition of a -passthru option and contributed the code, which was included in this release.  
+ Get-ESXInventory - Host Configuration script now has the following:  
+ - Gather ESXi Installation Type and Boot source
+ - Gather ESXi Image Profile
+ - Gather ESXi Software Acceptance Level
+ - Gather ESXi Uptime (thanks to the person who asked in #SER2077BU, send us your name to give you credit!)
+ - Gather ESXi Install Date
+ 
+ Get-ESXIODevice - NIC and HBA script now has the following:
+ - Updated string match to check for HPSA firmware, as it changed between 5.5, and 6.0 and possibly between firmware versions.
+ 
+ *Bug Fixes:*  
+ Fixed Get-ESXNetworking script Cmdlet when querying UCS environment, or 3rd party Distributed switches.  While the information retrieved is not the same (due to the powershell command, not because of vDocumentation) the script will no longer fail, and will produce what it can.
+ 
 __v1.04__ new functionality added:  
  Updated export-excel so that it does no number conversion (IP addresses are now text) on any of the columns and it auto sizes them. Thanks to [@magneet_nl](https://twitter.com/Magneet_nl) for helping us discover this bug!
 
