@@ -99,7 +99,7 @@
       running Verbose
     #>
     if ($VerbosePreference -eq "continue") {
-        Write-Verbose -Message ((Get-Date -Format G) + "`tPowercli Version:")
+        Write-Verbose -Message ((Get-Date -Format G) + "`tPowerCLI Version:")
         Get-Module -Name VMware.* | Select-Object -Property Name, Version | Format-Table -AutoSize
         Write-Verbose -Message ((Get-Date -Format G) + "`tvDocumentation Version:")
         Get-Module -Name vDocumentation | Select-Object -Property Name, Version | Format-Table -AutoSize
@@ -366,13 +366,20 @@
             $imageProfile = $esxcli2.software.profile.get.Invoke()
                    
             <#
-              Get NTP configuraiton
+              Get services configuraiton
             #>
-            Write-Verbose -Message ((Get-Date -Format G) + "`tGathering NTP configuration...")
+            Write-Verbose -Message ((Get-Date -Format G) + "`tGathering services configuration...")
+            $vmServices = $vmhost | Get-VMHostService
+            $vmhostFireWall = $vmhost | Get-VMHostFirewallException
             $ntpServerList = $vmhost | Get-VMHostNtpServer
             $ntpService = $vmhost | Get-VMHostService | Where-Object {$_.key -eq "ntpd"}
             $vmhostFireWall = $vmhost | Get-VMHostFirewallException
             $ntpFWException = $vmhostFireWall | Select-Object Name, Enabled | Where-Object {$_.Name -eq "NTP Client"}
+            $sshService = $vmServices | Where-Object {$_.key -eq "TSM-SSH"}
+            $sshServerFWException = $vmhostFireWall | Select-Object Name, Enabled | Where-Object {$_.Name -eq "SSH Server"}
+            $esxiShellService = $vmServices | Where-Object {$_.key -eq "TSM"}
+            $ShellTimeOut = (Get-AdvancedSetting -Entity $vmhost -Name "UserVars.ESXiShellTimeOut" -ErrorAction SilentlyContinue).value
+            $interactiveShellTimeOut = (Get-AdvancedSetting -Entity $vmhost -Name "UserVars.ESXiShellInteractiveTimeOut" -ErrorAction SilentlyContinue).value
     
             <#
               Get syslog configuration
@@ -388,9 +395,10 @@
               Get UpTime and install date
             #>
             Write-Verbose -Message ((Get-Date -Format G) + "`tGathering UpTime Configuration...")
-            $bootTime = $vmhost.ExtensionData.Runtime.BootTime
-            $today = Get-Date
-            $upTime = $today - $BootTime | Select-Object Days, Hours, Minutes
+            $bootTimeUTC = $vmhost.ExtensionData.Runtime.BootTime
+            $localTimeZone = Get-TimeZone
+            $BootTime = [System.TimeZoneInfo]::ConvertTime($bootTimeUTC, $localTimeZone)
+            $upTime = New-TimeSpan -Seconds $vmhost.ExtensionData.Summary.QuickStats.Uptime
             $upTimeDays = $upTime.Days
             $upTimeHours = $upTime.Hours
             $upTimeMinutes = $upTime.Minutes
@@ -445,6 +453,7 @@
                 'Boot From'             = $bootSource
                 'Image Profile'         = $imageProfile.Name
                 'Acceptance Level'      = $imageProfile.AcceptanceLevel 
+                'Boot Time'             = $BootTime
                 'Uptime'                = "$upTimeDays Day(s), $upTimeHours Hour(s), $upTimeMinutes Minute(s)"
                 'Install Date'          = $installDate
                 'Last Patched'          = $vmhostPatch.InstallDate
@@ -455,11 +464,20 @@
                 'Cluster'               = $vmhostCluster
                 'Virtual Datacenter'    = $vmhostvDC
                 'vCenter'               = $vmhost.ExtensionData.CLient.ServiceUrl.Split('/')[2]
-                'Service'               = $ntpService.Label
-                'Service Running'       = $ntpService.Running
-                'Startup Policy'        = $ntpService.Policy
+                'NTP'               = $ntpService.Label
+                'NTP Running'       = $ntpService.Running
+                'NTP Startup Policy'        = $ntpService.Policy
                 'NTP Client Enabled'    = $ntpFWException.Enabled
                 'NTP Server'            = (@($ntpServerList) -join ',')
+                'SSH'                       = $sshService.Label
+                'SSH Running'               = $sshService.Running
+                'SSH Startup Policy'        = $sshService.Policy
+                'SSH TimeOut'               = $ShellTimeOut
+                'SSH Server Enabled'        = $sshServerFWException.Enabled
+                'ESXi Shell'                = $esxiShellService.Label
+                'ESXi Shell Running'        = $esxiShellService.Running
+                'ESXi Shell Startup Policy' = $esxiShellService.Policy
+                'ESXi Shell TimeOut'        = $interactiveShellTimeOut
                 'Syslog Server'         = (@($syslogList) -join ',')
                 'Syslog Client Enabled' = $syslogFWException.Enabled
             } #END [PSCustomObject]

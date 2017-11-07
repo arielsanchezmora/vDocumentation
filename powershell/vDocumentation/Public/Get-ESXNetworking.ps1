@@ -96,7 +96,7 @@
       running Verbose
     #>
     if ($VerbosePreference -eq "continue") {
-        Write-Verbose -Message ((Get-Date -Format G) + "`tPowercli Version:")
+        Write-Verbose -Message ((Get-Date -Format G) + "`tPowerCLI Version:")
         Get-Module -Name VMware.* | Select-Object -Property Name, Version | Format-Table -AutoSize
         Write-Verbose -Message ((Get-Date -Format G) + "`tvDocumentation Version:")
         Get-Module -Name vDocumentation | Select-Object -Property Name, Version | Format-Table -AutoSize
@@ -298,7 +298,7 @@
                 Write-Verbose -Message ((Get-Date -Format G) + "`tGet Device Discovery Protocol for: " + $nic.Name)
                 $esxiHostView = $vmhost | Get-View 
                 $networkSystem = $esxiHostView.Configmanager.Networksystem
-                $networkView = Get-View $networkSystem
+                $networkView = Get-View -Id $networkSystem
                 $networkViewInfo = $networkView.QueryNetworkHint($nic.Name)
                 if ($networkViewInfo.connectedswitchport -ne $null) {
                     Write-Verbose -Message ((Get-Date -Format G) + "`tDevice Discovery Protocol: CDP")
@@ -421,16 +421,10 @@
                 <#
                   Get TCP/IP Stack details
                 #>
-                Write-Verbose -Message ((Get-Date -Format G) + "`tGet VMkernel TCP/IP configuration...")
-                $tcpipConfig = $vmhost | Get-VMHostNetwork
-                if ($tcpipConfig.VirtualNic.Name -contains $nic.Name) {
-                    $vmkGateway = $tcpipConfig.VMKernelGateway
-                    $dnsAddress = $tcpipConfig.DnsAddress
-                }
-                else {
-                    $vmkGateway = $null
-                    $dnsAddress = $null
-                } #END if/else
+                Write-Verbose -Message ((Get-Date -Format G) + "`tGet VMkernel TCP/IP Stack details...")
+                $netStackInstance = $vmhost.ExtensionData.Config.Network.NetStackInstance | Where-Object {$_.key -eq $interfaceList.NetstackInstance}
+                $vmkGateway = $netStackInstance.IpRouteConfig.DefaultGateway
+                $dnsAddress = $netStackInstance.DnsConfig.Address
                                         
                 <#
                   Use a custom object to store
