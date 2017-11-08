@@ -6,23 +6,68 @@ https://www.youtube.com/watch?v=-KK0ih8tuTo
 
 Original slides are [here](https://www.dropbox.com/s/f5e9hpxgzz0unq1/vmworld2017-Ariel%20and%20Edgar%20Sanchez-SER2077BU-Achieve%20Maximum%20vSphere%20Stability%20with%20PowerCLI%20Assisted%20Documentation%20From%20Buildout%20to%20Daily%20Administration.pptx?dl=0) as well as the [mindmap](https://www.dropbox.com/s/19jdgup6ldah3u9/SER2077BU%20Achieve%20maximum%20vSphere%20stability%20with%20PowerCLI%20assisted%20documentation%20%20from%20buildout%20to%20daily%20administration-mindmap201707231829EST.png?dl=0) we used to create this talk. We are passionate about this subject so please use the slides or let us know what you would like to add to the MindMap, and we can continue improving this presentation.
 
+# vDocumentation Changelog
 
-# Quickstart for VMworld 2017
+__v2.10__ Meaty update, our first new cmdlet since the project's debut!
+ *Additions:*  
+- Added new Cmdlet: **Get-ESXPatching**, documentation update and examples coming soon!  
+- Added the following to **Get-ESXInventory**, Configuration tab: SSH and ESXi Shell Service details requested by akozlow in Issue #19, and Boot Time
+        
+ *Bug Fixes:*  
+- Fixed reported issue #16 by DaveBF 'VMHostNeworkInfo type is deprecated' in Get-ESXNetworking Cmdlet
+- Fixed issue for Uptime in Get-ESXInventory where it was not being calculated correctly
 
-## First time usage on a *brand new machine* with PowerShell 5.x and an internet connection
+__v2.00__ Major update, on the backend, mostly safe for actual users  
+ *Code cleaning:*  
+ Each script module exists now in its own .ps1 file which will allow easier editing by the community  
+ Scripts code optimization and formatting updated  
+ [@jpsider](https://github.com/jpsider) championed the removal of the CLS command that would clear screen before starting screen output, and contributed the code, which was included in this release.  
+ 
+ *Removed:*  
+ Get-ESXInventory function (and thus, a report column) removed: Deprecated script Cmdlet - Software/Patch Name(s) from host configuration has been deprecated. What Patches gets pushed can be manually verified using the Build ID  
+ 
+ *Additions:*  
+  [@jpsider](https://github.com/jpsider) championed the addition of a -passthru option and contributed the code, which was included in this release.  
+ Get-ESXInventory - Host Configuration script now has the following:  
+ - Gather ESXi Installation Type and Boot source
+ - Gather ESXi Image Profile
+ - Gather ESXi Software Acceptance Level
+ - Gather ESXi Uptime (thanks to the person who asked in #SER2077BU, send us your name to give you credit!)
+ - Gather ESXi Install Date
+ 
+ Get-ESXIODevice - NIC and HBA script now has the following:
+ - Updated string match to check for HPSA firmware, as it changed between 5.5, and 6.0 and possibly between firmware versions.
+ 
+ *Bug Fixes:*  
+ Fixed Get-ESXNetworking script Cmdlet when querying UCS environment, or 3rd party Distributed switches.  While the information retrieved is not the same (due to the powershell command, not because of vDocumentation) the script will no longer fail, and will produce what it can.
+ 
+__v1.04__ new functionality added:  
+ Updated export-excel so that it does no number conversion (IP addresses are now text) on any of the columns and it auto sizes them. Thanks to [@magneet_nl](https://twitter.com/Magneet_nl) for helping us discover this bug!
+
+__v1.03__ new functionality added:  
+ Get-ESXInventory: Added RAC Firmware version, BIOS release date.  
+ Get-ESXIODevice: Added support to get HP Smart Array Firmware from PowerCLI  
+ 
+__1.02__ Formatting & Manifest changes
+
+__1.01__ Changes to support displaying datastore multipathing
+
+__1.0__ First release to PowerShell Gallery with 4 commands: Get-ESXInventory, Get-ESXIODevice, Get-ESXNetworking & Get-ESXStorage
+
+
+# Quickstart instructions
+
+## First time usage on a *brand new machine* with PowerShell 5.x and an open internet connection
 
 _Paste in a PowerShell window that has been Run as Administrator and answer Y_
 
 **Set-ExecutionPolicy RemoteSigned**  
-**Set-PowerCLIConfiguration -InvalidCertificateAction Ignore**
 
 ![Run PowerShell as Administrator](https://github.com/arielsanchezmora/vDocumentation/blob/master/pictures/PowerShell_as_administrator.png)
 
-![Enable remote scripts and ignore certificate warnings](https://github.com/arielsanchezmora/vDocumentation/blob/master/pictures/enable_RemoteSigned_Invalid_Certificate.png)
-
 _You can now close the PowerShell window that ran as Administrator_ 
 
-_In a new **normal** PowerShell console paste all of the below answering Y (this only affects your user, and it may take a while)_
+_In a new, **normal** PowerShell console, paste the below commands answering Y (this only affects your user, and it may take a while)_
 
 **Install-Module -Name VMware.PowerCLI -Scope CurrentUser**  
 **Install-Module ImportExcel -scope CurrentUser**  
@@ -37,7 +82,7 @@ _vDocumentation is now installed! You can verify with_
 ![Confirm vDocumentation installation](https://github.com/arielsanchezmora/vDocumentation/blob/master/pictures/Confirm_vDocumentation_installation2.png)
 
 
-## The vDocumentation module gives you four _new_ PowerCLI Commands you can use to create documentation of a vSphere environment
+## The vDocumentation module gives you five _new_ PowerCLI Commands you can use to create documentation of a vSphere environment
 
 _Before you can use them, connect to your vCenter(s) using PowerCLI_
 
@@ -51,6 +96,7 @@ _When prompted for credentials use a vCenter Administrator-level account. Once c
 |**Get-ESXIODevice**|Document information from HBAs, NICs and other PCIe devices including PCI IDs, MACs, firmware & drivers|
 |**Get-ESXNetworking**|Document networking configuration information such as NICs, vSwitches, VMKernel details|
 |**Get-ESXStorage**|Document storage configurations such as iSCSI details, FibreChannel, Datastores & Multipathing|
+|**Get-ESXPatching**|Document installed and pending patches, including related time and KB information|
 
 _Each script will output the corresponding data to terminal, and optionally create a file (XLSX, CSV) with the command name and a timestamp. You can use command switches to customize CSV or Excel output, file path (default is powershell working directory), and the command scope (report on all connected vCenters or just cluster or host)._
 
@@ -140,13 +186,20 @@ Get-ESXStorage -Datastores
 
 
 
-**[Document your vSphere environment? Yes you can!](https://notesfrommwhite.net/2017/08/16/document-your-vsphere-environment-yes-you-can/) Blog article with Excel outputs thanks to [@mwVme](https://twitter.com/mwVme)**
+**[Document your vSphere environment? Yes you can!](https://notesfrommwhite.net/2017/08/16/document-your-vsphere-environment-yes-you-can/) Blog article with Excel outputs thanks to [@mwVme](https://twitter.com/mwVme)**  
 
 
+## Uninstalling the vDocumentation script
+
+**Uninstall-Module vDocumentation**
+
+![Uninstall vDocumentation](https://github.com/arielsanchezmora/vDocumentation/blob/master/pictures/uninstall_vDocumentation.png)
 
 ## Upgrading from a previous version
 
-_If the prompt returns without doing anything, you are running latest._
+There is a known limitation in just upgrading through the PowerShell Gallery: using the Update-Module command installs a new version but does **not** remove the old version. While PowerShell/PowerCLI will use the latest module, if you wish to only have the latest listed in your computer, uninstall all existing vDocumentation modules **before** installing the latest by using Uninstall-Module as many times as needed, before using **Install-Module** as with a new installation.  
+
+However, in an effort to keep it simple, you can just use the following commands (and again, it does seem it always uses the latest version). If the prompt returns without doing anything, you are already running the latest.
 
 **Update-Module VMware.PowerCLI**  
 **Update-Module ImportExcel**  
@@ -154,11 +207,6 @@ _If the prompt returns without doing anything, you are running latest._
 
 ![Upgrade Commands](https://github.com/arielsanchezmora/vDocumentation/blob/master/pictures/upgrade_commands.png)
 
-## Uninstalling the vDocumentation script
-
-**Uninstall-Module vDocumentation**
-
-![Uninstall vDocumentation](https://github.com/arielsanchezmora/vDocumentation/blob/master/pictures/uninstall_vDocumentation.png)
 
 ## FAQ
 
@@ -199,44 +247,6 @@ I get this error "Get-EsxCli : A parameter cannot be found that matches paramete
 
 - _This probably means you are running a version of PowerCLI that is older than 6.3. We encourage uninstalling all versions and then using the latest version - that should take care of this error, which comes from a feature that was added in PowerCLI 6.3_
 
-# Module Changelog
-
-__v2.00__ Major update, on the backend, mostly safe for actual users  
- *Code cleaning:*  
- Each script module exists now in its own .ps1 file which will allow easier editing by the community  
- Scripts code optimization and formatting updated  
- [@jpsider](https://github.com/jpsider) championed the removal of the CLS command that would clear screen before starting screen output, and contributed the code, which was included in this release.  
- 
- *Removed:*  
- Get-ESXInventory function (and thus, a report column) removed: Deprecated script Cmdlet - Software/Patch Name(s) from host configuration has been deprecated. What Patches gets pushed can be manually verified using the Build ID  
- 
- *Additions:*  
-  [@jpsider](https://github.com/jpsider) championed the addition of a -passthru option and contributed the code, which was included in this release.  
- Get-ESXInventory - Host Configuration script now has the following:  
- - Gather ESXi Installation Type and Boot source
- - Gather ESXi Image Profile
- - Gather ESXi Software Acceptance Level
- - Gather ESXi Uptime (thanks to the person who asked in #SER2077BU, send us your name to give you credit!)
- - Gather ESXi Install Date
- 
- Get-ESXIODevice - NIC and HBA script now has the following:
- - Updated string match to check for HPSA firmware, as it changed between 5.5, and 6.0 and possibly between firmware versions.
- 
- *Bug Fixes:*  
- Fixed Get-ESXNetworking script Cmdlet when querying UCS environment, or 3rd party Distributed switches.  While the information retrieved is not the same (due to the powershell command, not because of vDocumentation) the script will no longer fail, and will produce what it can.
- 
-__v1.04__ new functionality added:  
- Updated export-excel so that it does no number conversion (IP addresses are now text) on any of the columns and it auto sizes them. Thanks to [@magneet_nl](https://twitter.com/Magneet_nl) for helping us discover this bug!
-
-__v1.03__ new functionality added:  
- Get-ESXInventory: Added RAC Firmware version, BIOS release date.  
- Get-ESXIODevice: Added support to get HP Smart Array Firmware from PowerCLI  
- 
-__1.02__ Formatting & Manifest changes
-
-__1.01__ Changes to support displaying datastore multipathing
-
-__1.0__ First release to PowerShell Gallery with 4 commands: Get-ESXInventory, Get-ESXIODevice, Get-ESXNetworking & Get-ESXStorage
 
 
 # vDocumentation backstory
@@ -374,6 +384,34 @@ REMARKS
     For more information, type: "get-help Get-ESXStorage -detailed".
     For technical information, type: "get-help Get-ESXStorage -full".
     For online help, type: "get-help Get-ESXStorage -online"
+    
+
+__Get-Help Get-ESXPatching__  
+
+NAME
+    Get-ESXPatching
+
+SYNOPSIS
+    Get ESXi patch compliance
+
+
+SYNTAX
+    Get-ESXPatching [[-esxi] <Object>] [[-cluster] <Object>] [[-datacenter] <Object>] [[-baseline] <Object>]
+    [-ExportCSV] [-ExportExcel] [-Patching] [-PassThru] [[-folderPath] <Object>] [<CommonParameters>]
+
+
+DESCRIPTION
+    Will get patch compliance for a vSphere Cluster, Datacenter or individual ESXi host
+
+
+RELATED LINKS
+    https://github.com/arielsanchezmora/vDocumentation
+
+REMARKS
+    To see the examples, type: "get-help Get-ESXPatching -examples".
+    For more information, type: "get-help Get-ESXPatching -detailed".
+    For technical information, type: "get-help Get-ESXPatching -full".
+    For online help, type: "get-help Get-ESXPatching -online"
 
 
 # Licensing
