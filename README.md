@@ -249,7 +249,7 @@ Why do I get a warning about deprecated features when running the script?
 
 I get certificate warnings
 
-- _You can disable self-signed certificate warnings with the following command, or install proper certs ;)
+- _You can disable self-signed certificate warnings with the following command, or install proper certs ;)_
 
 **Set-PowerCLIConfiguration -InvalidCertificateAction Ignore**
 
