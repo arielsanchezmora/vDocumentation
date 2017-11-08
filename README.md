@@ -8,7 +8,7 @@ Original slides are [here](https://www.dropbox.com/s/f5e9hpxgzz0unq1/vmworld2017
 
 # vDocumentation Changelog
 
-__v2.10__ Meaty update, our first new cmdlet since the project's debut!
+__v2.1.0__ Meaty update, our first new cmdlet since the project's debut!
  *Additions:*  
 - Added new Cmdlet: **Get-ESXPatching**, documentation update and examples coming soon!  
 - Added the following to **Get-ESXInventory**, Configuration tab: SSH and ESXi Shell Service details requested by akozlow in Issue #19, and Boot Time
@@ -17,7 +17,7 @@ __v2.10__ Meaty update, our first new cmdlet since the project's debut!
 - Fixed reported issue #16 by DaveBF 'VMHostNeworkInfo type is deprecated' in Get-ESXNetworking Cmdlet
 - Fixed issue for Uptime in Get-ESXInventory where it was not being calculated correctly
 
-__v2.00__ Major update, on the backend, mostly safe for actual users  
+__v2.0.0__ Major update, on the backend, mostly safe for actual users  
  *Code cleaning:*  
  Each script module exists now in its own .ps1 file which will allow easier editing by the community  
  Scripts code optimization and formatting updated  
@@ -41,18 +41,18 @@ __v2.00__ Major update, on the backend, mostly safe for actual users
  *Bug Fixes:*  
  Fixed Get-ESXNetworking script Cmdlet when querying UCS environment, or 3rd party Distributed switches.  While the information retrieved is not the same (due to the powershell command, not because of vDocumentation) the script will no longer fail, and will produce what it can.
  
-__v1.04__ new functionality added:  
+__v1.0.4__ new functionality added:  
  Updated export-excel so that it does no number conversion (IP addresses are now text) on any of the columns and it auto sizes them. Thanks to [@magneet_nl](https://twitter.com/Magneet_nl) for helping us discover this bug!
 
-__v1.03__ new functionality added:  
+__v1.0.3__ new functionality added:  
  Get-ESXInventory: Added RAC Firmware version, BIOS release date.  
  Get-ESXIODevice: Added support to get HP Smart Array Firmware from PowerCLI  
  
-__1.02__ Formatting & Manifest changes
+__1.0.2__ Formatting & Manifest changes
 
-__1.01__ Changes to support displaying datastore multipathing
+__1.0.1__ Changes to support displaying datastore multipathing
 
-__1.0__ First release to PowerShell Gallery with 4 commands: Get-ESXInventory, Get-ESXIODevice, Get-ESXNetworking & Get-ESXStorage
+__1.0.0__ First release to PowerShell Gallery with 4 commands: Get-ESXInventory, Get-ESXIODevice, Get-ESXNetworking & Get-ESXStorage
 
 
 # Quickstart instructions
