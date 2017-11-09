@@ -68,7 +68,9 @@
       that is converted to secure string, not clear text string
     #>
     [CmdletBinding()]
-    [Diagnostics.CodeAnalysis.SuppressMessageAttribute("AvoidUsingConvertToSecureStringWithPlainText", "")]
+    [Diagnostics.CodeAnalysis.SuppressMessageAttribute("PSUseOutputTypeCorrectly")]
+    [Diagnostics.CodeAnalysis.SuppressMessageAttribute("PSAvoidGlobalVars")] # for $global:DefaultVIServers
+    [Diagnostics.CodeAnalysis.SuppressMessageAttribute("PSAvoidUsingConvertToSecureStringWithPlainText")]
     param (
         $esxi,
         $cluster,
@@ -110,7 +112,7 @@
     #>
     Write-Verbose -Message ((Get-Date -Format G) + "`tValidate connection to a vSphere server")
     if ($Global:DefaultViServers.Count -gt 0) {
-        Write-Host "`tConnected to $Global:DefaultViServers" -ForegroundColor Green
+        Write-Output -InputObject "`tConnected to $Global:DefaultViServers" -ForegroundColor Green
     }
     else {
         Write-Error -Message "You must be connected to a vSphere server before running this Cmdlet."
@@ -143,11 +145,11 @@
             else {
                 Write-Verbose -Message ((Get-Date -Format G) + "`tExecuting Cmdlet using datacenter parameter")
                 if ($datacenter -eq "all vdc") {
-                    Write-Host "`tGathering all hosts from the following vCenter(s): " $Global:DefaultViServers
+                    Write-Output -InputObject "`tGathering all hosts from the following vCenter(s): " $Global:DefaultViServers
                     $vHostList = Get-VMHost | Sort-Object -Property Name                    
                 }
                 else {
-                    Write-Host "`tGathering host list from the following DataCenter(s): " (@($datacenter) -join ',')
+                    Write-Output -InputObject "`tGathering host list from the following DataCenter(s): " (@($datacenter) -join ',')
                     foreach ($vDCname in $datacenter) {
                         $tempList = Get-Datacenter -Name $vDCname.Trim() -ErrorAction SilentlyContinue | Get-VMHost 
                         if ([string]::IsNullOrWhiteSpace($tempList)) {
@@ -162,7 +164,7 @@
         }
         else {
             Write-Verbose -Message ((Get-Date -Format G) + "`tExecuting Cmdlet using cluster parameter")
-            Write-Host "`tGathering host list from the following Cluster(s): " (@($cluster) -join ',')
+            Write-Output -InputObject "`tGathering host list from the following Cluster(s): " (@($cluster) -join ',')
             foreach ($vClusterName in $cluster) {
                 $tempList = Get-Cluster -Name $vClusterName.Trim() -ErrorAction SilentlyContinue | Get-VMHost 
                 if ([string]::IsNullOrWhiteSpace($tempList)) {
@@ -176,7 +178,7 @@
     }
     else { 
         Write-Verbose -Message ((Get-Date -Format G) + "`tExecuting Cmdlet using esxi parameter")
-        Write-Host "`tGathering host list..."
+        Write-Output -InputObject "`tGathering host list..."
         foreach ($invidualHost in $esxi) {
             $vHostList += $invidualHost.Trim() | Sort-Object -Property Name
         } #END foreach
@@ -291,7 +293,7 @@
           Get Hardware invetory details
         #>
         if ($Hardware) {
-            Write-Host "`tGathering Hardware inventory from $vmhost ..."
+            Write-Output -InputObject "`tGathering Hardware inventory from $vmhost ..."
             $mgmtIP = $vmhost | Get-VMHostNetworkAdapter | Where-Object {$_.ManagementTrafficEnabled -eq 'True'} | Select-Object -ExpandProperty IP
             $hardwarePlatfrom = $esxcli2.hardware.platform.get.Invoke()
     
@@ -352,7 +354,7 @@
           Get ESXi configuration details
         #>
         if ($Configuration) {
-            Write-Host "`tGathering configuration details from $vmhost ..."
+            Write-Output -InputObject "`tGathering configuration details from $vmhost ..."
 
             <#
               Get ESXi licensing
@@ -508,14 +510,14 @@
       Export data to CSV, Excel
     #>
     if ($hardwareCollection) {
-        Write-Host "`n" "ESXi Hardware Inventory:" -ForegroundColor Green
+        Write-Output -InputObject "`n" "ESXi Hardware Inventory:" -ForegroundColor Green
         if ($ExportCSV) {
             $hardwareCollection | Export-Csv ($outputFile + "Hardware.csv") -NoTypeInformation
-            Write-Host "`tData exported to" ($outputFile + "Hardware.csv") "file" -ForegroundColor Green
+            Write-Output -InputObject "`tData exported to" ($outputFile + "Hardware.csv") "file" -ForegroundColor Green
         }
         elseif ($ExportExcel) {
             $hardwareCollection | Export-Excel ($outputFile + ".xlsx") -WorkSheetname Hardware_Inventory -NoNumberConversion * -AutoSize -BoldTopRow
-            Write-Host "`tData exported to" ($outputFile + ".xlsx") "file" -ForegroundColor Green
+            Write-Output -InputObject "`tData exported to" ($outputFile + ".xlsx") "file" -ForegroundColor Green
         }
         elseif ($PassThru) {
             $ReturnCollection += $hardwareCollection 
@@ -527,14 +529,14 @@
     } #END if
     
     if ($configurationCollection) {
-        Write-Host "`n" "ESXi Host Configuration:" -ForegroundColor Green
+        Write-Output -InputObject "`n" "ESXi Host Configuration:" -ForegroundColor Green
         if ($ExportCSV) {
             $configurationCollection | Export-Csv ($outputFile + "Configuration.csv") -NoTypeInformation
-            Write-Host "`tData exported to" ($outputFile + "Configuration.csv") "file" -ForegroundColor Green
+            Write-Output -InputObject "`tData exported to" ($outputFile + "Configuration.csv") "file" -ForegroundColor Green
         }
         elseif ($ExportExcel) {
             $configurationCollection | Export-Excel ($outputFile + ".xlsx") -WorkSheetname Host_Configuration -NoNumberConversion * -BoldTopRow
-            Write-Host "`tData exported to" ($outputFile + ".xlsx") "file" -ForegroundColor Green
+            Write-Output -InputObject "`tData exported to" ($outputFile + ".xlsx") "file" -ForegroundColor Green
         }
         elseif ($PassThru) {
             $ReturnCollection += $configurationCollection

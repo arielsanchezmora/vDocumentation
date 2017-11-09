@@ -54,6 +54,8 @@
     #>
   
     [CmdletBinding()]
+    [Diagnostics.CodeAnalysis.SuppressMessageAttribute("PSUseOutputTypeCorrectly")]
+    [Diagnostics.CodeAnalysis.SuppressMessageAttribute("PSAvoidGlobalVars")] # for $global:DefaultVIServers
     param (
         $esxi,
         $cluster,
@@ -96,7 +98,7 @@
     #>
     Write-Verbose -Message ((Get-Date -Format G) + "`tValidate connection to a vSphere server")
     if ($Global:DefaultViServers.Count -gt 0) {
-        Write-Host "`tConnected to $Global:DefaultViServers" -ForegroundColor Green
+        Write-Output -InputObject "`tConnected to $Global:DefaultViServers" -ForegroundColor Green
     }
     else {
         Write-Error -Message "You must be connected to a vSphere server before running this Cmdlet."
@@ -149,18 +151,18 @@
             else {
                 Write-Verbose -Message ((Get-Date -Format G) + "`tExecuting Cmdlet using datacenter parameter")
                 if ($datacenter -eq "all vdc") {
-                    Write-Host "`tGathering all hosts from the following vCenter(s): " $Global:DefaultViServers
+                    Write-Output -InputObject "`tGathering all hosts from the following vCenter(s): " $Global:DefaultViServers
                     $vHostList = Get-VMHost | Sort-Object -Property Name
                     <#
                       Start Scan for Updates
                     #>
                     Write-Verbose -Message ((Get-Date -Format G) + "`tStarting Scan for Updates ...")
                     $scanEntity = Get-Datacenter
-                    $scanEntity | Attach-Baseline -Baseline $patchBaseline -ErrorAction SilentlyContinue
+                    $scanEntity | Add-EntityBaseline -Baseline $patchBaseline -ErrorAction SilentlyContinue
                     $testComplianceTask = $scanEntity | Test-Compliance -UpdateType HostPatch -RunAsync -ErrorAction SilentlyContinue
                 }
                 else {
-                    Write-Host "`tGathering host list from the following DataCenter(s): " (@($datacenter) -join ',')
+                    Write-Output -InputObject "`tGathering host list from the following DataCenter(s): " (@($datacenter) -join ',')
                     foreach ($vDCname in $datacenter) {
                         $tempList = Get-Datacenter -Name $vDCname.Trim() -ErrorAction SilentlyContinue | Get-VMHost
                         if ([string]::IsNullOrWhiteSpace($tempList)) {
@@ -173,7 +175,7 @@
                             #>
                             Write-Verbose -Message ((Get-Date -Format G) + "`tStarting Scan for Updates ...")
                             $scanEntity = Get-Datacenter -Name $vDCname.Trim() -ErrorAction SilentlyContinue
-                            $scanEntity | Attach-Baseline -Baseline $patchBaseline -ErrorAction SilentlyContinue
+                            $scanEntity | Add-EntityBaseline -Baseline $patchBaseline -ErrorAction SilentlyContinue
                             $testComplianceTask = $scanEntity | Test-Compliance -UpdateType HostPatch -RunAsync -ErrorAction SilentlyContinue
                         } #END if/else
                     } #END foreach
@@ -182,7 +184,7 @@
         }
         else {
             Write-Verbose -Message ((Get-Date -Format G) + "`tExecuting Cmdlet using cluster parameter")
-            Write-Host "`tGathering host list from the following Cluster(s): " (@($cluster) -join ',')
+            Write-Output -InputObject "`tGathering host list from the following Cluster(s): " (@($cluster) -join ',')
             foreach ($vClusterName in $cluster) {
                 $tempList = Get-Cluster -Name $vClusterName.Trim() -ErrorAction SilentlyContinue | Get-VMHost
                 if ([string]::IsNullOrWhiteSpace($tempList)) {
@@ -195,7 +197,7 @@
                     #>
                     Write-Verbose -Message ((Get-Date -Format G) + "`tStarting Scan for Updates ...")
                     $scanEntity = Get-Cluster -Name $vClusterName.Trim() -ErrorAction SilentlyContinue
-                    $scanEntity | Attach-Baseline -Baseline $patchBaseline -ErrorAction SilentlyContinue
+                    $scanEntity | Add-EntityBaseline -Baseline $patchBaseline -ErrorAction SilentlyContinue
                     $testComplianceTask = $scanEntity | Test-Compliance -UpdateType HostPatch -RunAsync -ErrorAction SilentlyContinue
                 } #END if/else
             } #END foreach
@@ -203,7 +205,7 @@
     }
     else { 
         Write-Verbose -Message ((Get-Date -Format G) + "`tExecuting Cmdlet using esxi parameter")
-        Write-Host "`tGathering host list..."
+        Write-Output -InputObject "`tGathering host list..."
         foreach ($invidualHost in $esxi) {
             $vHostList += $invidualHost.Trim() | Sort-Object -Property Name
             <#
@@ -212,7 +214,7 @@
             if (Get-VMHost -Name $invidualHost.Trim() -ErrorAction SilentlyContinue) {
                 Write-Verbose -Message ((Get-Date -Format G) + "`tStarting Scan for Updates ...")
                 $scanEntity = $invidualHost.Trim()
-                $scanEntity | Attach-Baseline -Baseline $patchBaseline -ErrorAction SilentlyContinue
+                $scanEntity | Add-EntityBaseline -Baseline $patchBaseline -ErrorAction SilentlyContinue
                 $testComplianceTask = Test-Compliance -Entity $scanEntity -UpdateType HostPatch -RunAsync -ErrorAction SilentlyContinue
             }
         } #END foreach
@@ -301,7 +303,7 @@
         <#
           Get ESXi Patch Compliance
         #>
-        Write-Host "`tGathering patch compliance from $vmhost ..."
+        Write-Output -InputObject "`tGathering patch compliance from $vmhost ..."
         <#
           Get ESXi Software configuration
           and patch compliance
@@ -309,7 +311,7 @@
         $vmhostPatch = $esxcli.software.vib.list.Invoke() | Where-Object {$_.ID -match $vmhost.Build} | Select-Object -First 1
         $installedPatches = $esxcli.software.vib.list.Invoke() | Where-Object {$_.InstallDate -eq $vmhostPatch.InstallDate -and $_.Vendor -like "VMware*"}
         while ($testComplianceTask.PercentComplete -ne 100) {
-            Write-Host "`tWaiting on scan for updates to complete... " $testComplianceTask.PercentComplete "%"
+            Write-Output -InputObject "`tWaiting on scan for updates to complete... " $testComplianceTask.PercentComplete "%"
             Start-Sleep -seconds 5
             $testComplianceTask = Get-Task -id $testComplianceTask.id
         }
@@ -414,14 +416,14 @@
       Export data to CSV, Excel
     #>
     if ($patchingCollection) {
-        Write-Host "`n" "ESXi Patch Compliance:" -ForegroundColor Green
+        Write-Output -InputObject "`n" "ESXi Patch Compliance:" -ForegroundColor Green
         if ($ExportCSV) {
             $patchingCollection | Export-Csv ($outputFile + "PatchCompliance.csv") -NoTypeInformation
-            Write-Host "`tData exported to" ($outputFile + "PatchCompliance.csv") "file" -ForegroundColor Green
+            Write-Output -InputObject "`tData exported to" ($outputFile + "PatchCompliance.csv") "file" -ForegroundColor Green
         }
         elseif ($ExportExcel) {
             $patchingCollection | Export-Excel ($outputFile + ".xlsx") -WorkSheetname Patch_Compliance -NoNumberConversion * -BoldTopRow
-            Write-Host "`tData exported to" ($outputFile + ".xlsx") "file" -ForegroundColor Green
+            Write-Output -InputObject "`tData exported to" ($outputFile + ".xlsx") "file" -ForegroundColor Green
         }
         elseif ($PassThru) {
             $ReturnCollection += $patchingCollection
@@ -433,14 +435,14 @@
     } #END if
 
     if ($lastPatchingCollection) {
-        Write-Host "`n" "ESXi Last Installed Patches:" -ForegroundColor Green
+        Write-Output -InputObject "`n" "ESXi Last Installed Patches:" -ForegroundColor Green
         if ($ExportCSV) {
             $lastPatchingCollection | Export-Csv ($outputFile + "LastInstalledPatches.csv") -NoTypeInformation
-            Write-Host "`tData exported to" ($outputFile + "LastInstalledPatches.csv") "file" -ForegroundColor Green
+            Write-Output -InputObject "`tData exported to" ($outputFile + "LastInstalledPatches.csv") "file" -ForegroundColor Green
         }
         elseif ($ExportExcel) {
             $lastPatchingCollection | Export-Excel ($outputFile + ".xlsx") -WorkSheetname Last_Installed_Patches -NoNumberConversion * -BoldTopRow
-            Write-Host "`tData exported to" ($outputFile + ".xlsx") "file" -ForegroundColor Green
+            Write-Output -InputObject "`tData exported to" ($outputFile + ".xlsx") "file" -ForegroundColor Green
         }
         elseif ($PassThru) {
             $ReturnCollection += $lastPatchingCollection
@@ -452,14 +454,14 @@
     } #END if
 
     if ($notCompliantPatchCollection) {
-        Write-Host "`n" "ESXi Missing Patches:" -ForegroundColor Green
+        Write-Output -InputObject "`n" "ESXi Missing Patches:" -ForegroundColor Green
         if ($ExportCSV) {
             $notCompliantPatchCollection | Export-Csv ($outputFile + "MissingPatches.csv") -NoTypeInformation
-            Write-Host "`tData exported to" ($outputFile + "MissingPatches.csv") "file" -ForegroundColor Green
+            Write-Output -InputObject "`tData exported to" ($outputFile + "MissingPatches.csv") "file" -ForegroundColor Green
         }
         elseif ($ExportExcel) {
             $notCompliantPatchCollection | Export-Excel ($outputFile + ".xlsx") -WorkSheetname Missing_Patches -NoNumberConversion * -BoldTopRow
-            Write-Host "`tData exported to" ($outputFile + ".xlsx") "file" -ForegroundColor Green
+            Write-Output -InputObject "`tData exported to" ($outputFile + ".xlsx") "file" -ForegroundColor Green
         }
         elseif ($PassThru) {
             $ReturnCollection += $notCompliantPatchCollection
