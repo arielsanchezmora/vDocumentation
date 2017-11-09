@@ -61,6 +61,8 @@
      ----------------------------------------------------------[Declarations]----------------------------------------------------------
     #>
     [CmdletBinding()]
+    [Diagnostics.CodeAnalysis.SuppressMessageAttribute("PSUseOutputTypeCorrectly")]
+    [Diagnostics.CodeAnalysis.SuppressMessageAttribute("PSAvoidGlobalVars")] # for $global:DefaultVIServers
     param (
         $esxi,
         $cluster,
@@ -102,7 +104,7 @@
     #>
     Write-Verbose -Message ((Get-Date -Format G) + "`tValidate connection to a vSphere server")
     if ($Global:DefaultViServers.Count -gt 0) {
-        Write-Host "`tConnected to $Global:DefaultViServers" -ForegroundColor Green
+        Write-Output -InputObject "`tConnected to $Global:DefaultViServers" -ForegroundColor Green
     }
     else {
         Write-Error -Message "You must be connected to a vSphere server before running this Cmdlet."
@@ -135,11 +137,11 @@
             else {
                 Write-Verbose -Message ((Get-Date -Format G) + "`tExecuting Cmdlet using datacenter parameter")
                 if ($datacenter -eq "all vdc") {
-                    Write-Host "`tGathering all hosts from the following vCenter(s): " $Global:DefaultViServers
+                    Write-Output -InputObject "`tGathering all hosts from the following vCenter(s): " $Global:DefaultViServers
                     $vHostList = Get-VMHost | Sort-Object -Property Name
                 }
                 else {
-                    Write-Host "`tGathering host list from the following DataCenter(s): " (@($datacenter) -join ',')
+                    Write-Output -InputObject "`tGathering host list from the following DataCenter(s): " (@($datacenter) -join ',')
                     foreach ($vDCname in $datacenter) {
                         $tempList = Get-Datacenter -Name $vDCname.Trim() -ErrorAction SilentlyContinue | Get-VMHost 
                         if ([string]::IsNullOrWhiteSpace($tempList)) {
@@ -154,7 +156,7 @@
         }
         else {
             Write-Verbose -Message ((Get-Date -Format G) + "`tExecuting Cmdlet using cluster parameter")
-            Write-Host "`tGathering host list from the following Cluster(s): " (@($cluster) -join ',')
+            Write-Output -InputObject "`tGathering host list from the following Cluster(s): " (@($cluster) -join ',')
             foreach ($vClusterName in $cluster) {
                 $tempList = Get-Cluster -Name $vClusterName.Trim() -ErrorAction SilentlyContinue | Get-VMHost 
                 if ([string]::IsNullOrWhiteSpace($tempList)) {
@@ -168,7 +170,7 @@
     }
     else { 
         Write-Verbose -Message ((Get-Date -Format G) + "`tExecuting Cmdlet using esxi parameter")
-        Write-Host "`tGathering host list..."
+        Write-Output -InputObject "`tGathering host list..."
         foreach ($invidualHost in $esxi) {
             $vHostList += $invidualHost.Trim() | Sort-Object -Property Name
         } #END foreach
@@ -266,7 +268,7 @@
           Get Storage adapters (HBA) details
         #>
         if ($StorageAdapters) {
-            Write-Host "`tGathering storage adapter details from $vmhost ..."
+            Write-Output -InputObject "`tGathering storage adapter details from $vmhost ..."
                 
             <#
               Get iSCSI HBA Details 
@@ -355,7 +357,7 @@
           Get Datastores details
         #>
         if ($Datastores) {
-            Write-Host "`tGathering Datastore details from $vmhost ..."
+            Write-Output -InputObject "`tGathering Datastore details from $vmhost ..."
             $hostDSList = $vmhost | Get-Datastore | Sort-Object -Property Name    
             foreach ($oneDS in $hostDSList) {
                 Write-Verbose -Message ((Get-Date -Format G) + "`tGet Datastore details for: " + $oneDS.Name)
@@ -391,7 +393,7 @@
                     $LUN = $dspath.LUN
                     $vmHBA = $dspath.Adapter
                     $dsTransport = $vmhost | Get-VMHostHba | Select-Object Device, Type | Where-Object {$_.Device -eq $vmHBA}
-                    if ($oneDS.ParentFolder -eq $null -and $oneDS.ParentFolderId -match "StoragePod") {
+                    if (($null -eq $oneDS.ParentFolder) -and ($oneDS.ParentFolderId -match "StoragePod")) {
                         $dsCluster = Get-DatastoreCluster -Id $oneDS.ParentFolderId | Select-Object -ExpandProperty Name
                         Write-Verbose -Message ((Get-Date -Format G) + "`tDatastore is part of Datastore Cluster: " + $dsCluster)
                     }
@@ -456,14 +458,14 @@
       Export data to CSV, Excel
     #>
     if ($iSCSICollection) {
-        Write-Host "`n" "ESXi Storage iSCSI HBA:" -ForegroundColor Green
+        Write-Output -InputObject "`n" "ESXi Storage iSCSI HBA:" -ForegroundColor Green
         if ($ExportCSV) {
             $iSCSICollection | Export-Csv ($outputFile + "iSCSI_HBA.csv") -NoTypeInformation
-            Write-Host "`tData exported to" ($outputFile + "iSCSI_HBA.csv") "file" -ForegroundColor Green
+            Write-Output -InputObject "`tData exported to" ($outputFile + "iSCSI_HBA.csv") "file" -ForegroundColor Green
         }
         elseif ($ExportExcel) {
             $iSCSICollection | Export-Excel ($outputFile + ".xlsx") -WorkSheetname iSCSI_HBA -NoNumberConversion * -AutoSize -BoldTopRow
-            Write-Host "`tData exported to" ($outputFile + ".xlsx") "file" -ForegroundColor Green
+            Write-Output -InputObject "`tData exported to" ($outputFile + ".xlsx") "file" -ForegroundColor Green
         }
         elseif ($PassThru) {
             $iSCSICollection
@@ -473,14 +475,14 @@
         } #END if/else
     } #END if
     if ($FibreChannelCollection) {
-        Write-Host "`n" "ESXi FibreChannel HBA:" -ForegroundColor Green
+        Write-Output -InputObject "`n" "ESXi FibreChannel HBA:" -ForegroundColor Green
         if ($ExportCSV) {
             $FibreChannelCollection | Export-Csv ($outputFile + "FibreChannelHBA.csv") -NoTypeInformation
-            Write-Host "`tData exported to" ($outputFile + "FibreChannelHBA.csv") "file" -ForegroundColor Green
+            Write-Output -InputObject "`tData exported to" ($outputFile + "FibreChannelHBA.csv") "file" -ForegroundColor Green
         }
         elseif ($ExportExcel) {
             $FibreChannelCollection | Export-Excel ($outputFile + ".xlsx") -WorkSheetname FibreChannel_HBA -NoNumberConversion * -AutoSize -BoldTopRow
-            Write-Host "`tData exported to" ($outputFile + ".xlsx") "file" -ForegroundColor Green
+            Write-Output -InputObject "`tData exported to" ($outputFile + ".xlsx") "file" -ForegroundColor Green
         }
         elseif ($PassThru) {
             $FibreChannelCollection
@@ -490,14 +492,14 @@
         } #END if/else
     } #END if
     if ($DatastoresCollection) {
-        Write-Host "`n" "ESXi FibreChannel HBA:" -ForegroundColor Green
+        Write-Output -InputObject "`n" "ESXi FibreChannel HBA:" -ForegroundColor Green
         if ($ExportCSV) {
             $DatastoresCollection | Export-Csv ($outputFile + "Datastores.csv") -NoTypeInformation
-            Write-Host "`tData exported to" ($outputFile + "Datastores.csv") "file" -ForegroundColor Green
+            Write-Output -InputObject "`tData exported to" ($outputFile + "Datastores.csv") "file" -ForegroundColor Green
         }
         elseif ($ExportExcel) {
             $DatastoresCollection | Export-Excel ($outputFile + ".xlsx") -WorkSheetname Datastores -NoNumberConversion * -AutoSize -BoldTopRow
-            Write-Host "`tData exported to" ($outputFile + ".xlsx") "file" -ForegroundColor Green
+            Write-Output -InputObject "`tData exported to" ($outputFile + ".xlsx") "file" -ForegroundColor Green
         }
         elseif ($PassThru) {
             $DatastoresCollection

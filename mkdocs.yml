@@ -1,0 +1,11 @@
+site_name: vDocumentation
+repo_url: https://github.com/arielsanchezmora/vDocumentation
+theme: readthedocs
+pages:
+- Home: index.md
+- vDocumentation Basics:
+  - What is vDocumentation: about.md
+  - Quick Start: Quick-Start-Installation-and-Example.md
+- Basic Commands:
+- Examples:
+- Acknowledgements: acknowledgements.md

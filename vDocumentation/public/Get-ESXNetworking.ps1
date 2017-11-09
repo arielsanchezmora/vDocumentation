@@ -65,6 +65,8 @@
      ----------------------------------------------------------[Declarations]----------------------------------------------------------
     #>
     [CmdletBinding()]
+    [Diagnostics.CodeAnalysis.SuppressMessageAttribute("PSUseOutputTypeCorrectly")]
+    [Diagnostics.CodeAnalysis.SuppressMessageAttribute("PSAvoidGlobalVars")] # for $global:DefaultVIServers
     param (
         $esxi,
         $cluster,
@@ -107,7 +109,7 @@
     #>
     Write-Verbose -Message ((Get-Date -Format G) + "`tValidate connection to a vSphere server")
     if ($Global:DefaultViServers.Count -gt 0) {
-        Write-Host "`tConnected to $Global:DefaultViServers" -ForegroundColor Green
+        Write-Output -InputObject "`tConnected to $Global:DefaultViServers" -ForegroundColor Green
     }
     else {
         Write-Error -Message "You must be connected to a vSphere server before running this Cmdlet."
@@ -140,11 +142,11 @@
             else {
                 Write-Verbose -Message ((Get-Date -Format G) + "`tExecuting Cmdlet using datacenter parameter")
                 if ($datacenter -eq "all vdc") {
-                    Write-Host "`tGathering all hosts from the following vCenter(s): " $Global:DefaultViServers
+                    Write-Output -InputObject "`tGathering all hosts from the following vCenter(s): " $Global:DefaultViServers
                     $vHostList = Get-VMHost | Sort-Object -Property Name
                 }
                 else {
-                    Write-Host "`tGathering host list from the following DataCenter(s): " (@($datacenter) -join ',')
+                    Write-Output -InputObject "`tGathering host list from the following DataCenter(s): " (@($datacenter) -join ',')
                     foreach ($vDCname in $datacenter) {
                         $tempList = Get-Datacenter -Name $vDCname.Trim() -ErrorAction SilentlyContinue | Get-VMHost 
                         if ([string]::IsNullOrWhiteSpace($tempList)) {
@@ -159,7 +161,7 @@
         }
         else {
             Write-Verbose -Message ((Get-Date -Format G) + "`tExecuting Cmdlet using cluster parameter")
-            Write-Host "`tGathering host list from the following Cluster(s): " (@($cluster) -join ',')
+            Write-Output -InputObject "`tGathering host list from the following Cluster(s): " (@($cluster) -join ',')
             foreach ($vClusterName in $cluster) {
                 $tempList = Get-Cluster -Name $vClusterName.Trim() -ErrorAction SilentlyContinue | Get-VMHost 
                 if ([string]::IsNullOrWhiteSpace($tempList)) {
@@ -173,7 +175,7 @@
     }
     else { 
         Write-Verbose -Message ((Get-Date -Format G) + "`tExecuting Cmdlet using esxi parameter")
-        Write-Host "`tGathering host list..."
+        Write-Output -InputObject "`tGathering host list..."
         foreach ($invidualHost in $esxi) {
             $vHostList += $invidualHost.Trim() | Sort-Object -Property Name
         } #END foreach
@@ -273,7 +275,7 @@
           Get physical adapter details
         #>
         if ($PhysicalAdapters) {
-            Write-Host "`tGathering physical adapter details from $vmhost ..."
+            Write-Output -InputObject "`tGathering physical adapter details from $vmhost ..."
             $vmnics = $vmhost | Get-VMHostNetworkAdapter -Physical | Select-Object Name, Mac, Mtu
             foreach ($nic in $vmnics) {
                 Write-Verbose -Message ((Get-Date -Format G) + "`tGet device details for: " + $nic.Name)
@@ -300,7 +302,7 @@
                 $networkSystem = $esxiHostView.Configmanager.Networksystem
                 $networkView = Get-View -Id $networkSystem
                 $networkViewInfo = $networkView.QueryNetworkHint($nic.Name)
-                if ($networkViewInfo.connectedswitchport -ne $null) {
+                if ($null -ne $networkViewInfo.connectedswitchport) {
                     Write-Verbose -Message ((Get-Date -Format G) + "`tDevice Discovery Protocol: CDP")
                     $ddp = "CDP"
                     $ddpExtended = $networkViewInfo.connectedswitchport
@@ -310,7 +312,7 @@
                 }
                 else {
                     Write-Verbose -Message ((Get-Date -Format G) + "`tCDP not found")
-                    if ($networkViewInfo.lldpinfo -ne $null) {
+                    if ($null -ne $networkViewInfo.lldpinfo) {
                         Write-Verbose -Message ((Get-Date -Format G) + "`tDevice Discovery Protocol: LLDP")
                         $ddp = "LLDP"
                         $ddpDevID = $networkViewInfo.lldpinfo.Parameter | Where-Object {$_.Key -eq "System Name"} | Select-Object -ExpandProperty Value  
@@ -354,7 +356,7 @@
           Get VMkernel adapter details
         #>
         if ($VMkernelAdapters) {
-            Write-Host "`tGathering VMkernel adapter details from $vmhost ..."
+            Write-Output -InputObject "`tGathering VMkernel adapter details from $vmhost ..."
             $vmnics = $vmhost | Get-VMHostNetworkAdapter -VMKernel
             foreach ($nic in $vmnics) {
                 Write-Verbose -Message ((Get-Date -Format G) + "`tGathering details for: " + $nic.Name)
@@ -456,7 +458,7 @@
           Get virtual vSwitches details
         #>
         if ($VirtualSwitches) {
-            Write-Host "`tGathering virtual vSwitches details from $vmhost ..."
+            Write-Output -InputObject "`tGathering virtual vSwitches details from $vmhost ..."
     
             <#
               Get standard switch details
@@ -674,14 +676,14 @@
       Export data to CSV, Excel
     #>
     if ($PhysicalAdapterCollection) {
-        Write-Host "`n" "ESXi Physical Adapters:" -ForegroundColor Green
+        Write-Output -InputObject "`n" "ESXi Physical Adapters:" -ForegroundColor Green
         if ($ExportCSV) {
             $PhysicalAdapterCollection | Export-Csv ($outputFile + "PhysicalAdapters.csv") -NoTypeInformation
-            Write-Host "`tData exported to" ($outputFile + "PhysicalAdapters.csv") "file" -ForegroundColor Green
+            Write-Output -InputObject "`tData exported to" ($outputFile + "PhysicalAdapters.csv") "file" -ForegroundColor Green
         }
         elseif ($ExportExcel) {
             $PhysicalAdapterCollection | Export-Excel ($outputFile + ".xlsx") -WorkSheetname Physical_Adapters -NoNumberConversion * -AutoSize -BoldTopRow
-            Write-Host "`tData exported to" ($outputFile + ".xlsx") "file" -ForegroundColor Green
+            Write-Output -InputObject "`tData exported to" ($outputFile + ".xlsx") "file" -ForegroundColor Green
         }
         elseif ($PassThru) {
             $PhysicalAdapterCollection   
@@ -691,14 +693,14 @@
         }#END if/else
     } #END if
     if ($VMkernelAdapterCollection) {
-        Write-Host "`n" "ESXi VMkernel Adapters:" -ForegroundColor Green
+        Write-Output -InputObject "`n" "ESXi VMkernel Adapters:" -ForegroundColor Green
         if ($ExportCSV) {
             $VMkernelAdapterCollection | Export-Csv ($outputFile + "VMkernelAdapters.csv") -NoTypeInformation
-            Write-Host "`tData exported to" ($outputFile + "VMkernelAdapters.csv") "file" -ForegroundColor Green
+            Write-Output -InputObject "`tData exported to" ($outputFile + "VMkernelAdapters.csv") "file" -ForegroundColor Green
         }
         elseif ($ExportExcel) {
             $VMkernelAdapterCollection | Export-Excel ($outputFile + ".xlsx") -WorkSheetname VMkernel_Adapters -NoNumberConversion * -AutoSize -BoldTopRow
-            Write-Host "`tData exported to" ($outputFile + ".xlsx") "file" -ForegroundColor Green
+            Write-Output -InputObject "`tData exported to" ($outputFile + ".xlsx") "file" -ForegroundColor Green
         }
         elseif ($PassThru) {
             $VMkernelAdapterCollection
@@ -708,14 +710,14 @@
         } #END if/else
     } #END if
     if ($VirtualSwitchesCollection) {
-        Write-Host "`n" "ESXi Virtual Switches:" -ForegroundColor Green
+        Write-Output -InputObject "`n" "ESXi Virtual Switches:" -ForegroundColor Green
         if ($ExportCSV) {
             $VirtualSwitchesCollection | Export-Csv ($outputFile + "VirtualSwitches.csv") -Force -NoTypeInformation
-            Write-Host "`tData exported to" ($outputFile + "VirtualSwitches.csv") "file" -ForegroundColor Green
+            Write-Output -InputObject "`tData exported to" ($outputFile + "VirtualSwitches.csv") "file" -ForegroundColor Green
         }
         elseif ($ExportExcel) {
             $VirtualSwitchesCollection | Export-Excel ($outputFile + ".xlsx") -WorkSheetname Virtual_Switches -NoNumberConversion * -AutoSize -BoldTopRow
-            Write-Host "`tData exported to" ($outputFile + ".xlsx") "file" -ForegroundColor Green
+            Write-Output -InputObject "`tData exported to" ($outputFile + ".xlsx") "file" -ForegroundColor Green
         }
         elseif ($PassThru) {
             $VirtualSwitchesCollection 
@@ -725,14 +727,14 @@
         } #END if/else
     } #END if
     if ($ThirdPartyVirtualSwitchesCollection) {
-        Write-Host "`n" "ESXi 3rd party Virtual Switches:" -ForegroundColor Green
+        Write-Output -InputObject "`n" "ESXi 3rd party Virtual Switches:" -ForegroundColor Green
         if ($ExportCSV) {
             $ThirdPartyVirtualSwitchesCollection | Export-Csv ($outputFile + "3rdPartyvSwitches.csv") -Force -NoTypeInformation
-            Write-Host "`tData exported to" ($outputFile + "3rdPartyvSwitches.csv") "file" -ForegroundColor Green
+            Write-Output -InputObject "`tData exported to" ($outputFile + "3rdPartyvSwitches.csv") "file" -ForegroundColor Green
         }
         elseif ($ExportExcel) {
             $ThirdPartyVirtualSwitchesCollection | Export-Excel ($outputFile + ".xlsx") -WorkSheetname 3rdParty_vSwitches -NoNumberConversion * -BoldTopRow
-            Write-Host "`tData exported to" ($outputFile + ".xlsx") "file" -ForegroundColor Green
+            Write-Output -InputObject "`tData exported to" ($outputFile + ".xlsx") "file" -ForegroundColor Green
         }
         elseif ($PassThru) {
             $ThirdPartyVirtualSwitchesCollectionn 

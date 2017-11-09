@@ -1,5 +1,29 @@
 # vDocumentation
 
+vDocumentation provides a community-created set of PowerCLI scripts that produce infrastructure documentation of vSphere environments in CSV or Excel file format.
+
+## GitPitch PitchMe presentation
+
+* [gitpitch.com/arielsanchezmora/vDocumentation](https://gitpitch.com/arielsanchezmora/vDocumentation)
+
+## Getting Started
+
+Install from the PSGallery and Import the module
+
+    Install-Module vDocumentation
+    Import-Module vDocumentation
+
+
+## More Information
+
+For more information
+
+* [vDocumentation.readthedocs.io](http://vDocumentation.readthedocs.io)
+* [github.com/arielsanchezmora/vDocumentation](https://github.com/arielsanchezmora/vDocumentation)
+* [arielsanchezmora.github.io](https://arielsanchezmora.github.io)
+
+# vDocumentation
+
 vDocumentation provides a community-created set of PowerCLI scripts that produce infrastructure documentation of vSphere environments in CSV or Excel file format. It was presented for general public use in VMworld 2017, session SER2077BU. You can watch the video here
 
 https://www.youtube.com/watch?v=-KK0ih8tuTo
@@ -509,3 +533,7 @@ _(new-object Net.WebClient).DownloadString("https://raw.githubusercontent.com/ar
 _(new-object Net.WebClient).DownloadString("https://raw.githubusercontent.com/arielsanchezmora/vDocumentation/master/powershell/vDocument/vDocument.psm1") > Documents\WindowsPowerShell\Modules\vDocument\vDocumentation.psm1_
 
 _exit_
+
+
+This project was generated using [Kevin Marquette](http://kevinmarquette.github.io)'s [Full Module Plaster Template](https://github.com/KevinMarquette/PlasterTemplates/tree/master/FullModuleTemplate).
+
