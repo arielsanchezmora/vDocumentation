@@ -8,7 +8,7 @@ Original slides are [here](https://www.dropbox.com/s/f5e9hpxgzz0unq1/vmworld2017
 
 # Changelog
 
-__v2.2.0__ Another meaty update, with a new vSAN cmdlet donated by Graham Barker (twitter <a href="https://twitter.com/VirtualG_UK" target="_blank"> @VirtualG_UK</a> website  <a href="https://virtualg.uk/" target="_blank"> virtualg.uk</a>)! This makes the total number of vDocumentation cmdlets to SIX! 
+__v2.2.0__ Another meaty update, with a new vSAN cmdlet donated by Graham Barker (twitter <a href="https://twitter.com/VirtualG_UK" target="_blank"> @VirtualG_UK</a> website  <a href="https://virtualg.uk/" target="_blank"> virtualg.uk</a>)! This brings the total number of vDocumentation cmdlets to six from our initial launch of 4! 
 
  *Additions:*  
 - Added new Cmdlet: **Get-vSANInfo**, NOTE! It depends on _Get-VsanClusterConfiguration_ which only works on vSphere 6.5! Documentation update and examples coming soon!  
