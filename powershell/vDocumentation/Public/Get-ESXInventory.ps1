@@ -306,6 +306,7 @@
             $rac = $session | Get-CimInstance CIM_IPProtocolEndpoint -ErrorAction SilentlyContinue | Where-Object {$_.Name -match "Management Controller IP"}
             if ($rac.Name) {
                 $racIP = $rac.IPv4Address
+                $racMAC = $rac.MACAddress
             }
             else { 
                 $racIP = $null
@@ -325,6 +326,7 @@
                 'Hostname'           = $vmhost
                 'Management IP'      = $mgmtIP
                 'RAC IP'             = $racIP
+                'RAC MAC'            = $racMAC
                 'RAC Firmware'       = $bmcFirmware
                 'Product'            = $vmhostView.Config.Product.Name
                 'Version'            = $vmhostView.Config.Product.Version
@@ -396,8 +398,7 @@
             #>
             Write-Verbose -Message ((Get-Date -Format G) + "`tGathering UpTime Configuration...")
             $bootTimeUTC = $vmhost.ExtensionData.Runtime.BootTime
-            $localTimeZone = Get-TimeZone
-            $BootTime = [System.TimeZoneInfo]::ConvertTime($bootTimeUTC, $localTimeZone)
+            $BootTime = $bootTimeUTC.ToLocalTime()
             $upTime = New-TimeSpan -Seconds $vmhost.ExtensionData.Summary.QuickStats.Uptime
             $upTimeDays = $upTime.Days
             $upTimeHours = $upTime.Hours

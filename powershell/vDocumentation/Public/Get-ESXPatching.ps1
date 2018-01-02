@@ -61,7 +61,6 @@
         $baseline,
         [switch]$ExportCSV,
         [switch]$ExportExcel,
-        [switch]$Patching,
         [switch]$PassThru,
         $folderPath
     )
@@ -151,6 +150,7 @@
                 if ($datacenter -eq "all vdc") {
                     Write-Host "`tGathering all hosts from the following vCenter(s): " $Global:DefaultViServers
                     $vHostList = Get-VMHost | Sort-Object -Property Name
+
                     <#
                       Start Scan for Updates
                     #>
@@ -168,6 +168,7 @@
                         }
                         else {
                             $vHostList += $tempList | Sort-Object -Property Name
+
                             <#
                               Start Scan for Updates
                             #>
@@ -190,6 +191,7 @@
                 }
                 else {
                     $vHostList += $tempList | Sort-Object -Property Name
+
                     <#
                       Start Scan for Updates
                     #>
@@ -206,6 +208,7 @@
         Write-Host "`tGathering host list..."
         foreach ($invidualHost in $esxi) {
             $vHostList += $invidualHost.Trim() | Sort-Object -Property Name
+
             <#
               Start Scan for Updates
             #>
@@ -248,6 +251,7 @@
             } #END if/else
         } #END if/else
     } #END if
+    
     if ($ExportExcel) {
         if (Get-Module -ListAvailable -Name ImportExcel) {
             Write-Verbose -Message ((Get-Date -Format G) + "`tImportExcel Module available")
@@ -268,8 +272,10 @@
     if ($testComplianceTask) {
         $testComplianceTask = Get-Task -id $testComplianceTask.id -ErrorAction SilentlyContinue
     }# END if
+
     foreach ($esxihost in $vHostList) {
         $vmhost = Get-VMHost -Name $esxihost -ErrorAction SilentlyContinue
+
         <#
           Skip if ESXi host is not in a Connected
           or Maintenance ConnectionState
@@ -298,27 +304,50 @@
         $esxcli = Get-EsxCli -VMHost $esxihost -V2
         $vmhostView = $vmhost | Get-View
         $esxiVersion = $esxcli.system.version.get.Invoke()
+
         <#
           Get ESXi Patch Compliance
+          and details of sample/$vmhostPatch
+          using -ge for InstallDate to workaround
+          if patches were staged, but installed
+          at another date (not all patches are staged)
         #>
         Write-Host "`tGathering patch compliance from $vmhost ..."
-        <#
-          Get ESXi Software configuration
-          and patch compliance
-        #>
         $vmhostPatch = $esxcli.software.vib.list.Invoke() | Where-Object {$_.ID -match $vmhost.Build} | Select-Object -First 1
-        $installedPatches = $esxcli.software.vib.list.Invoke() | Where-Object {$_.InstallDate -eq $vmhostPatch.InstallDate -and $_.Vendor -like "VMware*"}
+        $installedPatches = $esxcli.software.vib.list.Invoke() | Where-Object {$_.InstallDate -ge $vmhostPatch.InstallDate -and $_.Vendor -like "VMware*"}
         while ($testComplianceTask.PercentComplete -ne 100) {
             Write-Host "`tWaiting on scan for updates to complete... " $testComplianceTask.PercentComplete "%"
-            Start-Sleep -seconds 5
+            Start-Sleep -Seconds 5
             $testComplianceTask = Get-Task -id $testComplianceTask.id
-        }
+        } #END while
             
         $vmPatchCompliance = $VMhost | Get-Compliance -Baseline $patchBaseline -Detailed
         foreach ($vmbaseline in $vmPatchCompliance) {
+            $samplePatch = $vmbaseline.CompliantPatches | Where-Object {($_.Name.Replace(',', '')).Split() -contains $vmhostPatch.Name}
+            if ($samplePatch) {
+                $patchProduct = $samplePatch.Product.Name
+                $patchReleaseDate = $samplePatch.ReleaseDate
+            } #END if
+
             <#
-             Use a custom object to store
-             collected data
+              Get accurate last patched date if ESXi 6.5
+              based on Date and time (UTC), which is
+              converted to loal time
+            #>
+            if ($vmhost.ApiVersion -notmatch '6.5') {
+                $lastPatched = Get-Date $vmhostPatch.InstallDate -Format d
+            }
+            else {
+                Write-Verbose -Message ((Get-Date -Format G) + "`tESXi version " + $vmhost.ApiVersion + ". Gathering VIB " + $vmhostPatch.Name + " install date through ImageConfigManager" )
+                $configManagerView = Get-View $vmhost.ExtensionData.ConfigManager.ImageConfigManager
+                $softwarePackages = $configManagerView.fetchSoftwarePackages() | Where-Object {$_.CreationDate -ge $vmhostPatch.InstallDate}
+                $dateInstalledUTC = ($softwarePackages | Where-Object {$_.Name -eq $vmhostPatch.Name -and $_.Version -eq $vmhostPatch.Version}).CreationDate
+                $lastPatched = Get-Date ($dateInstalledUTC.ToLocalTime()) -Format d
+            } #END if/else               
+
+            <#
+              Use a custom object to store
+              collected data
             #>
             $patchingCollection += [PSCustomObject]@{
                 'Hostname'     = $vmhost
@@ -329,20 +358,53 @@
                 'Patch'        = $esxiVersion.Patch
                 'Baseline'     = $vmbaseline.Baseline.Name
                 'Compliance'   = $vmbaseline.Status
-                'Last Patched' = Get-Date $vmhostPatch.InstallDate -Format d
+                'Last Patched' = $lastPatched
             } #END [PSCustomObject]
-                
-            <#
-              Get last installed
-              patches
-            #>
+        } #END foreach
+
+        <#
+          Get last installed patches
+        #>
+        foreach ($vmbaseline in $vmPatchCompliance) {               
             Write-Verbose -Message ((Get-Date -Format G) + "`tGathering last installed patches...")
+            $baselinePatches = Get-Patch -Baseline $vmbaseline.Baseline -Product $patchProduct -After $patchReleaseDate
             foreach ($vmPatch in $installedPatches) {
-                $lastInstalledPatches = $vmbaseline.CompliantPatches | Where-Object {($_.Name.Replace(',', '')).Split() -contains $vmPatch.Name}
+                $lastInstalledPatches = $baselinePatches | Where-Object {($_.Name.Replace(',', '')).Split() -contains $vmPatch.Name -and $_.ReleaseDate -eq $patchReleaseDate}
                 foreach ($lastInstalledPatch in $lastInstalledPatches) {
+                    <#
+                      Determine if patch contains multiple VIBs
+                      and update custom object so that
+                      patch reports are accurate by Vendor ID
+                    #>
+                    $duplicateVendorID = $lastPatchingCollection | Where-Object {$_.Hostname -eq $vmhost -and $_.'Vendor ID' -eq $lastInstalledPatch.IdByVendor}
+                    if ($duplicateVendorID) {
+                        if ($duplicateVendorID.'Patch Name' -eq $lastInstalledPatch.Name) {
+                            Write-Verbose -Message ((Get-Date -Format G) + "`t" + $duplicateVendorID.'Vendor ID' + " already present in custom object. Updating VIB Name property with " + $vmPatch.Name)
+                            $index = $lastPatchingCollection.IndexOf($duplicateVendorID)
+                            $lastPatchingCollection[$index].'VIB Name(s)' += ", " + $vmPatch.Name
+                            continue
+                        } #END if
+                    } #END if
+
+                    <#
+                      Get accurate patch install date if ESXi 6.5
+                      based on Date and time (UTC), which is
+                      converted to loal time
+                    #>
+                    if ($vmhost.ApiVersion -notmatch '6.5') {
+                        $dateInstalled = Get-Date $vmPatch.InstallDate -Format d
+                    }
+                    else {
+                        Write-Verbose -Message ((Get-Date -Format G) + "`tESXi version " + $vmhost.ApiVersion + ". Gathering VIB " + $vmPatch.Name + " install date through ImageConfigManager" )
+                        $configManagerView = Get-View $vmhost.ExtensionData.ConfigManager.ImageConfigManager
+                        $softwarePackages = $configManagerView.fetchSoftwarePackages() | Where-Object {$_.CreationDate -ge $vmPatch.InstallDate}
+                        $dateInstalledUTC = ($softwarePackages | Where-Object {$_.Name -eq $vmPatch.Name -and $_.Version -eq $vmPatch.Version}).CreationDate
+                        $dateInstalled = Get-Date ($dateInstalledUTC.ToLocalTime()) -Format d
+                    } #END if/else
+
                     $dateReleased = Get-Date $lastInstalledPatch.ReleaseDate -Format d
-                    $dateInstalled = Get-Date $vmPatch.InstallDate -Format d
                     $patchTimespan = (New-TimeSpan -Start $dateReleased -End $dateInstalled).Days
+
                     <#
                       Use a custom object to store
                       collected data
@@ -353,7 +415,7 @@
                         'Version'        = $vmhostView.Config.Product.Version
                         'Build'          = $vmhost.Build
                         'Baseline'       = $vmbaseline.Baseline.Name
-                        'VIB Name'       = $vmPatch.Name
+                        'VIB Name(s)'    = $vmPatch.Name
                         'Patch Name'     = $lastInstalledPatch.Name
                         'Release Date'   = $dateReleased
                         'Installed Date' = $dateInstalled

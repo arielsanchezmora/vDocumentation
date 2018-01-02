@@ -272,12 +272,18 @@
                 if ($pciDevice.DeviceName -match "smart array") {
                     Write-Verbose -Message ((Get-Date -Format G) + "`tGet Firmware version for: " + $pciDevice.VMKernelName)
                     $hpsa = $vmhost.ExtensionData.Runtime.HealthSystemRuntime.SystemHealthInfo.NumericSensorInfo | Where-Object {$_.Name -match "HP Smart Array"}
-                    $firmwareVersion = (($hpsa.Name -split "firmware")[1]).Trim()
+                    if ($hpsa) {
+                        $firmwareVersion = (($hpsa.Name -split "firmware")[1]).Trim()
+                    }
+                    else {
+                        Write-Verbose -Message ((Get-Date -Format G) + "`tGet Extension data failed. Skip Firmware version check for: " + $pciDevice.DeviceName)
+                        $firmwareVersion = $null    
+                    } #END if/else
                 }
                 else {
                     Write-Verbose -Message ((Get-Date -Format G) + "`tSkip Firmware version check for: " + $pciDevice.DeviceName)
                     $firmwareVersion = $null    
-                } #END if/ese
+                } #END if/else
                         
                 <#
                   Get HBA driver VIB package version

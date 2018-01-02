@@ -12,14 +12,14 @@
 RootModule = '.\vDocumentation.psm1'
 
 # Version number of this module.
-ModuleVersion = '2.1.0'
+ModuleVersion = '2.2.0'
 
 # ID used to uniquely identify this module
 GUID = 'e38fbdc9-ac76-4e62-bb18-ae9feb9c23dc'
 
 # Author of this module
 Author = 'Ariel Sanchez, @arielsanchezmor, arielsanchezmora.com', 
-        'Edgar Sanchez, @edmsanchez13, virtualcornerstone.com'
+         'Edgar Sanchez, @edmsanchez13, virtualcornerstone.com'
 
 # Company or vendor of this module
 CompanyName = 'Edgar Sanchez'
@@ -67,7 +67,7 @@ PowerShellVersion = '3.0'
 # NestedModules = @()
 
 # Functions to export from this module
-FunctionsToExport = @('Get-ESXStorage','Get-ESXNetworking','Get-ESXIODevice','Get-ESXInventory','Get-ESXPatching')
+FunctionsToExport = @('Get-ESXStorage','Get-ESXNetworking','Get-ESXIODevice','Get-ESXInventory','Get-ESXPatching','Get-vSANInfo')
 
 # Cmdlets to export from this module
 CmdletsToExport = @()
@@ -87,7 +87,7 @@ AliasesToExport = @()
 # List of all files packaged with this module
 FileList = @(
              '.\vDocumentation.psd1','.\vDocumentation.psm1','.\Public\Get-ESXStorage.ps1','.\Public\Get-ESXNetworking.ps1','.\Public\Get-ESXIODevice.ps1',
-             '.\Public\Get-ESXInventory.ps1','.\Public\Get-ESXPatching.ps1'
+             '.\Public\Get-ESXInventory.ps1','.\Public\Get-ESXPatching.ps1','.\Public\Get-vSANInfo.ps1'
             )
 
 # Private data to pass to the module specified in RootModule/ModuleToProcess. This may also contain a PSData hashtable with additional module metadata used by PowerShell.
@@ -122,6 +122,4 @@ PrivateData = @{
 
 # Default prefix for commands exported from this module. Override the default prefix using Import-Module -Prefix.
 # DefaultCommandPrefix = ''
-
 }
-
