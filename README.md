@@ -8,6 +8,18 @@ Original slides are [here](https://www.dropbox.com/s/f5e9hpxgzz0unq1/vmworld2017
 
 # Changelog
 
+__v2.4.0__  Rapid release by project lead Edgar Sanchez (twitter <a href="https://twitter.com/edmsanchez13/" target="_blank"> @edmsanchez13</a>) to follow up with latest VMware security releases. The changes are explained in more detail on his blog  <a href="https://virtualcornerstone.com/" target="_blank"> virtualcornerstone.com</a>.
+
+ *Additions:*  
+    
+- **Get-ESXSpeculativeExecution** cmdlet has been updated to validate the second wave of Spectre patches (VMSA-2018-0004) including a new check for newly exposed CPU instructions and the BIOS check has been updated to also look for CPU microcode updates provided by VMware in https://kb.vmware.com/s/article/52085.  
+- **Get-ESXSpeculativeExecution** will now also report on VM Hypervisor-Assisted Guest Mitigations if **-ReportOnVMs** is manually specified (this is easier for generating large reports). Due to this report only being valid after Guest OS mitigations and VMHardware has been updated, we felt adding it as an extra option was more appropriate instead of a standalone function.
+  
+- In a first for vDocumentation, we've added a cmdlet which does not generate a report by itself, but is useful for checking VM compliance interactively in Powershell. You can now pipe a VM Object (not the VM name) to **Get-VMSpeculativeExecution** to get report on VM compliance. This can be piped into a report, or you can use the -ReportOnVMs switch for Get-ESXSpeculativeExecution For example:
+'Get-VM "testvm" |  Get-VMSpeculativeExecution'
+
+ *Bug Fixes:* none
+
 __v2.3.0__ Very meaty update, with a new cmdlet aimed at verifying the first wave of vSphere mitigations against Meltdown and Spectre (VMSA-2018-0002 and manufacturer-issued BIOS updates) developed by project lead Edgar Sanchez (twitter <a href="https://twitter.com/edmsanchez13/" target="_blank"> @edmsanchez13</a>). A much better overview of the new function can be found on his blog  <a href="https://virtualcornerstone.com/2018/01/08/validating-compliance-of-vmsa-2018-0002-and-bios-update/" target="_blank"> virtualcornerstone.com</a>.
 
  *Additions:*  
