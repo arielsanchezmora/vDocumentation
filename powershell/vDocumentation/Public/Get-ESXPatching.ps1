@@ -332,7 +332,7 @@
             <#
               Get accurate last patched date if ESXi 6.5
               based on Date and time (UTC), which is
-              converted to loal time
+              converted to local time
             #>
             if ($vmhost.ApiVersion -notmatch '6.5') {
                 $lastPatched = Get-Date $vmhostPatch.InstallDate -Format d
@@ -404,6 +404,14 @@
 
                     $dateReleased = Get-Date $lastInstalledPatch.ReleaseDate -Format d
                     $patchTimespan = (New-TimeSpan -Start $dateReleased -End $dateInstalled).Days
+                    if ($lastInstalledPatch.Description -match 'http://' -or $lastInstalledPatch.Description -match 'https://') {
+                        $referenceURL = ($lastInstalledPatch.Description | Select-String "(?<url>https?://[\w|\.|/]*\w{1})").Matches[0].Groups['url'].Value
+                    }
+                    else {
+                        Write-Verbose -Message ((Get-Date -Format G) + "`tFailed to get reference URL for patch: " + $lastInstalledPatch.Name)
+                        Write-Verbose -Message ((Get-Date -Format G) + "`t" + $lastInstalledPatch.Description)
+                        $referenceURL = $null
+                    } #END if/else
 
                     <#
                       Use a custom object to store
@@ -421,7 +429,7 @@
                         'Installed Date' = $dateInstalled
                         'Patch Timespan' = "$patchTimespan Day(s)"
                         'Vendor ID'      = $lastInstalledPatch.IdByVendor
-                        'URL'            = ($lastInstalledPatch.Description | Select-String "(?<url>http://[\w|\.|/]*\w{1})").Matches[0].Groups['url'].Value
+                        'URL'            = $referenceURL
                     } #END [PSCustomObject]
                 } #END foreach
             } #END foreach
@@ -433,6 +441,15 @@
             Write-Verbose -Message ((Get-Date -Format G) + "`tGathering not compliant patches...")
             $notCompliantPatches = $vmbaseline.NotCompliantPatches
             foreach ($notCompliantPatch in $notCompliantPatches) {
+                if ($notCompliantPatch.Description -match 'http://' -or $notCompliantPatch.Description -match 'https://') {
+                    $referenceURL = ($notCompliantPatch.Description | Select-String "(?<url>https?://[\w|\.|/]*\w{1})").Matches[0].Groups['url'].Value
+                }
+                else {
+                    Write-Verbose -Message ((Get-Date -Format G) + "`tFailed to get reference URL for patch: " + $notCompliantPatch.Name)
+                    Write-Verbose -Message ((Get-Date -Format G) + "`t" + $notCompliantPatch.Description)
+                    $referenceURL = $null
+                } #END if/else
+
                 <#
                   Use a custom object to store
                   collected data
@@ -446,7 +463,7 @@
                     'Patch Name'   = $notCompliantPatch.Name
                     'Release Date' = Get-Date $notCompliantPatch.ReleaseDate -Format d
                     'Vendor ID'    = $notCompliantPatch.IdByVendor
-                    'URL'          = ($notCompliantPatch.Description | Select-String "(?<url>http://[\w|\.|/]*\w{1})").Matches[0].Groups['url'].Value
+                    'URL'          = $referenceURL
                 } #END [PSCustomObject]
             } #END foreach
         } #END foreach

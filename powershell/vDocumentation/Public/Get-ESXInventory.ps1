@@ -416,12 +416,20 @@
             if ($bootDevice.BootFilesystemUUID) {
                 if ($bootDevice.BootFilesystemUUID[6] -eq 'e') {
                     $installType = "Embedded"
-                    $bootSource = $null
                 }
                 else {
                     $installType = "Installable"
                     $bootSource = $esxcli2.storage.filesystem.list.Invoke() | Where-Object {$_.UUID -eq $bootDevice.BootFilesystemUUID} | Select-Object -ExpandProperty MountPoint
                 } #END if/else
+                $storageDevice = $esxcli2.storage.core.device.list.Invoke() | Where-Object {$_.IsBootDevice -eq $true}
+                $bootVendor = $storageDevice.Vendor + " " + $storageDevice.Model
+                $bootDisplayName = $storageDevice.DisplayName
+                $bootPath = $storageDevice.DevfsPath
+                $storagePath = $esxcli2.storage.core.path.list.Invoke() | Where-Object {$_.Device -eq $storageDevice.Device}
+                $bootRuntime = $storagePath.RuntimeName
+                if ($installType -eq "Embedded") {
+                    $bootSource = $storageDevice.DisplayName.Split('(')[0]
+                }
             }
             else {
                 if ($bootDevice.StatelessBootNIC) {
@@ -432,6 +440,10 @@
                     $installType = "PXE"
                     $bootSource = $bootDevice.BootNIC
                 } #END if/else
+                $bootVendor = $null
+                $bootDisplayName = $null
+                $bootPath = $null
+                $bootRuntime = $null
             } #END if/else
 
             <#
@@ -439,37 +451,41 @@
               collected data
             #>
             $configurationCollection += [PSCustomObject]@{
-                'Hostname'              = $vmhost
-                'Make'                  = $hostHardware.Manufacturer
-                'Model'                 = $hostHardware.Model
-                'CPU Model'             = $hostHardware.CpuModel
-                'Hyper-Threading'       = $vmhost.HyperthreadingActive
-                'Max EVC Mode'          = $vmhost.MaxEVCMode
-                'Product'               = $vmhostView.Config.Product.Name
-                'Version'               = $vmhostView.Config.Product.Version
-                'Build'                 = $vmhost.Build
-                'Update'                = $esxiVersion.Update
-                'Patch'                 = $esxiVersion.Patch
-                'Install Type'          = $installType
-                'Boot From'             = $bootSource
-                'Image Profile'         = $imageProfile.Name
-                'Acceptance Level'      = $imageProfile.AcceptanceLevel 
-                'Boot Time'             = $BootTime
-                'Uptime'                = "$upTimeDays Day(s), $upTimeHours Hour(s), $upTimeMinutes Minute(s)"
-                'Install Date'          = $installDate
-                'Last Patched'          = $vmhostPatch.InstallDate
-                'License Version'       = $vmhostLM.AssignedLicense.Name | Select-Object -Unique
-                'License Key'           = $vmhostLM.AssignedLicense.LicenseKey | Select-Object -Unique
-                'Connection State'      = $vmhost.ConnectionState
-                'Standalone'            = $vmhost.IsStandalone
-                'Cluster'               = $vmhostCluster
-                'Virtual Datacenter'    = $vmhostvDC
-                'vCenter'               = $vmhost.ExtensionData.CLient.ServiceUrl.Split('/')[2]
-                'NTP'               = $ntpService.Label
-                'NTP Running'       = $ntpService.Running
+                'Hostname'                  = $vmhost
+                'Make'                      = $hostHardware.Manufacturer
+                'Model'                     = $hostHardware.Model
+                'CPU Model'                 = $hostHardware.CpuModel
+                'Hyper-Threading'           = $vmhost.HyperthreadingActive
+                'Max EVC Mode'              = $vmhost.MaxEVCMode
+                'Product'                   = $vmhostView.Config.Product.Name
+                'Version'                   = $vmhostView.Config.Product.Version
+                'Build'                     = $vmhost.Build
+                'Update'                    = $esxiVersion.Update
+                'Patch'                     = $esxiVersion.Patch
+                'Install Type'              = $installType
+                'Boot From'                 = $bootSource
+                'Device Model'              = $bootVendor
+                'Boot Device'               = $bootDisplayName
+                'Runtime Name'              = $bootRuntime
+                'Device Path'               = $bootPath
+                'Image Profile'             = $imageProfile.Name
+                'Acceptance Level'          = $imageProfile.AcceptanceLevel 
+                'Boot Time'                 = $BootTime
+                'Uptime'                    = "$upTimeDays Day(s), $upTimeHours Hour(s), $upTimeMinutes Minute(s)"
+                'Install Date'              = $installDate
+                'Last Patched'              = $vmhostPatch.InstallDate
+                'License Version'           = $vmhostLM.AssignedLicense.Name | Select-Object -Unique
+                'License Key'               = $vmhostLM.AssignedLicense.LicenseKey | Select-Object -Unique
+                'Connection State'          = $vmhost.ConnectionState
+                'Standalone'                = $vmhost.IsStandalone
+                'Cluster'                   = $vmhostCluster
+                'Virtual Datacenter'        = $vmhostvDC
+                'vCenter'                   = $vmhost.ExtensionData.CLient.ServiceUrl.Split('/')[2]
+                'NTP'                       = $ntpService.Label
+                'NTP Running'               = $ntpService.Running
                 'NTP Startup Policy'        = $ntpService.Policy
-                'NTP Client Enabled'    = $ntpFWException.Enabled
-                'NTP Server'            = (@($ntpServerList) -join ',')
+                'NTP Client Enabled'        = $ntpFWException.Enabled
+                'NTP Server'                = (@($ntpServerList) -join ',')
                 'SSH'                       = $sshService.Label
                 'SSH Running'               = $sshService.Running
                 'SSH Startup Policy'        = $sshService.Policy
@@ -479,8 +495,8 @@
                 'ESXi Shell Running'        = $esxiShellService.Running
                 'ESXi Shell Startup Policy' = $esxiShellService.Policy
                 'ESXi Shell TimeOut'        = $interactiveShellTimeOut
-                'Syslog Server'         = (@($syslogList) -join ',')
-                'Syslog Client Enabled' = $syslogFWException.Enabled
+                'Syslog Server'             = (@($syslogList) -join ',')
+                'Syslog Client Enabled'     = $syslogFWException.Enabled
             } #END [PSCustomObject]
         } #END if
     } #END foreach
