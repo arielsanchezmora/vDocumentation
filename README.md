@@ -22,10 +22,10 @@ __v2.4.0__  Rapid release by project lead Edgar Sanchez (twitter <a href="https:
 ![v240VM_Compliance](https://github.com/arielsanchezmora/vDocumentation/blob/master/pictures/v240VM_Compliance.png)  
 
 - In a first for vDocumentation, we've added a cmdlet which does not generate a report by itself, but is useful for checking VM compliance interactively in Powershell. You can now pipe a VM Object (not the VM name) to **Get-VMSpeculativeExecution** to get report on VM compliance. Usage examples:  
-`Get-VM "testvm" |  Get-VMSpeculativeExecution`
+`Get-VM "testvm" |  Get-VMSpeculativeExecution`  
 `Get-VMHost "hostname.fqdn" | Get-VM | Get-VMSpeculativeExecution | Export-Excel "HostVMSpectreReport.xlsx" -WorkSheetname "VMresults"`
 
-While this cmdlet can be piped into a report like in the example above, please remember you can use the -ReportOnVMs switch for Get-ESXSpeculativeExecution in an easier fashion.
+While this cmdlet can be piped into a report like in the second example above, please remember you can use the -ReportOnVMs switch for Get-ESXSpeculativeExecution - it's easier and the filename with timestamp will be created automatically for you.
 
  *Bug Fixes:* none
 
