@@ -8,7 +8,7 @@ Original slides are [here](https://www.dropbox.com/s/f5e9hpxgzz0unq1/vmworld2017
 
 # Changelog
 
-__v2.3.0__ Very meaty update, with a new cmdlet aimed at verifying the first wave of vSphere mitigations against Meltdown and Spectre developed by project lead Edgar Sanchez (twitter <a href="https://twitter.com/edmsanchez13/" target="_blank"> @edmsanchez13</a>. A much better overview of the new function can be found on his blog  <a href="https://virtualcornerstone.com/2018/01/08/validating-compliance-of-vmsa-2018-0002-and-bios-update/" target="_blank"> virtualcornerstone.com</a>)
+__v2.3.0__ Very meaty update, with a new cmdlet aimed at verifying the first wave of vSphere mitigations against Meltdown and Spectre (VMSA-2018-0002 and manufacturer-issued BIOS updates) developed by project lead Edgar Sanchez (twitter <a href="https://twitter.com/edmsanchez13/" target="_blank"> @edmsanchez13</a>). A much better overview of the new function can be found on his blog  <a href="https://virtualcornerstone.com/2018/01/08/validating-compliance-of-vmsa-2018-0002-and-bios-update/" target="_blank"> virtualcornerstone.com</a>.
 
  *Additions:*  
  - Added **Get-ESXSpeculativeExecution** Cmdlet to check compliane for VMSA-2018-0002 Security Advisory and BIOS version. He is already working on additional checks for v2.3.1
