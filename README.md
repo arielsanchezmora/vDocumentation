@@ -8,7 +8,7 @@ Original slides are [here](https://www.dropbox.com/s/f5e9hpxgzz0unq1/vmworld2017
 
 # Changelog
 
-__v2.4.0__  Rapid release by project lead Edgar Sanchez (twitter <a href="https://twitter.com/edmsanchez13/" target="_blank"> @edmsanchez13</a>) to follow up with latest VMware security releases. The changes are explained in more detail on his blog  <a href="https://virtualcornerstone.com/" target="_blank"> virtualcornerstone.com</a>.
+__v2.4.0__  Rapid release by project lead Edgar Sanchez (twitter <a href="https://twitter.com/edmsanchez13/" target="_blank"> @edmsanchez13</a>) to follow up with latest VMware security releases. The changes are explained in more detail on his blog  <a href="https://virtualcornerstone.com/2018/01/11/validating-compliance-of-vmsa-2018-0004-spectre-on-esxi-and-vm/" target="_blank"> virtualcornerstone.com</a>.
 
  *Additions:*  
     
