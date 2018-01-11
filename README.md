@@ -8,6 +8,20 @@ Original slides are [here](https://www.dropbox.com/s/f5e9hpxgzz0unq1/vmworld2017
 
 # Changelog
 
+__v2.3.0__ Very meaty update, with a new cmdlet aimed at verifying mitigations against Meltdown and Spectre developed by project lead Edgar Sanchez (twitter <a href="https://twitter.com/edmsanchez13/" target="_blank"> @edmsanchez13</a>. A much better overview of the new function can be found on his blog  <a href="https://virtualcornerstone.com/2018/01/08/validating-compliance-of-vmsa-2018-0002-and-bios-update/" target="_blank"> virtualcornerstone.com</a>)
+
+ *Additions:*  
+ - Added **Get-ESXSpeculativeExecution** Cmdlet to check compliane for VMSA-2018-0002 Security Advisory and BIOS version. He is already working on additional checks for v2.3.1
+
+ *Bug Fixes:*  
+ - Code fix in Get-ESXPatching - now able to get reference URLss for description fields containing "https" (example: ESXi650-201712103-SG is https://kb.vmware.com/kb/000051196)  
+ - Get-ESXInventory  - Added more details for ESXi Install source
+
+        * Device Model
+        * Boot Device
+        * Runtime Name
+        * Device Path
+
 __v2.2.0__ Another meaty update, with a new vSAN cmdlet donated by Graham Barker (twitter <a href="https://twitter.com/VirtualG_UK" target="_blank"> @VirtualG_UK</a> website  <a href="https://virtualg.uk/" target="_blank"> virtualg.uk</a>)! This brings the total number of vDocumentation cmdlets to six from our initial launch of 4! 
 
  *Additions:*  
