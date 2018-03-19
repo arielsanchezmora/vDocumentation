@@ -163,10 +163,7 @@
                     Write-Host "`tGathering host list from the following DataCenter(s): " (@($datacenter) -join ',')
                     foreach ($vDCname in $datacenter) {
                         $tempList = Get-Datacenter -Name $vDCname.Trim() -ErrorAction SilentlyContinue | Get-VMHost
-                        if ([string]::IsNullOrWhiteSpace($tempList)) {
-                            Write-Warning -Message "`tDatacenter with name $vDCname was not found in $Global:DefaultViServers"
-                        }
-                        else {
+                        if ($tempList) {
                             $vHostList += $tempList | Sort-Object -Property Name
 
                             <#
@@ -176,6 +173,9 @@
                             $scanEntity = Get-Datacenter -Name $vDCname.Trim() -ErrorAction SilentlyContinue
                             $scanEntity | Attach-Baseline -Baseline $patchBaseline -ErrorAction SilentlyContinue
                             $testComplianceTask = $scanEntity | Test-Compliance -UpdateType HostPatch -RunAsync -ErrorAction SilentlyContinue
+                        }
+                        else {
+                            Write-Warning -Message "`tDatacenter with name $vDCname was not found in $Global:DefaultViServers"
                         } #END if/else
                     } #END foreach
                 } #END if/else
@@ -186,10 +186,7 @@
             Write-Host "`tGathering host list from the following Cluster(s): " (@($cluster) -join ',')
             foreach ($vClusterName in $cluster) {
                 $tempList = Get-Cluster -Name $vClusterName.Trim() -ErrorAction SilentlyContinue | Get-VMHost
-                if ([string]::IsNullOrWhiteSpace($tempList)) {
-                    Write-Warning -Message "`tCluster with name $vClusterName was not found in $Global:DefaultViServers"
-                }
-                else {
+                if ($tempList) {
                     $vHostList += $tempList | Sort-Object -Property Name
 
                     <#
@@ -198,7 +195,10 @@
                     Write-Verbose -Message ((Get-Date -Format G) + "`tStarting Scan for Updates ...")
                     $scanEntity = Get-Cluster -Name $vClusterName.Trim() -ErrorAction SilentlyContinue
                     $scanEntity | Attach-Baseline -Baseline $patchBaseline -ErrorAction SilentlyContinue
-                    $testComplianceTask = $scanEntity | Test-Compliance -UpdateType HostPatch -RunAsync -ErrorAction SilentlyContinue
+                    $testComplianceTask = $scanEntity | Test-Compliance -UpdateType HostPatch -RunAsync -ErrorAction SilentlyContinue  
+                }
+                else {
+                    Write-Warning -Message "`tCluster with name $vClusterName was not found in $Global:DefaultViServers"
                 } #END if/else
             } #END foreach
         } #END if/else
@@ -207,19 +207,24 @@
         Write-Verbose -Message ((Get-Date -Format G) + "`tExecuting Cmdlet using esxi parameter")
         Write-Host "`tGathering host list..."
         foreach ($invidualHost in $esxi) {
-            $vHostList += $invidualHost.Trim() | Sort-Object -Property Name
+            $tempList = Get-VMHost -Name $invidualHost.Trim() -ErrorAction SilentlyContinue
+            if ($tempList) {
+                $vHostList += $tempList | Sort-Object -Property Name
 
-            <#
-              Start Scan for Updates
-            #>
-            if (Get-VMHost -Name $invidualHost.Trim() -ErrorAction SilentlyContinue) {
+                <#
+                  Start Scan for Updates
+                #>
                 Write-Verbose -Message ((Get-Date -Format G) + "`tStarting Scan for Updates ...")
-                $scanEntity = $invidualHost.Trim()
+                $scanEntity = $tempList
                 $scanEntity | Attach-Baseline -Baseline $patchBaseline -ErrorAction SilentlyContinue
                 $testComplianceTask = Test-Compliance -Entity $scanEntity -UpdateType HostPatch -RunAsync -ErrorAction SilentlyContinue
             }
+            else {
+                Write-Warning -Message "`tESXi host $invidualHost was not found in $Global:DefaultViServers"
+            } #END if/else
         } #END foreach
     } #END if/else
+    $tempList = $null
     
     <#
       Validate export switches,
@@ -273,8 +278,7 @@
         $testComplianceTask = Get-Task -id $testComplianceTask.id -ErrorAction SilentlyContinue
     }# END if
 
-    foreach ($esxihost in $vHostList) {
-        $vmhost = Get-VMHost -Name $esxihost -ErrorAction SilentlyContinue
+    foreach ($vmhost in $vHostList) {
 
         <#
           Skip if ESXi host is not in a Connected
@@ -292,8 +296,8 @@
               hosts and continue to the next foreach loop
             #>
             $skipCollection += [pscustomobject]@{
-                'Hostname'         = $esxihost
-                'Connection State' = $esxihost.ConnectionState
+                'Hostname'         = $vmhost.Name
+                'Connection State' = $vmhost.ConnectionState
             } #END [PSCustomObject]
             continue
         } #END if/else
@@ -301,16 +305,13 @@
         <#
           Get ESXi version details
         #>
-        $esxcli = Get-EsxCli -VMHost $esxihost -V2
+        $esxcli = Get-EsxCli -VMHost $vmhost -V2
         $vmhostView = $vmhost | Get-View
         $esxiVersion = $esxcli.system.version.get.Invoke()
 
         <#
           Get ESXi Patch Compliance
           and details of sample/$vmhostPatch
-          using -ge for InstallDate to workaround
-          if patches were staged, but installed
-          at another date (not all patches are staged)
         #>
         Write-Host "`tGathering patch compliance from $vmhost ..."
         $vmhostPatch = $esxcli.software.vib.list.Invoke() | Where-Object {$_.ID -match $vmhost.Build} | Select-Object -First 1
@@ -339,7 +340,7 @@
             }
             else {
                 Write-Verbose -Message ((Get-Date -Format G) + "`tESXi version " + $vmhost.ApiVersion + ". Gathering VIB " + $vmhostPatch.Name + " install date through ImageConfigManager" )
-                $configManagerView = Get-View $vmhost.ExtensionData.ConfigManager.ImageConfigManager
+                $configManagerView = Get-View $vmhostView.ConfigManager.ImageConfigManager
                 $softwarePackages = $configManagerView.fetchSoftwarePackages() | Where-Object {$_.CreationDate -ge $vmhostPatch.InstallDate}
                 $dateInstalledUTC = ($softwarePackages | Where-Object {$_.Name -eq $vmhostPatch.Name -and $_.Version -eq $vmhostPatch.Version}).CreationDate
                 $lastPatched = Get-Date ($dateInstalledUTC.ToLocalTime()) -Format d
@@ -350,7 +351,7 @@
               collected data
             #>
             $patchingCollection += [PSCustomObject]@{
-                'Hostname'     = $vmhost
+                'Hostname'     = $vmhost.Name
                 'Product'      = $vmhostView.Config.Product.Name
                 'Version'      = $vmhostView.Config.Product.Version
                 'Build'        = $vmhost.Build
@@ -396,7 +397,7 @@
                     }
                     else {
                         Write-Verbose -Message ((Get-Date -Format G) + "`tESXi version " + $vmhost.ApiVersion + ". Gathering VIB " + $vmPatch.Name + " install date through ImageConfigManager" )
-                        $configManagerView = Get-View $vmhost.ExtensionData.ConfigManager.ImageConfigManager
+                        $configManagerView = Get-View $vmhostView.ConfigManager.ImageConfigManager
                         $softwarePackages = $configManagerView.fetchSoftwarePackages() | Where-Object {$_.CreationDate -ge $vmPatch.InstallDate}
                         $dateInstalledUTC = ($softwarePackages | Where-Object {$_.Name -eq $vmPatch.Name -and $_.Version -eq $vmPatch.Version}).CreationDate
                         $dateInstalled = Get-Date ($dateInstalledUTC.ToLocalTime()) -Format d
@@ -405,7 +406,7 @@
                     $dateReleased = Get-Date $lastInstalledPatch.ReleaseDate -Format d
                     $patchTimespan = (New-TimeSpan -Start $dateReleased -End $dateInstalled).Days
                     if ($lastInstalledPatch.Description -match 'http://' -or $lastInstalledPatch.Description -match 'https://') {
-                        $referenceURL = ($lastInstalledPatch.Description | Select-String "(?<url>https?://[\w|\.|/]*\w{1})").Matches[0].Groups['url'].Value
+                        $referenceURL = ($lastInstalledPatch.Description | Select-String -Pattern "(?<url>https?://[\w|\.|/]*\w{1})").Matches[0].Groups['url'].Value
                     }
                     else {
                         Write-Verbose -Message ((Get-Date -Format G) + "`tFailed to get reference URL for patch: " + $lastInstalledPatch.Name)
@@ -418,7 +419,7 @@
                       collected data
                     #>
                     $lastPatchingCollection += [PSCustomObject]@{
-                        'Hostname'       = $vmhost
+                        'Hostname'       = $vmhost.Name
                         'Product'        = $vmhostView.Config.Product.Name
                         'Version'        = $vmhostView.Config.Product.Version
                         'Build'          = $vmhost.Build
@@ -442,7 +443,7 @@
             $notCompliantPatches = $vmbaseline.NotCompliantPatches
             foreach ($notCompliantPatch in $notCompliantPatches) {
                 if ($notCompliantPatch.Description -match 'http://' -or $notCompliantPatch.Description -match 'https://') {
-                    $referenceURL = ($notCompliantPatch.Description | Select-String "(?<url>https?://[\w|\.|/]*\w{1})").Matches[0].Groups['url'].Value
+                    $referenceURL = ($notCompliantPatch.Description | Select-String -Pattern "(?<url>https?://[\w|\.|/]*\w{1})").Matches[0].Groups['url'].Value
                 }
                 else {
                     Write-Verbose -Message ((Get-Date -Format G) + "`tFailed to get reference URL for patch: " + $notCompliantPatch.Name)
@@ -455,7 +456,7 @@
                   collected data
                 #>
                 $notCompliantPatchCollection += [PSCustomObject]@{
-                    'Hostname'     = $vmhost
+                    'Hostname'     = $vmhost.Name
                     'Product'      = $vmhostView.Config.Product.Name
                     'Version'      = $vmhostView.Config.Product.Version
                     'Build'        = $vmhost.Build
@@ -468,6 +469,7 @@
             } #END foreach
         } #END foreach
     } #END foreach
+    Write-Verbose -Message ((Get-Date -Format G) + "`tMain code execution completed")
 
     <#
       Display skipped hosts and their connection status

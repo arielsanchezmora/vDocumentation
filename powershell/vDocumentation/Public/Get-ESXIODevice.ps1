@@ -115,7 +115,7 @@
       Gather host list based on parameter used
     #>
     Write-Verbose -Message ((Get-Date -Format G) + "`tGather host list")
-    if ([string]::IsNullOrWhiteSpace($esxi)) {
+    if ([string]::IsNullOrWhiteSpace($esxi)) {      
         Write-Verbose -Message ((Get-Date -Format G) + "`t-esxi parameter is Null or Empty")
         if ([string]::IsNullOrWhiteSpace($cluster)) {
             Write-Verbose -Message ((Get-Date -Format G) + "`t-cluster parameter is Null or Empty")
@@ -126,17 +126,17 @@
                 Write-Verbose -Message ((Get-Date -Format G) + "`tExecuting Cmdlet using datacenter parameter")
                 if ($datacenter -eq "all vdc") {
                     Write-Host "`tGathering all hosts from the following vCenter(s): " $Global:DefaultViServers
-                    $vHostList = Get-VMHost | Sort-Object -Property Name
+                    $vHostList = Get-VMHost | Sort-Object -Property Name                    
                 }
                 else {
                     Write-Host "`tGathering host list from the following DataCenter(s): " (@($datacenter) -join ',')
                     foreach ($vDCname in $datacenter) {
                         $tempList = Get-Datacenter -Name $vDCname.Trim() -ErrorAction SilentlyContinue | Get-VMHost 
-                        if ([string]::IsNullOrWhiteSpace($tempList)) {
-                            Write-Warning -Message "`tDatacenter with name $vDCname was not found in $Global:DefaultViServers"
+                        if ($tempList) {
+                            $vHostList += $tempList | Sort-Object -Property Name
                         }
                         else {
-                            $vHostList += $tempList | Sort-Object -Property Name
+                            Write-Warning -Message "`tDatacenter with name $vDCname was not found in $Global:DefaultViServers"
                         } #END if/else
                     } #END foreach
                 } #END if/else
@@ -147,11 +147,11 @@
             Write-Host "`tGathering host list from the following Cluster(s): " (@($cluster) -join ',')
             foreach ($vClusterName in $cluster) {
                 $tempList = Get-Cluster -Name $vClusterName.Trim() -ErrorAction SilentlyContinue | Get-VMHost 
-                if ([string]::IsNullOrWhiteSpace($tempList)) {
-                    Write-Warning -Message "`tCluster with name $vClusterName was not found in $Global:DefaultViServers"
+                if ($tempList) {
+                    $vHostList += $tempList | Sort-Object -Property Name
                 }
                 else {
-                    $vHostList += $tempList | Sort-Object -Property Name
+                    Write-Warning -Message "`tCluster with name $vClusterName was not found in $Global:DefaultViServers"
                 } #END if/else
             } #END foreach
         } #END if/else
@@ -160,9 +160,16 @@
         Write-Verbose -Message ((Get-Date -Format G) + "`tExecuting Cmdlet using esxi parameter")
         Write-Host "`tGathering host list..."
         foreach ($invidualHost in $esxi) {
-            $vHostList += $invidualHost.Trim() | Sort-Object -Property Name
+            $tempList = Get-VMHost -Name $invidualHost.Trim() -ErrorAction SilentlyContinue
+            if ($tempList) {
+                $vHostList += $tempList | Sort-Object -Property Name
+            }
+            else {
+                Write-Warning -Message "`tESXi host $invidualHost was not found in $Global:DefaultViServers"
+            } #END if/else
         } #END foreach
     } #END if/else
+    $tempList = $null
     
     <#
       Validate export switches,
@@ -210,8 +217,7 @@
     <#
       Main code execution
     #>
-    foreach ($esxihost in $vHostList) {
-        $vmhost = Get-VMHost -Name $esxihost -ErrorAction SilentlyContinue
+    foreach ($vmhost in $vHostList) {
 
         <#
           Skip if ESXi host is not in a Connected
@@ -229,36 +235,36 @@
               hosts and continue to the next foreach loop
             #>
             $skipCollection += [pscustomobject]@{
-                'Hostname'         = $esxihost
-                'Connection State' = $esxihost.ConnectionState
+                'Hostname'         = $vmhost.Name
+                'Connection State' = $vmhost.ConnectionState
             } #END [PSCustomObject]
             continue
         } #END if/else
-        $esxcli2 = Get-EsxCli -VMHost $esxihost -V2
+        $esxcli = Get-EsxCli -VMHost $vmhost -V2
     
         <#
           Get IO Device details
         #>
         Write-Host "`tGathering information from $vmhost ..."
-        $pciDevices = $esxcli2.hardware.pci.list.Invoke() | Where-Object {$_.VMKernelName -like "vmhba*" -or $_.VMKernelName -like "vmnic*" -or $_.VMKernelName -like "vmgfx*" } | Sort-Object -Property VMKernelName 
+        $pciDevices = $esxcli.hardware.pci.list.Invoke() | Where-Object {$_.VMKernelName -like "vmhba*" -or $_.VMKernelName -like "vmnic*" -or $_.VMKernelName -like "vmgfx*"} | Sort-Object -Property VMKernelName 
         foreach ($pciDevice in $pciDevices) {
-            $device = $vmhost | Get-VMHostPciDevice | Where-Object { $pciDevice.Address -match $_.Id }
+            $device = $vmhost | Get-VMHostPciDevice | Where-Object {$pciDevice.Address -match $_.Id}
             Write-Verbose -Message ((Get-Date -Format G) + "`tGet driver version for: " + $pciDevice.ModuleName)
-            $driverVersion = $esxcli2.system.module.get.Invoke(@{module = $pciDevice.ModuleName}) | Select-Object -ExpandProperty Version
+            $driverVersion = $esxcli.system.module.get.Invoke(@{module = $pciDevice.ModuleName}) | Select-Object -ExpandProperty Version
     
             <#
               Get NIC Firmware version
             #>
             if ($pciDevice.VMKernelName -like 'vmnic*') {
                 Write-Verbose -Message ((Get-Date -Format G) + "`tGet Firmware version for: " + $pciDevice.VMKernelName)
-                $vmnicDetail = $esxcli2.network.nic.get.Invoke(@{nicname = $pciDevice.VMKernelName})
+                $vmnicDetail = $esxcli.network.nic.get.Invoke(@{nicname = $pciDevice.VMKernelName})
                 $firmwareVersion = $vmnicDetail.DriverInfo.FirmwareVersion
                 
                 <#
                   Get NIC driver VIB package version
                 #>
                 Write-Verbose -Message ((Get-Date -Format G) + "`tGet VIB details for: " + $pciDevice.ModuleName)
-                $driverVib = $esxcli2.software.vib.list.Invoke() | Select-Object -Property Name, Version | Where-Object {$_.Name -eq $vmnicDetail.DriverInfo.Driver -or $_.Name -eq "net-" + $vmnicDetail.DriverInfo.Driver -or $_.Name -eq "net55-" + $vmnicDetail.DriverInfo.Driver}
+                $driverVib = $esxcli.software.vib.list.Invoke() | Select-Object -Property Name, Version | Where-Object {$_.Name -eq $vmnicDetail.DriverInfo.Driver -or $_.Name -eq "net-" + $vmnicDetail.DriverInfo.Driver -or $_.Name -eq "net55-" + $vmnicDetail.DriverInfo.Driver}
                 $vibName = $driverVib.Name
                 $vibVersion = $driverVib.Version
     
@@ -290,7 +296,7 @@
                 #>
                 Write-Verbose -Message ((Get-Date -Format G) + "`tGet VIB deatils for: " + $pciDevice.ModuleName)
                 $vibName = $pciDevice.ModuleName -replace "_", "-"
-                $driverVib = $esxcli2.software.vib.list.Invoke() | Select-Object -Property Name, Version | Where-Object {$_.Name -eq "scsi-" + $VibName -or $_.Name -eq "sata-" + $VibName -or $_.Name -eq $VibName}
+                $driverVib = $esxcli.software.vib.list.Invoke() | Select-Object -Property Name, Version | Where-Object {$_.Name -eq "scsi-" + $VibName -or $_.Name -eq "sata-" + $VibName -or $_.Name -eq $VibName}
                 $vibName = $driverVib.Name
                 $vibVersion = $driverVib.Version
             }
@@ -306,7 +312,7 @@
               collected data
             #>
             $outputCollection += [PSCustomObject]@{
-                'Hostname'         = $vmhost
+                'Hostname'         = $vmhost.Name
                 'Slot Description' = $pciDevice.SlotDescription
                 'VMKernel Name'    = $pciDevice.VMKernelName
                 'Device Name'      = $pciDevice.DeviceName
@@ -325,6 +331,7 @@
             } #END [PSCustomObject]
         } #END foreach
     } #END foreach
+    Write-Verbose -Message ((Get-Date -Format G) + "`tMain code execution completed")
     
     <#
       Display skipped hosts and their connection status

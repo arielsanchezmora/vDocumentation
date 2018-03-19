@@ -23,8 +23,8 @@
        Power State         : PoweredOn
        Hardware Version    : v10
        ESXi Host           : labhost010
-       ESXi CPUID Features : cpuid.IBPB,cpuid.IBRS,cpuid.STIBP
-       VM CPUID Features   : cpuid.STIBP,cpuid.IBRS,cpuid.IBPB
+       ESXi CPUID Features : IBPB,IBRS,STIBP
+       VM CPUID Features   : STIBP,IBRS,IBPB
        SafeFromSpectre     : True
 
      .EXAMPLE
@@ -64,45 +64,132 @@
       Main code execution
     #>
     Process {
-        $VMCollection = @()
-        foreach ($oneVM in $VM) {
-            $vmhost = Get-VMHost -Name $oneVM.VMHost
-            $hardwareVersion = ($oneVM.Version.ToString()).Split('v')[1]
-            $hostCPUID = $vmhost.ExtensionData.Config.FeatureCapability | Where-Object {$_.FeatureName -eq "cpuid.IBRS" -or $_.Featurename -eq "cpuid.IBPB" -or $_.Featurename -eq "cpuid.STIBP"} | Select-Object -ExpandProperty FeatureName
-            $vmCPUID = $oneVM.ExtensionData.Runtime.FeatureRequirement | Where-Object {$_.FeatureName -eq "cpuid.IBRS" -or $_.Featurename -eq "cpuid.IBPB" -or $_.Featurename -eq "cpuid.STIBP"} | Select-Object -ExpandProperty FeatureName
+        $vmCollection = @()
+        $hostCpuidCollection = @()
+        $hostList = $vm | Select-Object -ExpandProperty VMhost -Unique
+        foreach ($esxhost in $hostList) {
+            $hostCpuidCollection += [PSCustomObject]@{
+                'Name'              = $esxhost.Name
+                'FeatureCapability' = $esxhost.ExtensionData.Config.FeatureCapability
+            } #END [PSCustomObject]
+        } #END foreach
 
-            <#
-              Validate VM Hardware
-            #>
-            if ([int]$hardwareVersion -ge "9" -and $oneVM.PowerState -eq "PoweredOn") {
-                if ($hostCPUID -and $vmCPUID) {
-                    $spectreStatus = $true
-                }
-                elseif ($hostCPUID -and !$vmCPUID) {
-                    $spectreStatus = "False, You need to powercycle your VM"
-                } #END if/else
+        foreach ($oneVM in $VM) {
+            $vmhost = $vm.VMHost
+            if ($vmhost.Parent.EVCMode) {
+                $clusEvcMode = $vmhost.Parent.EVCMode
             }
             else {
-                if ([int]$hardwareVersion -ge "9" -and $oneVM.PowerState -eq "PoweredOff") {
-                    $spectreStatus = "UnknownSinceOff"
+                $clusEvcMode = "Disabled"
+            } #END if/else
+            $hostCpuPcid = $false
+            $hostMcuCpuid = $null
+            $vmMcuCpuid = $null
+            $vmCpuPcid = $null
+            $powerOnEvent = $null
+            $hardwareVersion = ($oneVM.Version.ToString()).Split('v')[1]
+            $hostFeatureCapability = $hostCpuidCollection | Where-Object {$_.Name -eq $oneVM.VMHost.Name} | Select-Object -ExpandProperty FeatureCapability
+            $hostCpuid = $hostFeatureCapability | Where-Object {$_.FeatureName -eq "cpuid.IBRS" -and $_.Value -eq "1" -or $_.Featurename -eq "cpuid.IBPB" -and $_.Value -eq "1" -or $_.Featurename -eq "cpuid.STIBP" -and $_.Value -eq "1"} | Select-Object -ExpandProperty FeatureName
+            $hostInvPcid = $hostFeatureCapability | Where-Object {$_.FeatureName -eq "cpuid.INVPCID" -and $_.Value -eq "1"} | Select-Object -ExpandProperty FeatureName
+            $hostPcid = $hostFeatureCapability | Where-Object {$_.Featurename -eq "cpuid.PCID" -and $_.Value -eq "1"} | Select-Object -ExpandProperty FeatureName
+            $vmFeatureRequirement = $oneVM.ExtensionData.Runtime.FeatureRequirement
+            $vmCpuid = $vmFeatureRequirement | Where-Object {$_.FeatureName -eq "cpuid.IBRS" -or $_.Featurename -eq "cpuid.IBPB" -or $_.Featurename -eq "cpuid.STIBP"} | Select-Object -ExpandProperty FeatureName
+            $vmPcid = $vmFeatureRequirement | Where-Object {$_.FeatureName -eq "cpuid.INVPCID" -or $_.Featurename -eq "cpuid.PCID"} | Select-Object -ExpandProperty FeatureName
+            if ($oneVM.Guest.OSFullName) {
+                $vmGuestOs = $oneVM.Guest.OSFullName
+            }
+            else {
+                $vmGuestOs = $oneVM.ExtensionData.Config.GuestFullName
+            } #END if
+            if ($hostInvPcid -and $hostPcid) {
+                $hostCpuPcid = $true
+            } #End if        
+
+            <#
+                  Validate VM Hardware
+                #>
+            Write-Verbose -Message ((Get-Date -Format G) + "`tValidating VM Hardware")
+            if ([int]$hardwareVersion -ge "9" -and $vm.PowerState -eq "PoweredOn") {
+                if ($hostCpuid) {
+                    if ($vmCpuid) {
+                        $spectreStatus = "Supported/Enabled"
+                    }
+                    else {
+                        $spectreStatus = "Supported/Disabled"
+                    } #END if/else
                 }
                 else {
-                    $spectreStatus = "Need to upgrade VM Hardware. See KB52085"
+                    $spectreStatus = "NotSupported/Disabled"
+                } #END if/else
+                if ($hostCpuPcid) {
+                    if ([int]$hardwareVersion -ge "11") {
+                        if ($vmPcid.Count -eq "2") {
+                            $pcidStatus = "Supported/Enabled"
+                        }
+                        else {
+                            $pcidStatus = "Supported/Disabled"
+                        } #END if/else
+                    }
+                    else {
+                        $pcidStatus = "Supported/Upgrade VM Hardware"
+                    } #END if/else
                 }
-            } #END if
+                else {
+                    $pcidStatus = "NotSupported/NA"
+                } #END if/else
+                $powerOnEvents = $vm | Get-VIEvent -MaxSamples ([int]::MaxValue) -Types Info | Where-Object {$_ -is [VMware.Vim.VmPoweredOnEvent]}
+                if ($powerOnEvents) {
+                    $sortedEvents = Sort-Object -InputObject $powerOnEvents -Property CreatedTime -Descending
+                    $powerOnEvent = ($sortedEvents | Select-Object -First 1).CreatedTime
+                } #END if
+            }
+            else {
+                if ([int]$hardwareVersion -ge "9" -and $vm.PowerState -eq "PoweredOff") {
+                    $spectreStatus = "UnknownSinceOff"
+                    $pcidStatus = "UnknownSinceOff"
+                }
+                else {
+                    $spectreStatus = "Supported/Upgrade VM Hardware"
+                    if ($hostCpuPcid) {
+                        $pcidStatus = "Supported/Upgrade VM Hardware"
+                    }
+                    else {
+                        $pcidStatus = "NotSupported/NA"
+                    } #END if
+                } #END if/else
+            } #END if/else
+            if ($hostCpuid) {
+                $hostMcuCpuid = (@($hostCpuid.split('.') | Where-Object {$_ -ne "cpuid"}) -join ',')
+            } #END if/else
+            if ($vmCpuid) {
+                $vmMcuCpuid = (@($vmCpuid.split('.') | Where-Object {$_ -ne "cpuid"}) -join ',')
+            } #END if/else
+            if ($vmPcid) {
+                $vmCpuPcid = (@($vmPcid.split('.') | Where-Object {$_ -ne "cpuid"}) -join ',')
+            } #END if/else
 
+            <#
+              Use a custom object to store
+              collected data
+            #>
             $info = New-Object PSObject
             $info | Add-Member -type NoteProperty -Name 'Name' -Value $oneVM.Name
-            $info | Add-Member -type NoteProperty -Name 'Power State' -Value $oneVM.PowerState
-            $info | Add-Member -type NoteProperty -Name 'Hardware Version' -Value $oneVM.Version
-            $info | Add-Member -type NoteProperty -Name 'ESXi Host' -Value $oneVM.VMHost
-            $info | Add-Member -type NoteProperty -Name 'ESXi CPUID Features' -Value (@($hostCPUID) -join ',')
-            $info | Add-Member -type NoteProperty -Name 'VM CPUID Features' -Value (@($vmCPUID) -join ',')
-            $info | Add-Member -type NoteProperty -Name 'SafeFromSpectre' -Value $spectreStatus
-            
-            $VMCollection += $info        
-        } #END foreach
-        $VMCollection
+            $info | Add-Member -type NoteProperty -Name 'Power state' -Value $oneVM.PowerState
+            $info | Add-Member -type NoteProperty -Name 'VM Guest OS' -Value $vmGuestOs
+            $info | Add-Member -type NoteProperty -Name 'ESXi Host' -Value $vmhost.Name
+            $info | Add-Member -type NoteProperty -Name 'Cluster EVC mode' -Value $clusEvcMode
+            $info | Add-Member -type NoteProperty -Name 'Hardware version' -Value $oneVM.Version
+            $info | Add-Member -type NoteProperty -Name 'ESXi MCU CPUID' -Value $hostMcuCPuid
+            $info | Add-Member -type NoteProperty -Name 'ESXi PCID/INVPCID' -Value $hostCpuPcid
+            $info | Add-Member -type NoteProperty -Name 'VM MCU CPUID' -Value $vmMcuCpuid
+            $info | Add-Member -type NoteProperty -Name 'VM PCID/INVPCID' -Value $vmCpuPcid
+            $info | Add-Member -type NoteProperty -Name 'Last PoweredOn' -Value $powerOnEvent
+            $info | Add-Member -type NoteProperty -Name 'Hypervisor-Assisted Guest mitigation' -Value $spectreStatus
+            $info | Add-Member -type NoteProperty -Name 'PCID optimization' -Value $pcidStatus
+
+            $vmCollection += $info        
+        } #END foreach        
+        $vmCollection
     } #END process
 } #END function
 

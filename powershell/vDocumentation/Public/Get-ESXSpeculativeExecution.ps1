@@ -1,17 +1,18 @@
 ﻿function Get-ESXSpeculativeExecution {
     <#
      .SYNOPSIS
-       Get ESXi host compliance on VMSA-2018-0004 Security Advisory and BIOS version
+       Get ESXi host mitigation status for Spectre
      .DESCRIPTION
-       Will validate ESXi host for VMware Security Advisory VMSA-2018-0004 Compliance (https://www.vmware.com/us/security/advisories/VMSA-2018-0004.html)
-       and validate against BIOS version
+       Will validate ESXi host for Spectre/Hypervisor-Assisted Guest Mitigation
      .NOTES
        Author     : Edgar Sanchez - @edmsanchez13
        Contributor: Ariel Sanchez - @arielsanchezmor
      .Link
        https://github.com/arielsanchezmora/vDocumentation
      .INPUTS
-       If onlince CSV file is inaccesible then a CSV file path input must be provided to check against BIOS version
+       If inputBiosFile is specified then an offline CSV file path input must be provided to check against BIOS version
+       If inputMcuFile is specified then an offline CSV file path input must be provided to check against MCU revision
+       If UseSSH is specified then SSH will be used to gather details around current MCU revisions. You will be prompted for username and password
      .OUTPUTS
        CSV file
        Excel file
@@ -28,10 +29,23 @@
      .EXAMPLE
        Get-ESXSpeculativeExecution -datacenter vDC001
        Get-ESXSpeculativeExecution -datacenter "all vdc" will gather all hosts in vCenter(s). This is the default if no Parameter (-esxi, -cluster, or -datacenter) is specified.
-     .PARAMETER inputFile
-       Specify input CSV file containing server BIOS version to validate against. Use this if you do not have access to the internet or wish to use your own offline version
+     .PARAMETER inputBiosFile
+       Specify input CSV file containing BIOS versions to validate against. Use this if you do not have access to the internet or wish to use your own offline version
      .EXAMPLE
-       Get-ESXSpeculativeExecution -cluster production-cluster -inputFile "c:\temp\BIOSUpdates.csv"
+       Get-ESXSpeculativeExecution -cluster production-cluster -inputBiosFile "c:\temp\BIOSUpdates.csv"       
+     .PARAMETER inputMcuFile
+       Specify input CSV file containing Intel MCU version to validate against. Use this if you do not have access to the internet or wish to use your own offline version
+     .EXAMPLE
+       Get-ESXSpeculativeExecution -cluster production-cluster -inputMcuFile "c:\temp\Intel_MCU.csv"
+     .PARAMETER UseSSH
+       Switch to use SSH to gahter specific MCU revisions details from the ESXi host. This needs to be specified if needed. This relies on Posh-SSH Module to be installed.
+       Posh-SSH Module can be installed directly from the PowerShell Gallery. See https://github.com/darkoperator/Posh-SSH for more information
+     .EXAMPLE
+       Get-ESXSpeculativeExecution -cluster production-cluster -ReportOnVMS       
+     .PARAMETER ReportOnVMs
+       Switch to report on virtual machines. This needs to be specified if needed.
+     .EXAMPLE
+       Get-ESXSpeculativeExecution -cluster production-cluster -ReportOnVMS       
      .PARAMETER ExportCSV
        Switch to export all data to CSV file. File is saved to the current user directory from where the script was executed. Use -folderPath parameter to specify a alternate location
      .EXAMPLE
@@ -42,19 +56,6 @@
        File is saved to the current user directory from where the script was executed. Use -folderPath parameter to specify a alternate location
      .EXAMPLE
        Get-ESXSpeculativeExecution -cluster production-cluster -ExportExcel
-     .PARAMETER PatchCompliance
-       Switch to get ESXi host compliance on VMSA-2018-0002
-     .EXAMPLE
-       Get-ESXSpeculativeExecution -cluster production-cluster -PatchCompliance
-     .PARAMETER BIOSCompliance
-       Switch to get system BIOS version validated against CSV file
-     .EXAMPLE
-       Get-ESXSpeculativeExecution -cluster production-cluster -BIOSCompliance
-     .PARAMETER ReportOnVMs
-       Switch to report on Virtual machines. This needs to be specified if needed, or it will not be included
-     .EXAMPLE
-       Get-ESXSpeculativeExecution -cluster production-cluster -ReportOnVMS
-  
      .PARAMETER folderPath
        Specify an alternate folder path where the exported data should be saved.
      .EXAMPLE
@@ -74,24 +75,25 @@
         $esxi,
         $cluster,
         $datacenter,
-        $inputFile,
+        $inputBiosFile,
+        $inputMcuFile,
+        [switch]$UseSSH,
+        [switch]$ReportOnVMs,
         [switch]$ExportCSV,
         [switch]$ExportExcel,
-        [switch]$PatchCompliance,
-        [switch]$BIOSCompliance,
-        [switch]$ReportOnVMs,
         [switch]$PassThru,
         $folderPath
     )
     
-    $PatchCollection = @()
-    $BIOSCollection = @()
+    $patchCollection = @()
     $skipCollection = @()
-    $VMCollection = @()
+    $vmCollection = @()
     $vHostList = @()
-    $ReturnCollection = @()
-    $csvCollection = @()
-    $url = 'https://raw.githubusercontent.com/edmsanchez/vDocumentation/master/powershell/vDocumentation/BIOSUpdates.csv'
+    $returnCollection = @()
+    $biosCsvCollection = @()
+    $mcuCsvCollection = @()
+    $biosUrl = 'https://raw.githubusercontent.com/edmsanchez/vDocumentation/master/powershell/vDocumentation/BIOSUpdates.csv'
+    $mcuUrl = 'https://raw.githubusercontent.com/edmsanchez/vDocumentation/master/powershell/vDocumentation/Intel_MCU.csv'
     $date = Get-Date -format s
     $date = $date -replace ":", "-"
     $outputFile = "SpeculativeExecution" + $date
@@ -156,11 +158,11 @@
                     Write-Host "`tGathering host list from the following DataCenter(s): " (@($datacenter) -join ',')
                     foreach ($vDCname in $datacenter) {
                         $tempList = Get-Datacenter -Name $vDCname.Trim() -ErrorAction SilentlyContinue | Get-VMHost 
-                        if ([string]::IsNullOrWhiteSpace($tempList)) {
-                            Write-Warning -Message "`tDatacenter with name $vDCname was not found in $Global:DefaultViServers"
+                        if ($tempList) {
+                            $vHostList += $tempList | Sort-Object -Property Name
                         }
                         else {
-                            $vHostList += $tempList | Sort-Object -Property Name
+                            Write-Warning -Message "`tDatacenter with name $vDCname was not found in $Global:DefaultViServers"
                         } #END if/else
                     } #END foreach
                 } #END if/else
@@ -171,11 +173,11 @@
             Write-Host "`tGathering host list from the following Cluster(s): " (@($cluster) -join ',')
             foreach ($vClusterName in $cluster) {
                 $tempList = Get-Cluster -Name $vClusterName.Trim() -ErrorAction SilentlyContinue | Get-VMHost 
-                if ([string]::IsNullOrWhiteSpace($tempList)) {
-                    Write-Warning -Message "`tCluster with name $vClusterName was not found in $Global:DefaultViServers"
+                if ($tempList) {
+                    $vHostList += $tempList | Sort-Object -Property Name
                 }
                 else {
-                    $vHostList += $tempList | Sort-Object -Property Name
+                    Write-Warning -Message "`tCluster with name $vClusterName was not found in $Global:DefaultViServers"
                 } #END if/else
             } #END foreach
         } #END if/else
@@ -184,9 +186,16 @@
         Write-Verbose -Message ((Get-Date -Format G) + "`tExecuting Cmdlet using esxi parameter")
         Write-Host "`tGathering host list..."
         foreach ($invidualHost in $esxi) {
-            $vHostList += $invidualHost.Trim() | Sort-Object -Property Name
+            $tempList = Get-VMHost -Name $invidualHost.Trim() -ErrorAction SilentlyContinue
+            if ($tempList) {
+                $vHostList += $tempList | Sort-Object -Property Name
+            }
+            else {
+                Write-Warning -Message "`tESXi host $invidualHost was not found in $Global:DefaultViServers"
+            } #END if/else
         } #END foreach
     } #END if/else
+    $tempList = $null
     
     <#
       Validate export switches,
@@ -230,67 +239,94 @@
             $ExportCSV = $true
         } #END if/else
     } #END if
-    
+
     <#
-      Validate that a Cmdlet switch was used. Options are
-      -PatchCompliance, -BIOSCompliance. By default all are executed
-      unless one is specified. -ReportOnVMS needs to be mandatory specified for it to be used.
+      Validate UseSSH switch and dependencies
     #>
-    Write-Verbose -Message ((Get-Date -Format G) + "`tValidate Cmdlet switches")
-    if ($PatchCompliance -or $BIOSCompliance) {
-        Write-Verbose -Message ((Get-Date -Format G) + "`tA Cmdlet switch was specified")
-    }
-    else {
-        Write-Verbose -Message ((Get-Date -Format G) + "`tA Cmdlet switch (-PatchCompliance -BIOSCompliance) was not specified")
-        Write-Verbose -Message ((Get-Date -Format G) + "`tWill execute all (-PatchCompliance -BIOSCompliance)")
-        $PatchCompliance = $true
-        $BIOSCompliance = $true
-    } #END if/else
-    if ($ReportOnVMs) {
-        Write-Verbose -Message ((Get-Date -Format G) + "`tReportOnVMS switch was specified")
-    } #END if
-    
-    <#
-      Validate access to online CSV file or if inputFile parameter was specified for BIOS Compliance check
-    #>
-    if ($BIOSCompliance) {
-        Write-Verbose -Message ((Get-Date -Format G) + "`tInitializing -BIOSCompliance Cmdlet switch variables...")
-        if ([string]::IsNullOrWhiteSpace($inputFile)) {
-            Write-Verbose -Message ((Get-Date -Format G) + "`t-inputFile parameter is Null or Empty")
-            Write-Verbose -Message ((Get-Date -Format G) + "`tValidating access to online CSV file")
-            try {
-                $webRequest = Invoke-WebRequest -Uri $url
-            } 
-            catch [System.Net.WebException] {
-                $webRequest = $_.Exception.Response
-            } #END try
-            if ([int]$webRequest.StatusCode -eq "200") {
-                $csvCollection = $webRequest | ConvertFrom-Csv
-            }
-            else {
-                Write-Warning -Message ("`tonline CSV fie: '$url' is NOT reachable/unavailable (Return code: " + ([int]$webRequest.StatusCode) + ")")
-                Write-Warning -Message "`tYou can download the file locally and use it offline with the -inputFile parameter. See help for more information"
-                Write-Warning -Message "`tSkipping BIOS Compliance check..."
-                $BIOSCompliance = $false
-            } #END if/else   
+    Write-Verbose -Message ((Get-Date -Format G) + "`tValidate UseSSH switch")
+    if ($UseSSH) {
+        if (Get-Module -ListAvailable -Name Posh-SSH) {
+            Write-Verbose -Message ((Get-Date -Format G) + "`tPosh-SSH Module available")
+            $poshSSH = $true
+            $rootCreds = Get-Credential -UserName root -Message "Enter ESXi SSH Credentials"
         }
         else {
-            if (Test-Path $inputFile) {
-                Write-Verbose -Message ((Get-Date -Format G) + "`t'$inputFile' path found")
-                $csvCollection = Import-Csv -Path $inputFile
-            }
-            else {
-                Write-Warning -Message "`t'$inputFile' path not found."
-                Write-Warning -Message "`tSkipping BIOS Compliance check..."
-            } #END if/else
+            Write-Warning -Message "`tPosh-SSH Module missing. Will not be able to retrieve MCU revision"
+            Write-Warning -Message "`tPosh-SSH Module can be installed directly from the PowerShell Gallery"
+            Write-Warning -Message "`tSee https://github.com/darkoperator/Posh-SSH for more information"
+            $poshSSH = $false
         } #END if/else
-    } #END if
+    }
+    else {
+        Write-Verbose -Message ((Get-Date -Format G) + "`t-UseSSH switch was not specified.")
+        $poshSSH = $false
+    } #END if/else
+
+    <#
+      Validate if inputBiosFile/inputMcuFile parameter was specified
+      and if the CSV file(s) is reachable
+    #>
+    if ([string]::IsNullOrWhiteSpace($inputBiosFile)) {
+        Write-Verbose -Message ((Get-Date -Format G) + "`t-inputBiosFile parameter is Null or Empty")
+        Write-Verbose -Message ((Get-Date -Format G) + "`tValidating access to online CSV file")
+        try {
+            $webRequest = Invoke-WebRequest -Uri $biosUrl
+        } 
+        catch [System.Net.WebException] {
+            $webRequest = $_.Exception.Response
+        } #END try
+        if ([int]$webRequest.StatusCode -eq "200") {
+            $biosCsvCollection = $webRequest | ConvertFrom-Csv
+        }
+        else {
+            Write-Warning -Message ("`tonline CSV file: '$biosUrl' is NOT reachable/unavailable (Return code: " + ([int]$webRequest.StatusCode) + ")")
+            Write-Warning -Message "`tYou can download the file locally and use it offline with the -inputBiosFile parameter. See help for more information"
+            Write-Warning -Message "`tSkipping BIOS Compliance check..."
+        } #END if/else   
+    }
+    else {
+        if (Test-Path $inputBiosFile) {
+            Write-Verbose -Message ((Get-Date -Format G) + "`t'$inputBiosFile' path found")
+            $biosCsvCollection = Import-Csv -Path $inputBiosFile
+        }
+        else {
+            Write-Warning -Message "`t'$inputBiosFile' path not found."
+            Write-Warning -Message "`tSkipping BIOS Compliance check..."
+        } #END if/else
+    } #END if/else
+    if ([string]::IsNullOrWhiteSpace($inputMcuFile)) {
+        Write-Verbose -Message ((Get-Date -Format G) + "`t-inputMcuFile parameter is Null or Empty")
+        Write-Verbose -Message ((Get-Date -Format G) + "`tValidating access to online CSV file")
+        try {
+            $webRequest = Invoke-WebRequest -Uri $mcuUrl
+        } 
+        catch [System.Net.WebException] {
+            $webRequest = $_.Exception.Response
+        } #END try
+        if ([int]$webRequest.StatusCode -eq "200") {
+            $mcuCsvCollection = $webRequest | ConvertFrom-Csv
+        }
+        else {
+            Write-Warning -Message ("`tonline CSV file: '$mcuUrl' is NOT reachable/unavailable (Return code: " + ([int]$webRequest.StatusCode) + ")")
+            Write-Warning -Message "`tYou can download the file locally and use it offline with the -inputMcuFile parameter. See help for more information"
+            Write-Warning -Message "`tSkipping Intel MCU Compliance check..."
+        } #END if/else   
+    }
+    else {
+        if (Test-Path $inputMcuFile) {
+            Write-Verbose -Message ((Get-Date -Format G) + "`t'$inputMcuFile' path found")
+            $mcuCsvCollection = Import-Csv -Path $inputMcuFile
+        }
+        else {
+            Write-Warning -Message "`t'$inputMcuFile' path not found."
+            Write-Warning -Message "`tSkipping Intel MCU Compliance check..."
+        } #END if/else
+    } #END if/else    
     
     <#
       Main code execution
     #>
-    foreach ($esxihost in $vHostList) {
-        $vmhost = Get-VMHost -Name $esxihost -ErrorAction SilentlyContinue
+    foreach ($vmhost in $vHostList) {
     
         <#
           Skip if ESXi host is not in a Connected
@@ -308,230 +344,391 @@
               hosts and continue to the next foreach loop
             #>
             $skipCollection += [PSCustomObject]@{
-                'Hostname'         = $esxihost
-                'Connection State' = $esxihost.ConnectionState
+                'Hostname'         = $vmhost.Name
+                'Connection State' = $vmhost.ConnectionState
             } #END [PSCustomObject]
             continue
         } #END if/else
-        $esxcli2 = Get-EsxCli -VMHost $esxihost -V2
-    
+
         <#
-          Get ESXi version details
+          Get ESXi CPUID details
+          for Intel CPU
         #>
+        Write-Host "`tGathering details from $vmhost ..."
+        $esxcli = Get-EsxCli -VMHost $vmhost -V2
         $vmhostView = $vmhost | Get-View
-        $esxiVersion = $esxcli2.system.version.get.Invoke()
-                    
-        <#
-          Get Patch compliance details
-        #>
-        if ($PatchCompliance) {
-            Write-Host "`tValidating host compliance on $vmhost ..."
-
-            <#
-              Validate only against applicable ESXi Versions
-              check for CPU-Microcode patch also
-            #>
-            if ($vmhost.ApiVersion -eq "5.5" -or $vmhost.ApiVersion -like "6.*") {
-                if ($vmhost.ApiVersion -eq "5.5" -and $vmhost.Build -ge "7504623") {
-                    $complianceStatus = "Compliant"
-                    $esxMicrocode = "Present"
-                    $hostCPUID = $vmhostview.Config.FeatureCapability | Where-Object {$_.FeatureName -eq "cpuid.IBRS" -or $_.Featurename -eq "cpuid.IBPB" -or $_.Featurename -eq "cpuid.STIBP"} | Select-Object -ExpandProperty FeatureName
-                }
-                elseif ($vmhost.ApiVersion -eq "6.0" -and $vmhost.Build -ge "7504637") {
-                    $complianceStatus = "Compliant"
-                    $vmhostPatch = $esxcli2.software.vib.list.Invoke() | Where-Object {$_.Name -eq "cpu-microcode"}
-                    if ($vmhostPatch) {
-                        if ((($vmhostPatch.Version).Split('.') | Select-Object -Last 1) -ge "7504637") {
-                            $esxMicrocode = "Present"
-                            $hostCPUID = $vmhostview.Config.FeatureCapability | Where-Object {$_.FeatureName -eq "cpuid.IBRS" -or $_.Featurename -eq "cpuid.IBPB" -or $_.Featurename -eq "cpuid.STIBP"} | Select-Object -ExpandProperty FeatureName
-                        }
-                        else {
-                            $esxMicrocode = "NotPresent. ESXi600-201801402-BG Missing see VMSA-2018-0004"
-                        } #END if/else
-                    } #END if
-                }
-                elseif ($vmhost.ApiVersion -eq "6.5" -and $vmhost.Build -ge "7526125") {
-                    $complianceStatus = "Compliant"
-                    $vmhostPatch = $esxcli2.software.vib.list.Invoke() | Where-Object {$_.Name -eq "cpu-microcode"}
-                    if ($vmhostPatch) {
-                        if ((($vmhostPatch.Version).Split('.') | Select-Object -Last 1) -ge "7526125") {
-                            $esxMicrocode = "Present"
-                            $hostCPUID = $vmhostview.Config.FeatureCapability | Where-Object {$_.FeatureName -eq "cpuid.IBRS" -or $_.Featurename -eq "cpuid.IBPB" -or $_.Featurename -eq "cpuid.STIBP"} | Select-Object -ExpandProperty FeatureName
-                        }
-                        else {
-                            $esxMicrocode = "NotPresent. ESXi650-201801402-BG Missing see VMSA-2018-0004"
-                        } #END if/else
-                    } #END if
-                }
-                else {
-                    $complianceStatus = "NotCompliant"
-                    $esxMicrocode = "NotPresent"
-                    $hostCPUID = $null
-                } #END if/ese
-            }
-            else {
-                $complianceStatus = "ESXi upgrade needed"
-                $esxMicrocode = "NotPresent"
-                $hostCPUID = $null
-            } #END if/else
-
-            <#
-              Get accurate last patched date if ESXi 6.5
-              based on Date and time (UTC), which is
-              converted to local time
-            #>
-            $vmhostPatch = $esxcli2.software.vib.list.Invoke() | Where-Object {$_.ID -match $vmhost.Build} | Select-Object -First 1
-            if ($vmhost.ApiVersion -notmatch '6.5') {
-                $lastPatched = Get-Date $vmhostPatch.InstallDate -Format d
-            }
-            else {
-                Write-Verbose -Message ((Get-Date -Format G) + "`tESXi version " + $vmhost.ApiVersion + ". Gathering VIB " + $vmhostPatch.Name + " install date through ImageConfigManager" )
-                $configManagerView = Get-View $vmhost.ExtensionData.ConfigManager.ImageConfigManager
-                $softwarePackages = $configManagerView.fetchSoftwarePackages() | Where-Object {$_.CreationDate -ge $vmhostPatch.InstallDate}
-                $dateInstalledUTC = ($softwarePackages | Where-Object {$_.Name -eq $vmhostPatch.Name -and $_.Version -eq $vmhostPatch.Version}).CreationDate
-                $lastPatched = Get-Date ($dateInstalledUTC.ToLocalTime()) -Format d
-            } #END if/else               
-           
-            <#
-              Use a custom object to store
-              collected data
-            #>
-            $PatchCollection += [PSCustomObject]@{
-                'Hostname'             = $vmhost
-                'Product'              = $vmhostView.Config.Product.Name
-                'Version'              = $vmhostView.Config.Product.Version
-                'Build'                = $vmhost.Build
-                'Update'               = $esxiVersion.Update
-                'Patch'                = $esxiVersion.Patch
-                'Status'               = $complianceStatus
-                'ESXi Microcode Patch' = $esxMicrocode
-                'ESXi CPUID Features'  = (@($hostCPUID) -join ',')
-                'Last Patched'         = $lastPatched
-            } #END [PSCustomObject]
+        $mgmtIP = $vmhost | Get-VMHostNetworkAdapter | Where-Object {$_.ManagementTrafficEnabled -eq 'True'} | Select-Object -ExpandProperty IP
+        $cpuList = $esxcli.hardware.cpu.list.Invoke() | Where-Object {$_.Id -eq "0"}
+        $cpuModel = $vmhost.ProcessorType -replace '\s+', ' '
+        Write-Verbose -Message ((Get-Date -Format G) + "`tGathering ESXi CPUID details...")
+        $hostCpuPcid = $false
+        $hostMcuCPuid = $null
+        $hostFeatureCapability = $vmhostView.Config.FeatureCapability
+        $hostCpuid = $hostFeatureCapability | Where-Object {$_.FeatureName -eq "cpuid.IBRS" -and $_.Value -eq "1" -or $_.Featurename -eq "cpuid.IBPB" -and $_.Value -eq "1" -or $_.Featurename -eq "cpuid.STIBP" -and $_.Value -eq "1"} | Select-Object -ExpandProperty FeatureName
+        $hostInvPcid = $hostFeatureCapability | Where-Object {$_.FeatureName -eq "cpuid.INVPCID" -and $_.Value -eq "1"} | Select-Object -ExpandProperty FeatureName
+        $hostPcid = $hostFeatureCapability | Where-Object {$_.Featurename -eq "cpuid.PCID" -and $_.Value -eq "1"} | Select-Object -ExpandProperty FeatureName
+        if ($hostInvPcid -and $hostPcid) {
+            $hostCpuPcid = $true
+        } #End if        
+        if ($hostCpuid) {
+            $hostMcuCPuid = (@($hostCpuid.split('.') | Where-Object {$_ -ne "cpuid"}) -join ',')
         } #END if
-    
+        
         <#
-          Get ESXi BIOS details
+          Get accurate last patched date if ESXi 6.5
+          based on Date and time (UTC), which is
+          converted to local time
         #>
-        if ($BIOSCompliance) {
-            Write-Host "`tGathering BIOS details from $vmhost ..."
-            $BIOSReleaseDate = Get-Date (($vmhostview.Hardware.BiosInfo.ReleaseDate -split " ")[0])
-            <#
-              Get BIOS Compliance status
-            #>
-            $minVersion = $csvCollection | Where-Object {$_.Model -eq $vmhost.Model}
+        Write-Verbose -Message ((Get-Date -Format G) + "`tGathering last patched date...")
+        $vmhostPatch = $esxcli.software.vib.list.Invoke() | Where-Object {$_.ID -match $vmhost.Build} | Select-Object -First 1
+        if ($vmhost.ApiVersion -notmatch '6.5') {
+            $lastPatched = Get-Date $vmhostPatch.InstallDate -Format d
+        }
+        else {
+            Write-Verbose -Message ((Get-Date -Format G) + "`tESXi version " + $vmhost.ApiVersion + ". Gathering VIB " + $vmhostPatch.Name + " install date through ImageConfigManager" )
+            $configManagerView = Get-View $vmhostView.ConfigManager.ImageConfigManager
+            $softwarePackages = $configManagerView.fetchSoftwarePackages() | Where-Object {$_.CreationDate -ge $vmhostPatch.InstallDate}
+            $dateInstalledUTC = ($softwarePackages | Where-Object {$_.Name -eq $vmhostPatch.Name -and $_.Version -eq $vmhostPatch.Version}).CreationDate
+            $lastPatched = Get-Date ($dateInstalledUTC.ToLocalTime()) -Format d
+        } #END if/else               
 
+        <#
+          Get UpTime
+        #>
+        Write-Verbose -Message ((Get-Date -Format G) + "`tGathering ESXi UpTime details...")
+        $bootTimeUTC = $vmhostView.Runtime.BootTime
+        $bootTime = $bootTimeUTC.ToLocalTime()
+        $upTime = New-TimeSpan -Seconds $vmhostView.Summary.QuickStats.Uptime
+        $upTimeDays = $upTime.Days
+        $upTimeHours = $upTime.Hours
+        $upTimeMinutes = $upTime.Minutes
+
+        <#
+          Get ESXi MCU Revisions
+        #>
+        $mcuUpdate = $null
+        $mcuOriginal = $null
+        $mcuCurrent = $null
+        if ($poshSSH) {
+            Write-Verbose -Message ((Get-Date -Format G) + "`tGathering ESXi MCU revisions through SSH...")
+            $sshServerFWException = $vmhost | Get-VMHostFirewallException -Name "SSH Server"
+            if ($sshServerFWException.Enabled -eq $false) {
+                $sshServerFWException | Set-VMHostFirewallException -Enabled $true -Confirm:$false | Out-Null
+            } #END if
+            $vmServices = $vmhost | Get-VMHostService
+            $vmServices | Where-Object {$_.Key -eq "TSM-SSH"} | Start-VMHostService -Confirm:$false | Out-Null
+            $sshSession = New-SSHSession -ComputerName $vmhost -Credential $rootCreds -AcceptKey -ConnectionTimeout 90 -KeepAliveInterval 5 -ErrorAction SilentlyContinue
+            if ($sshSession) {
+                Write-Verbose -Message ((Get-Date -Format G) + "`tSSH session established...")
+                $sshCommand = Invoke-SSHCommand -Command "vsish -e cat /hardware/cpu/cpuList/0 | grep microcode -A 2" -SessionId $sshSession.SessionId
+                if ($sshCommand.ExitStatus -eq '0') {
+                    $mcuUpdate = ($sshCommand.Output | Where-Object {$_ -match "Number of microcode"}).Split(':')[1]
+                    $mcuOriginal = ($sshCommand.Output | Where-Object {$_ -match "Original Revision"}).Split(':')[1]
+                    $mcuCurrent = ($sshCommand.Output | Where-Object {$_ -match "Current Revision"}).Split(':')[1]
+                } #END if
+                Remove-SSHSession $sshSession | Out-Null
+            }
+            else {
+                Write-Warning -Message ("`tFailed to establish SSH connection: " + $Error[0].Exception.Message)
+            } #END if/else
+            $vmServices | Where-Object {$_.Key -eq "TSM-SSH"} | Stop-VMHostService -Confirm:$false | Out-Null
+            if ($mcuUpdate -eq "0") {
+                $mcuUpdate = "Inactive"
+            }
+            elseif ($mcuUpdate -eq "1") {
+                $mcuUpdate = "Active"
+            } #END if/elseif
+        } #END if
+
+        <#
+          Check for BIOS
+          version details
+        #>        
+        Write-Verbose -Message ((Get-Date -Format G) + "`tGathering BIOS details...")
+        if ($biosCsvCollection) {
+            $biosReleaseDate = Get-Date (($vmhostView.Hardware.BiosInfo.ReleaseDate -split " ")[0])
+            $minVersion = $biosCsvCollection | Where-Object {$_.Model -eq $vmhost.Model}
             if ($minVersion) {
 
                 <#
-                  if HP compare against Release Date
+                  If HP compare against Release Date
                   else compare against BIOS version
                 #>
                 if ($minVersion.Manufacturer -like "HP*") {
-                    $csvDate = Get-Date $minVersion.BIOSReleaseDate
-                    if ($BIOSReleaseDate -ge $csvDate) {
-                        $BIOSComplianceStatus = "Compliant"
+                    $biosCsvDate = Get-Date $minVersion.BIOSReleaseDate
+                    if ($biosReleaseDate -ge $biosCsvDate) {
+                        $biosComplianceStatus = "Proper BIOS installed"
                     }
                     else {
-                        $BIOSComplianceStatus = "NotCompliant - Update to version release: v" + $minVersion.BIOS + " " + $minVersion.BIOSReleaseDate
+                        $biosComplianceStatus = "BIOS update available - install v" + $minVersion.BIOS + " (" + $minVersion.BIOSReleaseDate + ")"
                     } #END if/else
                 }
                 else {
-                    if ($vmhostview.Hardware.BiosInfo.BiosVersion -ge $minVersion.BIOS) {
-                        $BIOSComplianceStatus = "Compliant"
+                    if ($vmhostView.Hardware.BiosInfo.BiosVersion -ge $minVersion.BIOS) {
+                        $biosComplianceStatus = "Proper BIOS installed"
                     }
                     else {
-                        $BIOSComplianceStatus = "NotCompliant - Update to version: " + $minVersion.BIOS
+                        $biosComplianceStatus = "BIOS update available - install v" + $minVersion.BIOS
                     } #END if/else
                 } #END if/else
             }
             else {
-                $BIOSComplianceStatus = "NotCompliant - Check with manufacturer"
-            }
-            
-            <#
-              Compare both ESXi and BIOS compliance Status
-            #>
-            if ($complianceStatus -eq "Compliant" -and $BIOSComplianceStatus -eq "Compliant" -and $esxMicrocode -eq "Present") {
-                $spectreStatus = "True, Both BIOS and ESXi Microcode update are present"
-            }
-            elseif ($complianceStatus -eq "Compliant" -and $BIOSComplianceStatus -eq "Compliant" -and $esxMicrocode -like "NotPresent*") {
-                $spectreStatus = "True, BIOS Update Present. ESXi Microcode update Notpresent"             
-            }
-            elseif ($complianceStatus -eq "Compliant" -and $BIOSComplianceStatus -like "NotCompliant*" -and $esxMicrocode -like "Present") {
-                $spectreStatus = "True, BIOS Update NotPresent. ESXi Microcode update present"
+                $biosComplianceStatus = "Unknown - Check with manufacturer"
+            } #END if/else
+        } #END if
+        
+        <#
+          Check for CPU Signatures
+          Intel Sighting
+        #>
+        Write-Verbose -Message ((Get-Date -Format G) + "`tGathering Intel MCU and sighting details...")
+        if ($cpuList.Family -eq "6") {
+            $cpuidEAX = ($esxcli.hardware.cpu.cpuid.get.Invoke(@{cpu = 0}) | Where-Object {$_.Level -eq 1}).EAX
+            $cpuidHEX = [System.Convert]::ToString($cpuidEAX, 16)
+            if ($mcuCsvCollection) {
+                $intelMcuList = $mcuCsvCollection | Where-Object {$_.CPUID -eq $cpuidHEX}
+                if ($intelMcuList) {
+                    $cpuAffected = $null
+                    if ($intelMcuList.Count -gt 1) {
+                        if ($mcu = $intelMcuList | Where-Object {$cpuModel.Contains($_.Name.Split('')[3])}) {
+                            $intelProduct = $mcu.Product
+                            $prodStatus = $mcu.Status
+                            $affectedMCU = $mcu.AffectedMCU
+                            $prodMCU = $mcu.ProductionMCU
+                            if ($affectedMCU -eq "N/A") {
+                                $cpuAffected = $false
+                            }
+                            else {
+                                if ($mcuCurrent) {
+                                    $cpuAffected = $affectedMCU.Contains($mcuCurrent)
+                                }
+                                else {
+                                    $cpuAffected = "Unknown"        
+                                } #END if/else
+                            } #END if/else
+                        }
+                        else {
+                            Write-Verbose -Message ((Get-Date -Format G) + "`tNo Match found for: $cpuModel")
+                            $intelProduct = "Unknown"
+                            $prodStatus = "Unknown"
+                            $affectedMCU = "Unknown"
+                            $prodMCU = "Unknown"
+                            $cpuAffected = "Unknown"
+                        } #END if/else
+                    }
+                    else {
+                        $intelProduct = $intelMcuList.Product
+                        $prodStatus = $intelMcuList.Status
+                        $affectedMCU = $intelMcuList.AffectedMCU
+                        $prodMCU = $intelMcuList.ProductionMCU
+                        if ($affectedMCU -eq "N/A") {
+                            $cpuAffected = $false
+                        }
+                        else {
+                            if ($mcuCurrent) {
+                                $cpuAffected = $affectedMCU.Contains($mcuCurrent)
+                            }
+                            else {
+                                $cpuAffected = "Unknown"        
+                            } #END if/else
+                        } #END if/else
+                    } #END if/else
+                }
+                else {
+                    Write-Verbose -Message ((Get-Date -Format G) + "`t$cpuModel not found in Intel MCU Guidance list provided.")
+                    $intelProduct = "Unknown"
+                    $prodStatus = "Unknown"
+                    $affectedMCU = "Unknown"
+                    $prodMCU = "Unknown"
+                    $cpuAffected = "Unknown"
+                } #END if/else
+            } #END if
+        }
+        else {
+            Write-Verbose -Message ((Get-Date -Format G) + "`tNot an Intel CPU, skipping...")
+            $intelProduct = "N/A"
+            $prodStatus = "N/A"
+            $affectedMCU = "N/A"
+            $prodMCU = "N/A"
+            $cpuAffected = "Unknown - Check with manufacturer"
+        } #END if/Else
+
+        <#
+          Check for VMware
+          MCU workaround
+        #>
+        Write-Verbose -Message ((Get-Date -Format G) + "`tGathering details for VMware MCU workaround...")
+        $vmhostName = $vmhost.Name
+        $url = "https://$vmhostName/host/vmware_config"
+        $sessionManager = Get-View ($global:DefaultVIServer.ExtensionData.Content.sessionManager)
+        $spec = New-Object VMware.Vim.SessionManagerHttpServiceRequestSpec
+        $spec.Method = "httpGet"
+        $spec.Url = $url
+        $ticket = $sessionManager.AcquireGenericServiceTicket($spec)
+        $websession = New-Object Microsoft.PowerShell.Commands.WebRequestSession
+        $cookie = New-Object System.Net.Cookie
+        $cookie.Name = "vmware_cgi_ticket"
+        $cookie.Value = $ticket.id
+        $cookie.Domain = $vmhostName
+        $websession.Cookies.Add($cookie)
+        $result = Invoke-WebRequest -Uri $url -WebSession $websession
+        $esxconfig = $result.content
+        foreach ($line in $esxconfig.Split("`n")) {
+            if ($line -eq 'cpuid.7.edx = "----:00--:----:----:----:----:----:----"') {
+                $intelWorkaround = $true
+                break
             }
             else {
-                $spectreStatus = $false
+                $intelWorkaround = $false
             } #END if/else
+        } #END foreach
 
-            <#
-              Use a custom object to store
-              collected data
-            #>
-            $BIOSCollection += [PSCustomObject]@{
-                'Hostname'          = $vmhost
-                'Make'              = $vmhost.Manufacturer
-                'Model'             = $vmhost.Model
-                'CPU Model'         = $vmhost.ProcessorType
-                'Hyper-Threading'   = $vmhost.HyperthreadingActive
-                'Max EVC Mode'      = $vmhost.MaxEVCMode
-                'BIOS'              = $vmhostview.Hardware.BiosInfo.BiosVersion
-                'BIOS Release Date' = (($vmhost.ExtensionData.Hardware.BiosInfo.ReleaseDate -split " ")[0])
-                'Status'            = $BIOSComplianceStatus
-                'SafeFromSpectre'   = $spectreStatus
-            } #END [PSCustomObject]
-        } #END if
+        <#
+          Use a custom object to store
+          collected data
+        #>
+        $patchCollection += [PSCustomObject]@{
+            'Hostname'                      = $vmhost.Name
+            'Management IP'                 = $mgmtIP
+            'Cluster'                       = $vmhost.Parent            
+            'Product'                       = $vmhostView.Config.Product.Name
+            'Version'                       = $vmhostView.Config.Product.Version
+            'Build'                         = $vmhost.Build            
+            'Last patched'                  = $lastPatched
+            'Boot time'                     = $bootTime
+            'Uptime'                        = "$upTimeDays Day(s), $upTimeHours Hr(s), $upTimeMinutes Min(s)"            
+            'Make'                          = $vmhost.Manufacturer
+            'Model'                         = $vmhost.Model
+            'CPU model'                     = $cpuModel
+            'CPUID'                         = $cpuidHEX
+            'Max EVC mode'                  = $vmhost.MaxEVCMode
+            'BIOS version'                  = $vmhostView.Hardware.BiosInfo.BiosVersion
+            'BIOS release date'             = (($vmhostView.Hardware.BiosInfo.ReleaseDate -split " ")[0])
+            'BIOS guidance'                 = $biosComplianceStatus
+            'MCU CPUID'                     = $hostMcuCPuid
+            'PCID/INVPCID'                  = $hostCpuPcid
+            'ESXi applied MCU'              = $mcuUpdate
+            'MCU BIOS rev.'                 = $mcuOriginal
+            'MCU boot rev.'                 = $mcuCurrent
+            'Intel product'                 = $intelProduct
+            'Intel MCU status'              = $prodStatus
+            'Intel MCU(s) at risk'          = $affectedMCU
+            'Intel production MCU'          = $prodMCU
+            'MCU boot rev. at risk'         = $cpuAffected
+            'VMware MCU workaround applied' = $intelWorkaround
+        } #END [PSCustomObject]      
 
         <#
           Report on VMs if switch was specified
         #>
         if ($ReportOnVMs) {
             $vmlist = $vmhost | Get-VM | Sort-Object -Property Name
+            if ($vmhost.Parent.EVCMode) {
+                $clusEvcMode = $vmhost.Parent.EVCMode
+            }
+            else {
+                $clusEvcMode = "Disabled"
+            } #END if/else
             foreach ($vm in $vmlist) {
+                $vmMcuCpuid = $null
+                $vmCpuPcid = $null
+                $powerOnEvent = $null
                 Write-Host "`tGathering VM hypervisor-assisted guest mitigation details from $vm ..."
-                $vmhost = Get-VMHost -Name $vm.VMHost
-                $hardwareVersion = ($vm.Version.ToString()).Split('v')[1]
-                $hostCPUID = $vmhost.ExtensionData.Config.FeatureCapability | Where-Object {$_.FeatureName -eq "cpuid.IBRS" -or $_.Featurename -eq "cpuid.IBPB" -or $_.Featurename -eq "cpuid.STIBP"} | Select-Object -ExpandProperty FeatureName
-                $vmCPUID = $vm.ExtensionData.Runtime.FeatureRequirement | Where-Object {$_.FeatureName -eq "cpuid.IBRS" -or $_.Featurename -eq "cpuid.IBPB" -or $_.Featurename -eq "cpuid.STIBP"} | Select-Object -ExpandProperty FeatureName
+                $hardwareVersion = ($vm.Version.ToString()).Split('v')[1]              
+                $vmFeatureRequirement = $vm.ExtensionData.Runtime.FeatureRequirement
+                $vmCpuid = $vmFeatureRequirement | Where-Object {$_.FeatureName -eq "cpuid.IBRS" -or $_.Featurename -eq "cpuid.IBPB" -or $_.Featurename -eq "cpuid.STIBP"} | Select-Object -ExpandProperty FeatureName
+                $vmPcid = $vmFeatureRequirement | Where-Object {$_.FeatureName -eq "cpuid.INVPCID" -or $_.Featurename -eq "cpuid.PCID"} | Select-Object -ExpandProperty FeatureName
+                if ($vm.Guest.OSFullName) {
+                    $vmGuestOs = $vm.Guest.OSFullName
+                }
+                else {
+                    $vmGuestOs = $vm.ExtensionData.Config.GuestFullName
+                } #END if
 
                 <#
                   Validate VM Hardware
                 #>
+                Write-Verbose -Message ((Get-Date -Format G) + "`tValidating VM Hardware")
                 if ([int]$hardwareVersion -ge "9" -and $vm.PowerState -eq "PoweredOn") {
-                    if ($hostCPUID -and $vmCPUID) {
-                        $spectreStatus = $true
+                    if ($hostCpuid) {
+                        if ($vmCpuid) {
+                            $spectreStatus = "Supported/Enabled"
+                        }
+                        else {
+                            $spectreStatus = "Supported/Disabled"
+                        } #END if/else
                     }
-                    elseif ($hostCPUID -and !$vmCPUID) {
-                        $spectreStatus = "False, You need to powercycle your VM"
+                    else {
+                        $spectreStatus = "NotSupported/Disabled"
                     } #END if/else
+                    if ($hostCpuPcid) {
+                        if ([int]$hardwareVersion -ge "11") {
+                            if ($vmPcid.Count -eq "2") {
+                                $pcidStatus = "Supported/Enabled"
+                            }
+                            else {
+                                $pcidStatus = "Supported/Disabled"
+                            } #END if/else
+                        }
+                        else {
+                            $pcidStatus = "Supported/Upgrade VM Hardware"
+                        } #END if/else
+                    }
+                    else {
+                        $pcidStatus = "NotSupported/NA"
+                    } #END if/else
+                    $powerOnEvents = $vm | Get-VIEvent -MaxSamples ([int]::MaxValue) -Types Info | Where-Object {$_ -is [VMware.Vim.VmPoweredOnEvent]}
+                    if ($powerOnEvents) {
+                        $sortedEvents = Sort-Object -InputObject $powerOnEvents -Property CreatedTime -Descending
+                        $powerOnEvent = ($sortedEvents | Select-Object -First 1).CreatedTime
+                    } #END if
                 }
                 else {
                     if ([int]$hardwareVersion -ge "9" -and $vm.PowerState -eq "PoweredOff") {
                         $spectreStatus = "UnknownSinceOff"
+                        $pcidStatus = "UnknownSinceOff"
                     }
                     else {
-                        $spectreStatus = "Need to upgrade VM Hardware. See KB52085"
-                    }
-                } #END if
+                        $spectreStatus = "Supported/Upgrade VM Hardware"
+                        if ($hostCpuPcid) {
+                            $pcidStatus = "Supported/Upgrade VM Hardware"
+                        }
+                        else {
+                            $pcidStatus = "NotSupported/NA"
+                        } #END if
+                    } #END if/else
+                } #END if/else
+                if ($vmCpuid) {
+                    $vmMcuCpuid = (@($vmCpuid.split('.') | Where-Object {$_ -ne "cpuid"}) -join ',')
+                } #END if/else
+                if ($vmPcid) {
+                    $vmCpuPcid = (@($vmPcid.split('.') | Where-Object {$_ -ne "cpuid"}) -join ',')
+                } #END if/else
 
                 <#
                   Use a custom object to store
                   collected data
                 #>
-                $VMCollection += [PSCustomObject]@{
-                    'Name'                = $vm.Name
-                    'Power State'         = $vm.PowerState
-                    'Hardware Version'    = $vm.Version
-                    'ESXi Host'           = $vmhost
-                    'ESXi CPUID Features' = (@($hostCPUID) -join ',')
-                    'VM CPUID Features'   = (@($vmCPUID) -join ',')
-                    'SafeFromSpectre'     = $spectreStatus
+                $vmCollection += [PSCustomObject]@{
+                    'Name'                                 = $vm.Name
+                    'Power state'                          = $vm.PowerState
+                    'VM guest OS'                          = $vmGuestOs
+                    'ESXi'                                 = $vmhost.Name
+                    'Cluster'                              = $vmhost.Parent
+                    'Cluster EVC mode'                     = $clusEvcMode
+                    'Hardware version'                     = $vm.Version
+                    'ESXi MCU CPUID'                       = $hostMcuCPuid
+                    'ESXi PCID/INVPCID'                    = $hostCpuPcid
+                    'VM MCU CPUID'                         = $vmMcuCpuid
+                    'VM PCID/INVPCID'                      = $vmCpuPcid
+                    'Last PoweredOn'                       = $powerOnEvent
+                    'Hypervisor-Assisted Guest mitigation' = $spectreStatus
+                    'PCID optimization'                    = $pcidStatus
                 } #END [PSCustomObject]
             } #END foreach
         } #END if
-
     } #END foreach
+    Write-Verbose -Message ((Get-Date -Format G) + "`tMain code execution completed")
     
     <#
       Display skipped hosts and their connection status
@@ -545,7 +742,7 @@
     <#
       Validate output arrays
     #>
-    if ($PatchCollection -or $BIOSCollection -or $VMCollection) {
+    if ($patchCollection -or $vmCollection) {
         Write-Verbose -Message ((Get-Date -Format G) + "`tInformation gathered")
     }
     else {
@@ -556,60 +753,41 @@
       Output to screen
       Export data to CSV, Excel
     #>
-    if ($PatchCollection) {
-        Write-Host "`n" "ESXi VMSA-2018-0004 Compliance:" -ForegroundColor Green
+    if ($patchCollection) {
+        Write-Host "`n" "ESXi Speculative Execution:" -ForegroundColor Green
         if ($ExportCSV) {
-            $PatchCollection | Export-Csv ($outputFile + "Patch.csv") -NoTypeInformation
-            Write-Host "`tData exported to" ($outputFile + "Patch.csv") "file" -ForegroundColor Green
+            $patchCollection | Export-Csv ($outputFile + "ESXi.csv") -NoTypeInformation
+            Write-Host "`tData exported to" ($outputFile + "ESXi.csv") "file" -ForegroundColor Green
         }
         elseif ($ExportExcel) {
-            $PatchCollection | Export-Excel ($outputFile + ".xlsx") -WorkSheetname Patch_Compliance -NoNumberConversion * -AutoSize -BoldTopRow
+            $patchCollection | Export-Excel ($outputFile + ".xlsx") -WorkSheetname ESXi -NoNumberConversion * -AutoSize -BoldTopRow
             Write-Host "`tData exported to" ($outputFile + ".xlsx") "file" -ForegroundColor Green
         }
         elseif ($PassThru) {
-            $ReturnCollection += $PatchCollection 
-            $ReturnCollection 
+            $returnCollection += $patchCollection 
+            $returnCollection 
         }
         else {
-            $PatchCollection | Format-List
-        }#END if/else
-    } #END if
-    
-    if ($BIOSCollection) {
-        Write-Host "`n" "ESXi BIOS Compliance:" -ForegroundColor Green
-        if ($ExportCSV) {
-            $BIOSCollection | Export-Csv ($outputFile + "BIOS.csv") -NoTypeInformation
-            Write-Host "`tData exported to" ($outputFile + "BIOS.csv") "file" -ForegroundColor Green
-        }
-        elseif ($ExportExcel) {
-            $BIOSCollection | Export-Excel ($outputFile + ".xlsx") -WorkSheetname BIOS_Compliance -NoNumberConversion * -BoldTopRow
-            Write-Host "`tData exported to" ($outputFile + ".xlsx") "file" -ForegroundColor Green
-        }
-        elseif ($PassThru) {
-            $ReturnCollection += $BIOSCollection
-            $ReturnCollection  
-        }
-        else {
-            $BIOSCollection | Format-List
+            $patchCollection | Format-List
         }#END if/else
     } #END if
 
-    if ($VMCollection) {
-        Write-Host "`n" "VM VMSA-2018-0004 Compliance:" -ForegroundColor Green
+    if ($vmCollection) {
+        Write-Host "`n" "VM Hypervisor-Assisted Guest Mitigation:" -ForegroundColor Green
         if ($ExportCSV) {
             $VMCollection | Export-Csv ($outputFile + "VM.csv") -NoTypeInformation
             Write-Host "`tData exported to" ($outputFile + "VM.csv") "file" -ForegroundColor Green
         }
         elseif ($ExportExcel) {
-            $VMCollection | Export-Excel ($outputFile + ".xlsx") -WorkSheetname VM_Compliance -NoNumberConversion * -BoldTopRow
+            $VMCollection | Export-Excel ($outputFile + ".xlsx") -WorkSheetname VM -NoNumberConversion * -BoldTopRow
             Write-Host "`tData exported to" ($outputFile + ".xlsx") "file" -ForegroundColor Green
         }
         elseif ($PassThru) {
-            $ReturnCollection += $VMCollection
-            $ReturnCollection  
+            $returnCollection += $VMCollection
+            $returnCollection  
         }
         else {
-            $VMCollection | Format-List
+            $vmCollection | Format-List
         }#END if/else
     } #END if
 } #END function
