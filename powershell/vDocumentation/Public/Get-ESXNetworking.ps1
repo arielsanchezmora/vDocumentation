@@ -130,7 +130,7 @@
       Gather host list based on parameter used
     #>
     Write-Verbose -Message ((Get-Date -Format G) + "`tGather host list")
-    if ([string]::IsNullOrWhiteSpace($esxi)) {
+    if ([string]::IsNullOrWhiteSpace($esxi)) {      
         Write-Verbose -Message ((Get-Date -Format G) + "`t-esxi parameter is Null or Empty")
         if ([string]::IsNullOrWhiteSpace($cluster)) {
             Write-Verbose -Message ((Get-Date -Format G) + "`t-cluster parameter is Null or Empty")
@@ -141,17 +141,17 @@
                 Write-Verbose -Message ((Get-Date -Format G) + "`tExecuting Cmdlet using datacenter parameter")
                 if ($datacenter -eq "all vdc") {
                     Write-Host "`tGathering all hosts from the following vCenter(s): " $Global:DefaultViServers
-                    $vHostList = Get-VMHost | Sort-Object -Property Name
+                    $vHostList = Get-VMHost | Sort-Object -Property Name                    
                 }
                 else {
                     Write-Host "`tGathering host list from the following DataCenter(s): " (@($datacenter) -join ',')
                     foreach ($vDCname in $datacenter) {
                         $tempList = Get-Datacenter -Name $vDCname.Trim() -ErrorAction SilentlyContinue | Get-VMHost 
-                        if ([string]::IsNullOrWhiteSpace($tempList)) {
-                            Write-Warning -Message "`tDatacenter with name $vDCname was not found in $Global:DefaultViServers"
+                        if ($tempList) {
+                            $vHostList += $tempList | Sort-Object -Property Name
                         }
                         else {
-                            $vHostList += $tempList | Sort-Object -Property Name
+                            Write-Warning -Message "`tDatacenter with name $vDCname was not found in $Global:DefaultViServers"
                         } #END if/else
                     } #END foreach
                 } #END if/else
@@ -162,11 +162,11 @@
             Write-Host "`tGathering host list from the following Cluster(s): " (@($cluster) -join ',')
             foreach ($vClusterName in $cluster) {
                 $tempList = Get-Cluster -Name $vClusterName.Trim() -ErrorAction SilentlyContinue | Get-VMHost 
-                if ([string]::IsNullOrWhiteSpace($tempList)) {
-                    Write-Warning -Message "`tCluster with name $vClusterName was not found in $Global:DefaultViServers"
+                if ($tempList) {
+                    $vHostList += $tempList | Sort-Object -Property Name
                 }
                 else {
-                    $vHostList += $tempList | Sort-Object -Property Name
+                    Write-Warning -Message "`tCluster with name $vClusterName was not found in $Global:DefaultViServers"
                 } #END if/else
             } #END foreach
         } #END if/else
@@ -175,9 +175,16 @@
         Write-Verbose -Message ((Get-Date -Format G) + "`tExecuting Cmdlet using esxi parameter")
         Write-Host "`tGathering host list..."
         foreach ($invidualHost in $esxi) {
-            $vHostList += $invidualHost.Trim() | Sort-Object -Property Name
+            $tempList = Get-VMHost -Name $invidualHost.Trim() -ErrorAction SilentlyContinue
+            if ($tempList) {
+                $vHostList += $tempList | Sort-Object -Property Name
+            }
+            else {
+                Write-Warning -Message "`tESXi host $invidualHost was not found in $Global:DefaultViServers"
+            } #END if/else
         } #END foreach
     } #END if/else
+    $tempList = $null
     
     <#
       Validate export switches,
@@ -243,8 +250,7 @@
     <#
       Main code execution
     #>
-    foreach ($esxihost in $vHostList) {
-        $vmhost = Get-VMHost -Name $esxihost -ErrorAction SilentlyContinue
+    foreach ($vmhost in $vHostList) {
     
         <#
           Skip if ESXi host is not in a Connected
@@ -262,33 +268,34 @@
               hosts and continue to the next foreach loop
             #>
             $skipCollection += [pscustomobject]@{
-                'Hostname'         = $esxihost
-                'Connection State' = $esxihost.ConnectionState
+                'Hostname'         = $vmhost.Name
+                'Connection State' = $vmhost.ConnectionState
             } #END [PSCustomObject]
             continue
         } #END if/else
-        $esxcli2 = Get-EsxCli -VMHost $esxihost -V2
+        $vmhostView = $vmhost | Get-View
+        $esxcli = Get-EsxCli -VMHost $vmhost -V2
     
         <#
           Get physical adapter details
         #>
         if ($PhysicalAdapters) {
             Write-Host "`tGathering physical adapter details from $vmhost ..."
-            $vmnics = $vmhost | Get-VMHostNetworkAdapter -Physical | Select-Object Name, Mac, Mtu
+            $vmnics = $vmhost | Get-VMHostNetworkAdapter -Physical | Select-Object -Property Name, Mac, Mtu
             foreach ($nic in $vmnics) {
                 Write-Verbose -Message ((Get-Date -Format G) + "`tGet device details for: " + $nic.Name)
-                $pciList = $esxcli2.hardware.pci.list.Invoke() | Where-Object {$_.VMKernelName -eq $nic.Name}
-                $nicList = $esxcli2.network.nic.list.Invoke() | Where-Object {$_.Name -eq $nic.Name}
+                $pciList = $esxcli.hardware.pci.list.Invoke() | Where-Object {$_.VMKernelName -eq $nic.Name}
+                $nicList = $esxcli.network.nic.list.Invoke() | Where-Object {$_.Name -eq $nic.Name}
     
                 <#
                   Get uplink vSwitch, check standard
                   vSwitch first then Distributed.
                 #>
-                if ($vSwitch = $esxcli2.network.vswitch.standard.list.Invoke() | Where-Object {$_.uplinks -contains $nic.Name}) {
+                if ($vSwitch = $esxcli.network.vswitch.standard.list.Invoke() | Where-Object {$_.uplinks -contains $nic.Name}) {
                     Write-Verbose -Message ((Get-Date -Format G) + "`tUplinks to vswitch: " + $vSwitch.Name)
                 }
                 else {
-                    $vSwitch = $esxcli2.network.vswitch.dvs.vmware.list.Invoke() | Where-Object {$_.uplinks -contains $nic.Name}
+                    $vSwitch = $esxcli.network.vswitch.dvs.vmware.list.Invoke() | Where-Object {$_.uplinks -contains $nic.Name}
                     Write-Verbose -Message ((Get-Date -Format G) + "`tUplinks to vswitch: " + $vSwitch.Name)
                 } #END if/else
     
@@ -296,8 +303,7 @@
                   Get Device Discovery Protocol CDP/LLDP
                 #>
                 Write-Verbose -Message ((Get-Date -Format G) + "`tGet Device Discovery Protocol for: " + $nic.Name)
-                $esxiHostView = $vmhost | Get-View 
-                $networkSystem = $esxiHostView.Configmanager.Networksystem
+                $networkSystem = $vmhostView.Configmanager.Networksystem
                 $networkView = Get-View -Id $networkSystem
                 $networkViewInfo = $networkView.QueryNetworkHint($nic.Name)
                 if ($networkViewInfo.connectedswitchport -ne $null) {
@@ -331,7 +337,7 @@
                   collected data
                 #>
                 $PhysicalAdapterCollection += [PSCustomObject]@{
-                    'Hostname'           = $vmhost
+                    'Hostname'           = $vmhost.Name
                     'Name'               = $nic.Name
                     'Slot Description'   = $pciList.SlotDescription
                     'Device'             = $nicList.Description
@@ -381,14 +387,14 @@
                   and vSwitch MTU using Active adapter associated with the VMKernel Port.
                   Test against both Standard and Distributed Switch.
                 #>
-                $interfaceList = $esxcli2.network.ip.interface.list.Invoke() | Where-Object {$_.Name -eq $nic.Name}
+                $interfaceList = $esxcli.network.ip.interface.list.Invoke() | Where-Object {$_.Name -eq $nic.Name}
                 if ($interfaceList.VDSName -eq "N/A") {
                     Write-Verbose -Message ((Get-Date -Format G) + "`tStandard vSwitch: " + $interfaceList.Portset)
                     Write-Verbose -Message ((Get-Date -Format G) + "`tGet PortGroup details for: " + $nic.PortGroupName)
                     $portGroup = Get-VirtualPortGroup -VMhost $vmhost -Name $nic.PortGroupName -Standard -ErrorAction SilentlyContinue
                     $portGroupTeam = $portGroup | Get-NicTeamingPolicy
                     $portVLanId = $portGroup | Select-Object -ExpandProperty VLanId
-                    $vSwitch = $esxcli2.network.vswitch.standard.list.Invoke(@{vswitchname = $interfaceList.Portset})
+                    $vSwitch = $esxcli.network.vswitch.standard.list.Invoke(@{vswitchname = $interfaceList.Portset})
                     $vSwitchName = $interfaceList.Portset
                     $activeAdapters = (@($PortGroupTeam.ActiveNic) -join ',')
                     $standbyAdapters = (@($PortGroupTeam.StandbyNic) -join ',')
@@ -401,14 +407,14 @@
                         $portGroup = Get-VDPortgroup -Name $nic.PortGroupName -VDSwitch $interfaceList.Portset -ErrorAction SilentlyContinue
                         $portGroupTeam = $portGroup | Get-VDUplinkTeamingPolicy
                         $portVLanId = $portGroup.VlanConfiguration.VlanId
-                        $vSwitch = $esxcli2.network.vswitch.dvs.vmware.list.Invoke(@{vdsname = $interfaceList.VDSName})
+                        $vSwitch = $esxcli.network.vswitch.dvs.vmware.list.Invoke(@{vdsname = $interfaceList.VDSName})
                         $vSwitchName = $interfaceList.VDSName
                         $activeAdapters = (@($PortGroupTeam.ActiveUplinkPort) -join ',')
                         $standbyAdapters = (@($PortGroupTeam.StandbyUplinkPort) -join ',')
                         $unusedAdapters = (@($PortGroupTeam.UnusedUplinkPort) -join ',')
                     }
                     else {
-                        $vSwitch = $esxcli2.network.vswitch.dvs.vmware.list.Invoke() | Where-Object {$_.VDSID -eq $interfaceList.VDSName}
+                        $vSwitch = $esxcli.network.vswitch.dvs.vmware.list.Invoke() | Where-Object {$_.VDSID -eq $interfaceList.VDSName}
                         Write-Verbose -Message ((Get-Date -Format G) + "`t3rd Party Distributed vSwitch: " + $vSwitch.Name)
                         $portVLanId = $null
                         $vSwitchName = $vSwitch.Name
@@ -422,7 +428,7 @@
                   Get TCP/IP Stack details
                 #>
                 Write-Verbose -Message ((Get-Date -Format G) + "`tGet VMkernel TCP/IP Stack details...")
-                $netStackInstance = $vmhost.ExtensionData.Config.Network.NetStackInstance | Where-Object {$_.key -eq $interfaceList.NetstackInstance}
+                $netStackInstance = $vmhostView.Config.Network.NetStackInstance | Where-Object {$_.key -eq $interfaceList.NetstackInstance}
                 $vmkGateway = $netStackInstance.IpRouteConfig.DefaultGateway
                 $dnsAddress = $netStackInstance.DnsConfig.Address
                                         
@@ -431,7 +437,7 @@
                   collected data
                 #>
                 $VMkernelAdapterCollection += [PSCustomObject]@{
-                    'Hostname'         = $vmhost
+                    'Hostname'         = $vmhost.Name
                     'Name'             = $nic.Name
                     'MAC'              = $nic.Mac
                     'MTU'              = $nic.MTU
@@ -499,7 +505,7 @@
                           collected data
                         #>
                         $VirtualSwitchesCollection += [PSCustomObject]@{
-                            'Hostname'                                        = $vmhost
+                            'Hostname'                                        = $vmhost.Name
                             'Type'                                            = "Standard"
                             'Version'                                         = $null
                             'Name'                                            = $vSwitch.Name
@@ -519,7 +525,7 @@
                       collected data
                     #>
                     $VirtualSwitchesCollection += [PSCustomObject]@{
-                        'Hostname'                                        = $vmhost
+                        'Hostname'                                        = $vmhost.Name
                         'Type'                                            = "Standard"
                         'Version'                                         = $null
                         'Name'                                            = $vSwitch.Name
@@ -586,7 +592,7 @@
                               collected data
                             #>
                             $VirtualSwitchesCollection += [PSCustomObject]@{
-                                'Hostname'                                        = $vmhost
+                                'Hostname'                                        = $vmhost.Name
                                 'Type'                                            = "Distributed"
                                 'Version'                                         = $vSwitch.Version
                                 'Name'                                            = $vSwitch.Name
@@ -606,7 +612,7 @@
                           collected data
                         #>
                         $VirtualSwitchesCollection += [PSCustomObject]@{
-                            'Hostname'                                        = $vmhost
+                            'Hostname'                                        = $vmhost.Name
                             'Type'                                            = "Distributed"
                             'Version'                                         = $vSwitch.Version
                             'Name'                                            = $vSwitch.Name
@@ -624,7 +630,7 @@
                     Write-Verbose -Message ((Get-Date -Format G) + "`t3rd Party distributed vSwitch: " + $vSwitch.Name)
                     $ThirdPartyVirtualSwitchesCollection = @()
                     $vSwitchView = $vSwitch | Get-View
-                    $vSwitchUplink = $esxcli2.network.vswitch.dvs.vmware.list.Invoke() | Where-Object {$_.Name -eq $vSwitch.Name}
+                    $vSwitchUplink = $esxcli.network.vswitch.dvs.vmware.list.Invoke() | Where-Object {$_.Name -eq $vSwitch.Name}
                     $portGroups = $vSwitch | Get-VDPortgroup | Where-Object {$_.IsUplink -eq $false} | Select-Object -Property Name
 
                     <#
@@ -632,23 +638,24 @@
                       collected data
                     #>
                     $ThirdPartyVirtualSwitchesCollection += [PSCustomObject]@{
-                        'Hostname' = $vmhost
-                        'Type'     = "Distributed"
-                        'Version'  = $vSwitch.Version
-                        'Build'    = $vSwitchView.Summary.ProductInfo.Build
-                        'Name'     = $vSwitch.Name
-                        'Vendor'   = $vSwitchView.Summary.ProductInfo.Vendor
-                        'Model'    = $vSwitchView.Summary.ProductInfo.Name
-                        'Bundle ID' = $vSwitchView.Summary.ProductInfo.BundleId
+                        'Hostname'   = $vmhost.Name
+                        'Type'       = "Distributed"
+                        'Version'    = $vSwitch.Version
+                        'Build'      = $vSwitchView.Summary.ProductInfo.Build
+                        'Name'       = $vSwitch.Name
+                        'Vendor'     = $vSwitchView.Summary.ProductInfo.Vendor
+                        'Model'      = $vSwitchView.Summary.ProductInfo.Name
+                        'Bundle ID'  = $vSwitchView.Summary.ProductInfo.BundleId
                         'Bundle URL' = $vSwitchView.Summary.ProductInfo.BundleUrl
                         'MTU'        = $vSwitchUplink.MTU
                         'Uplinks'    = (@($vSwitchUplink.uplinks) -join ',')
-                        'PortGroups'  = (@($portGroups.Name) -join ',')
+                        'PortGroups' = (@($portGroups.Name) -join ',')
                     } #END [PSCustomObject]    
-                    } #END if/else
+                } #END if/else
             } #END foreach
         } #END if
-    } #END foreach       
+    } #END foreach
+    Write-Verbose -Message ((Get-Date -Format G) + "`tMain code execution completed")
     
     <#
       Display skipped hosts and their connection status

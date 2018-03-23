@@ -17,7 +17,7 @@ function Get-vSANInfo {
        No inputs required
      .OUTPUTS
        CSV file
-       Excel file
+       Excel fil
      .PARAMETER cluster
        The name(s) of the vSphere Cluster(s)
      .EXAMPLE
@@ -35,7 +35,7 @@ function Get-vSANInfo {
      .PARAMETER folderPath
        Specify an alternate folder path where the exported data should be saved.
      .EXAMPLE
-       Get-vSANInfo -cluster production-cluster -ExportExcel -folderPath C:\temp
+       Get-vSANInfo -ExportExcel -folderPath C:\temp
      .PARAMETER PassThru
        Switch to return object to command line
      .EXAMPLE
@@ -55,13 +55,16 @@ function Get-vSANInfo {
         $folderPath
     )
     
+    #$hardwareCollection = @()
     $configurationCollection = @()
     $skipCollection = @()
     $vSANClusterList = @()
-    $ReturnCollection = @()
+    $returnCollection = @()
     $date = Get-Date -format s
     $date = $date -replace ":", "-"
-    $outputFile = "vSAN" + $date
+    $dStore = 0;
+    $outputFile = "vsan-info" + $date
+
     
     <#
      ----------------------------------------------------------[Execution]----------------------------------------------------------
@@ -72,7 +75,7 @@ function Get-vSANInfo {
       running Verbose
     #>
     if ($VerbosePreference -eq "continue") {
-        Write-Verbose -Message ((Get-Date -Format G) + "`tPowercli Version:")
+        Write-Verbose -Message ((Get-Date -Format G) + "`tPowerCLI Version:")
         Get-Module -Name VMware.* | Select-Object -Property Name, Version | Format-Table -AutoSize
         Write-Verbose -Message ((Get-Date -Format G) + "`tvDocumentation Version:")
         Get-Module -Name vDocumentation | Select-Object -Property Name, Version | Format-Table -AutoSize
@@ -80,13 +83,15 @@ function Get-vSANInfo {
 
     <#
       Check for an active connection to a VIServer
+      needs to be vCenter Server 6.5+
     #>
-    Write-Verbose -Message ((Get-Date -Format G) + "`tValidate connection to a vSphere server")
-    if ($Global:DefaultViServers.Count -gt 0) {
-        Write-Host "`tConnected to $Global:DefaultViServers" -ForegroundColor Green
+    Write-Verbose -Message ((Get-Date -Format G) + "`tValidate connection to a vCenter server and that it's running at least v6.5.0")
+    if ($Global:DefaultViServers.Count -gt 0 -and $Global:DefaultViServers.Version -ge "6.5.0") {
+        $vCenterVersion = $Global:DefaultViServers.Version
+        Write-Host "`tConnected to vCenter: $Global:DefaultViServers, v$vCenterVersion" -ForegroundColor Green
     }
     else {
-        Write-Error -Message "You must be connected to a vSphere server before running this Cmdlet."
+        Write-Error -Message "You must be connected to a vCenter Server running at least v6.5.0 server before running this Cmdlet."
         break
     } #END if/else
     
@@ -112,7 +117,7 @@ function Get-vSANInfo {
             } #END if/else
         } #END foreach        
     } #END if/else
-        
+    
     <#
       Validate export switches,
       folder path and dependencies
@@ -175,65 +180,44 @@ function Get-vSANInfo {
               clusters and continue to the next foreach loop
             #>
             $skipCollection += [pscustomobject]@{
-                'Cluster'      = $vSAN
-                'vSAN Enabled' = $vSAN.VsanEnabled
+                'Cluster' = $vSAN.Name
+                'Status'  = "Not vSAN Enabled"
             } #END [PSCustomObject]
             continue
         } #END if/else
-       
+
         <#
           Get vSAN configuration details
         #>
         Write-Host "`tGathering configuration details from vSAN Cluster: $vSAN ..."
-
-        <#
-          Get vSAN claimed disks
-        #>
         Write-Verbose -Message ((Get-Date -Format G) + "`tGathering claimed disks configuration...")
-        $numberDisks = 0
-        foreach ($vSANDiskGroup in Get-VsanDiskGroup -Cluster $vSAN.name) {
-            foreach ($disk in Get-VsanDisk -vSANDiskGroup $vSANDiskGroup) {
-                $numberDisks ++
-            } #END foreach
-        } #END foreach
-                 
-        <#
-          Get number of disk groups
-        #>
-        Write-Verbose -Message ((Get-Date -Format G) + "`tGathering disk group configuration...")
-        $numberDiskGroups = (Get-VsanDiskGroup -Cluster $vSAN.Name).count
-    
+        $vSAN = $vSAN | Get-VsanClusterConfiguration
+        $vSanDiskGroups = Get-VsanDiskGroup -Cluster $vSAN.name
+        $vSanDisks = Get-VsanDisk -vSANDiskGroup $vSanDiskGroups
+        $numberDisks = $vSanDisks.Count
+
         <#
           Get disk format version configuration
         #>
         Write-Verbose -Message ((Get-Date -Format G) + "`tGathering disk format Configuration...")
-        $oldestDiskFormatVersion = 1000000
-        foreach ($vSANDiskGroup in Get-VsanDiskGroup -Cluster $vSAN.name) {
-            foreach ($disk in Get-VsanDisk -DiskGroup $vSANDiskGroup) {
-                if ($disk.DiskFormatVersion -lt $oldestDiskFormatVersion ) {
-                    $oldestDiskFormatVersion = $disk.DiskFormatVersion
-                } #END if
-            } #END foreach
-        } #END foreach
+        $oldestDiskFormatVersion = $vSanDisks.DiskFormatVersion | Sort-Object -Unique | Select-Object -First 1
+                   
+        <#
+          Get number of disk groups
+        #>
+        Write-Verbose -Message ((Get-Date -Format G) + "`tGathering disk group configuration...")
+        $numberDiskGroups = $vSanDiskGroups.Count
     
         <#
           Get vSAN cluster type
         #>
-        $magneticDiskCounter = 0
         Write-Verbose -Message ((Get-Date -Format G) + "`tGathering cluster type Configuration...")
-        foreach ($vSANDiskGroup in Get-VsanDiskGroup -Cluster $vSAN.name) {
-            foreach ($disk in Get-VsanDisk -DiskGroup $vSANDiskGroup) {
-                if ($c.IsSsd -eq $false) {
-                    $magneticDiskCounter ++
-                } #END if
-            } #END foreach
-        } #END foreach
-                    
-        if ($magneticDiskCounter -eq 0) {
-            $clusterType = "flash"
+        $magneticDiskCounter = ($vSanDisks | Where-Object {$_.IsSsd -eq $true}).Count
+        if ($magneticDiskCounter -gt 0) {
+            $clusterType = "Hybrid"
         }
         else {
-            $clusterType = "hybrid"
+            $clusterType = "Flash"
         } #END if/else
 
         <#
@@ -258,25 +242,11 @@ function Get-vSANInfo {
           Get vSAN Capacity
           TODO: Must be an easier, more accurate & safer way to do this but cannot see anything in PowerCLI documentation
         #>
-        $vSANCapacity = 0
-        foreach ($vSANHost in Get-VMHost -Location (Get-Cluster -Name $vSAN.Name)) {                    
-            foreach ($vSANDiskGroup in Get-VsanDiskGroup) {
-                if ($vSANDiskGroup.VMHost.Name -eq $vSANHost.Name) {
-                    foreach ($vSANDisk in Get-VsanDisk -vSANDiskGroup $vSANDiskGroup) {
-                        $scsiDiskId = $vSANDisk.Id
-                        $scsiDiskId = $scsiDiskId.Substring(0, $scsiDiskId.IndexOf('/')) + "/" + $vSANDisk.Name
-                        $scsiLun = Get-ScsiLun -Id $scsiDiskId
-                        if ($vSANDisk.IsCacheDisk -eq $false) {
-                            $vSANCapacity = $vSANCapacity + $scsiLun.CapacityGB
-                        } #END if
-                    } #END foreach
-                } #END if
-            } #END foreach
-        } #END foreach
-
+        $dStore = Get-Datastore -Name "vsanDatastore"
+        $vSANCapacity = [math]::round(($dStore.CapacityGB), 2)
+                    
         <#
-          Use a custom object to store
-          collected data
+          Use a custom object to store collected data
         #>
         $configurationCollection += [PSCustomObject]@{
             'vSAN Cluster Name'                   = $vSAN.Name
@@ -286,20 +256,22 @@ function Get-vSANInfo {
             'Stretched Cluster Enabled'           = $stretchedCluster
             'Oldest Disk Format'                  = $oldestDiskFormatVersion
             'Total vSAN Claimed Disks'            = $numberDisks
-            'Total disk groups'                   = $numberDiskGroups
+            'Total Disk Groups'                   = $numberDiskGroups
             'Total Capacity (GB)'                 = $vSANCapacity
         } #END [PSCustomObject]
     } #END foreach
-    
+    Write-Verbose -Message ((Get-Date -Format G) + "`tMain code execution completed")
+
     <#
       Display skipped clusters and their vSAN status
     #>
-   If ($skipCollection) {
-       Write-Warning -Message "`tCheck vSAN configuration or cluster name"
-       Write-Warning -Message "`tSkipped cluster(s):"
-       $skipCollection | Format-Table -AutoSize
+    If ($skipCollection) {
+        Write-Host "`n"
+        Write-Warning -Message "`tCheck vSAN configuration or cluster name"
+        Write-Warning -Message "`tSkipped cluster(s):"
+        $skipCollection | Format-Table -AutoSize
     } #END if
-    
+
     <#
       Validate output arrays
     #>
@@ -315,18 +287,18 @@ function Get-vSANInfo {
       Export data to CSV, Excel
     #>   
     if ($configurationCollection) {
-        Write-Host "vSAN Configuration:" -ForegroundColor Green
+        Write-Host "`n" "vSAN Configuration:" -ForegroundColor Green
         if ($ExportCSV) {
-            $configurationCollection | Export-Csv ($outputFile + ".csv") -NoTypeInformation
-            Write-Host "`tData exported to" ($outputFile + ".csv") "file" -ForegroundColor Green
+            $configurationCollection | Export-Csv ($outputFile + "Configuration.csv") -NoTypeInformation
+            Write-Host "`tData exported to" ($outputFile + "Configuration.csv") "file" -ForegroundColor Green
         }
         elseif ($ExportExcel) {
-            $configurationCollection | Export-Excel ($outputFile + ".xlsx") -WorkSheetname vSAN -NoNumberConversion * -BoldTopRow
+            $configurationCollection | Export-Excel ($outputFile + ".xlsx") -WorkSheetname vSAN_Configuration -NoNumberConversion * -BoldTopRow
             Write-Host "`tData exported to" ($outputFile + ".xlsx") "file" -ForegroundColor Green
         }
         elseif ($PassThru) {
-            $ReturnCollection += $configurationCollection
-            $ReturnCollection  
+            $returnCollection += $configurationCollection
+            $returnCollection  
         }
         else {
             $configurationCollection | Format-List
