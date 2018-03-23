@@ -6,9 +6,91 @@ https://www.youtube.com/watch?v=-KK0ih8tuTo
 
 Original slides are [here](https://www.dropbox.com/s/f5e9hpxgzz0unq1/vmworld2017-Ariel%20and%20Edgar%20Sanchez-SER2077BU-Achieve%20Maximum%20vSphere%20Stability%20with%20PowerCLI%20Assisted%20Documentation%20From%20Buildout%20to%20Daily%20Administration.pptx?dl=0) as well as the [mindmap](https://www.dropbox.com/s/19jdgup6ldah3u9/SER2077BU%20Achieve%20maximum%20vSphere%20stability%20with%20PowerCLI%20assisted%20documentation%20%20from%20buildout%20to%20daily%20administration-mindmap201707231829EST.png?dl=0) we used to create this talk. We are passionate about this subject so please use the slides or let us know what you would like to add to the MindMap, and we can continue improving this presentation.
 
+# If you already have installed vDocumentation, here's some quick instructions to determine your version and to upgrade if needed
+
+**Get-Module vDocumentation -ListAvailable | Format-List**
+**Find-Module vDocumentation**
+
+![Verify Installed and Available vDocumentation versions](https://github.com/arielsanchezmora/vDocumentation/blob/master/pictures/vDocumentation_quick_upgrade_check.png)
+
+If the available version in the Find-Module command is newer, use this command to uninstall the installed version (and repeat if you have several) and then install again
+
+**Uninstall-Module vDocumentation**
+**Install-Module vDocumentation -Scope CurrentUser** 
+
+![Quick vDocumentation Upgrade steps](https://github.com/arielsanchezmora/vDocumentation/blob/master/pictures/vDocumentation_quick_upgrade_steps.png)
+
+# If you have not installed vDocumentation or used PowerCLI much, here's the installation instructions
+
+## First time usage on a *brand new machine* with PowerShell 5.x and an open internet connection
+
+_Paste in a PowerShell window that has been Run as Administrator and answer Y_
+
+**Set-ExecutionPolicy RemoteSigned**  
+
+![Run PowerShell as Administrator](https://github.com/arielsanchezmora/vDocumentation/blob/master/pictures/PowerShell_as_administrator.png)
+
+_You can now close the PowerShell window that ran as Administrator_ 
+
+_In a new, **normal** PowerShell console, paste the below commands answering Y (this only affects your user, and it may take a while)_
+
+**Install-Module -Name VMware.PowerCLI -Scope CurrentUser**  
+**Install-Module ImportExcel -scope CurrentUser**  
+**Install-Module vDocumentation -Scope CurrentUser**  
+
+![Install PowerCLI, ImportExcel and vDocumentation modules](https://github.com/arielsanchezmora/vDocumentation/blob/master/pictures/install_PowerCLI_ImportExcel_vDocumentation.png)
+
+_vDocumentation is now installed! You can verify with_
+
+**Get-Module vDocumentation -ListAvailable | Format-List**
+
+![Confirm vDocumentation installation](https://github.com/arielsanchezmora/vDocumentation/blob/master/pictures/Confirm_vDocumentation_installation2.png)
+
+## The vDocumentation module gives you seven _new_ PowerCLI Commands you can use to create documentation of a vSphere environment
+
+_Before you can use them, connect to your vCenter(s) using PowerCLI_
+
+**Connect-VIServer [IP_or_FQDN_of_vCenter]**      _# Connect to one, or repeat for many vCenters_
+
+_When prompted for credentials use a vCenter Administrator-level account. Once connected you can execute these commands:_
+
+|Command|Description|
+|----------------|---|
+|**Get-ESXInventory**|Document host hardware inventory and host configuration|
+|**Get-ESXIODevice**|Document information from HBAs, NICs and other PCIe devices including PCI IDs, MACs, firmware & drivers|
+|**Get-ESXNetworking**|Document networking configuration information such as NICs, vSwitches, VMKernel details|
+|**Get-ESXStorage**|Document storage configurations such as iSCSI details, FibreChannel, Datastores & Multipathing|
+|**Get-ESXPatching**|Document installed and pending patches, including related time and KB information|
+|**Get-vSANInfo**|Document basic vSAN Cluster information|
+|**Get-ESXSpeculativeExecution**|Document ESXi host mitigation status for Spectre and Meltdown|
+|**Get-VMSpeculativeExecution**|Document VM mitigation status for Spectre and Meltdown|
+
+_Each script will output the corresponding data to terminal, and optionally create a file (XLSX, CSV) with the command name and a timestamp. You can use command switches to customize CSV or Excel output, file path (default is powershell working directory), and the command scope (report on all connected vCenters or just cluster or host). Please check the section after the changelog for more details_
+
+
 # Changelog
 
+__2.4.1__ Meaty release updating three of the new cmdlets - lots of work by Edgar especially regarding Spectre/Meltdown checks. vDocumentation has has over 1000 downloads in the PowerShell Gallery!
+
+**Get-vSANInfo** gets updates! Thanks Graham Barker (twitter <a href="https://twitter.com/VirtualG_UK" target="_blank"> @VirtualG_UK</a> website  <a href="https://virtualg.uk/" target="_blank"> virtualg.uk</a>)!
+Code cleaning:
+•	General code cleanup (remove old comments etc)
+Additions:
+•	Code execution time improvement
+•	Validate that vCenter Server is running at least version 6.5.0 before execution
+Bug Fixes:
+•	Fixed bug with calculating vSAN cluster sizes
+•	Fixed typo in Excel tab
+•	Tested against larger cluster
+
+Edgar Sanchez (twitter <a href="https://twitter.com/edmsanchez13/" target="_blank"> @edmsanchez13</a>) has Updated **Get-ESXSpeculativeExecution** and **Get-VMSpeculativeExecution** for new Intel MCU checks. To really follow and understand all the complexities, please see his blog post <a href="https://virtualcornerstone.com/2018/03/19/verify-new-spectre-mitigation-patches-using-powercli-and-vdocumentation/" target="_blank"> virtualcornerstone.com</a>.
+
+Fixed Issue #31 reported by OlivierFaucon, thank you! https://github.com/arielsanchezmora/vDocumentation/issues/31
+
+
 __v2.4.0__  Rapid release by project lead Edgar Sanchez (twitter <a href="https://twitter.com/edmsanchez13/" target="_blank"> @edmsanchez13</a>) to follow up with latest VMware security releases. The changes are explained in more detail on his blog  <a href="https://virtualcornerstone.com/2018/01/11/validating-compliance-of-vmsa-2018-0004-spectre-on-esxi-and-vm/" target="_blank"> virtualcornerstone.com</a>.
+
+
 
  *Additions:*  
     
@@ -102,51 +184,6 @@ __1.0.1__ Changes to support displaying datastore multipathing
 
 __1.0.0__ First release to PowerShell Gallery with 4 commands: Get-ESXInventory, Get-ESXIODevice, Get-ESXNetworking & Get-ESXStorage
 
-
-# Quickstart instructions
-
-## First time usage on a *brand new machine* with PowerShell 5.x and an open internet connection
-
-_Paste in a PowerShell window that has been Run as Administrator and answer Y_
-
-**Set-ExecutionPolicy RemoteSigned**  
-
-![Run PowerShell as Administrator](https://github.com/arielsanchezmora/vDocumentation/blob/master/pictures/PowerShell_as_administrator.png)
-
-_You can now close the PowerShell window that ran as Administrator_ 
-
-_In a new, **normal** PowerShell console, paste the below commands answering Y (this only affects your user, and it may take a while)_
-
-**Install-Module -Name VMware.PowerCLI -Scope CurrentUser**  
-**Install-Module ImportExcel -scope CurrentUser**  
-**Install-Module vDocumentation -Scope CurrentUser**  
-
-![Install PowerCLI, ImportExcel and vDocumentation modules](https://github.com/arielsanchezmora/vDocumentation/blob/master/pictures/install_PowerCLI_ImportExcel_vDocumentation.png)
-
-_vDocumentation is now installed! You can verify with_
-
-**Get-Module vDocumentation -ListAvailable | Format-List**
-
-![Confirm vDocumentation installation](https://github.com/arielsanchezmora/vDocumentation/blob/master/pictures/Confirm_vDocumentation_installation2.png)
-
-
-## The vDocumentation module gives you five _new_ PowerCLI Commands you can use to create documentation of a vSphere environment
-
-_Before you can use them, connect to your vCenter(s) using PowerCLI_
-
-**Connect-VIServer [IP_or_FQDN_of_vCenter]**      _# Connect to one, or repeat for many vCenters_
-
-_When prompted for credentials use a vCenter Administrator-level account. Once connected you can execute these commands:_
-
-|Command|Description|
-|----------------|---|
-|**Get-ESXInventory**|Document host hardware inventory and host configuration|
-|**Get-ESXIODevice**|Document information from HBAs, NICs and other PCIe devices including PCI IDs, MACs, firmware & drivers|
-|**Get-ESXNetworking**|Document networking configuration information such as NICs, vSwitches, VMKernel details|
-|**Get-ESXStorage**|Document storage configurations such as iSCSI details, FibreChannel, Datastores & Multipathing|
-|**Get-ESXPatching**|Document installed and pending patches, including related time and KB information|
-
-_Each script will output the corresponding data to terminal, and optionally create a file (XLSX, CSV) with the command name and a timestamp. You can use command switches to customize CSV or Excel output, file path (default is powershell working directory), and the command scope (report on all connected vCenters or just cluster or host)._
 
 ## Command switch options
 
