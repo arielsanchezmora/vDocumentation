@@ -22,7 +22,7 @@ If the available version in the Find-Module command is newer, use this command t
 
 # If you have not installed vDocumentation or used PowerCLI much, here's the installation instructions
 
-## First time usage on a *brand new machine* with PowerShell 5.x and an open internet connection
+## First time usage on a *brand new machine* with PowerShell 5.x (or newer) and an open internet connection
 
 _Paste in a PowerShell window that has been Run as Administrator and answer Y_
 
