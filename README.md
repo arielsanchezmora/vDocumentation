@@ -8,14 +8,14 @@ Original slides are [here](https://www.dropbox.com/s/f5e9hpxgzz0unq1/vmworld2017
 
 # If you already have installed vDocumentation, here's some quick instructions to determine your version and to upgrade if needed
 
-**Get-Module vDocumentation -ListAvailable | Format-List**
+**Get-Module vDocumentation -ListAvailable | Format-List**  
 **Find-Module vDocumentation**
 
 ![Verify Installed and Available vDocumentation versions](https://github.com/arielsanchezmora/vDocumentation/blob/master/pictures/vDocumentation_quick_upgrade_check.png)
 
 If the available version in the Find-Module command is newer, use this command to uninstall the installed version (and repeat if you have several) and then install again
 
-**Uninstall-Module vDocumentation**
+**Uninstall-Module vDocumentation**  
 **Install-Module vDocumentation -Scope CurrentUser** 
 
 ![Quick vDocumentation Upgrade steps](https://github.com/arielsanchezmora/vDocumentation/blob/master/pictures/vDocumentation_quick_upgrade_steps.png)
