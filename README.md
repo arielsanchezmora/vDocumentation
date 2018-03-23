@@ -46,7 +46,7 @@ _vDocumentation is now installed! You can verify with_
 
 ![Confirm vDocumentation installation](https://github.com/arielsanchezmora/vDocumentation/blob/master/pictures/Confirm_vDocumentation_installation2.png)
 
-## The vDocumentation module gives you seven _new_ PowerCLI Commands you can use to create documentation of a vSphere environment
+## The vDocumentation module gives you eight _new_ PowerCLI Commands you can use to create documentation of a vSphere environment
 
 _Before you can use them, connect to your vCenter(s) using PowerCLI_
 
@@ -90,8 +90,6 @@ Fixed Issue #31 reported by OlivierFaucon, thank you! https://github.com/arielsa
 
 __v2.4.0__  Rapid release by project lead Edgar Sanchez (twitter <a href="https://twitter.com/edmsanchez13/" target="_blank"> @edmsanchez13</a>) to follow up with latest VMware security releases. The changes are explained in more detail on his blog  <a href="https://virtualcornerstone.com/2018/01/11/validating-compliance-of-vmsa-2018-0004-spectre-on-esxi-and-vm/" target="_blank"> virtualcornerstone.com</a>.
 
-
-
  *Additions:*  
     
 - **Get-ESXSpeculativeExecution** cmdlet has been updated to validate the second wave of Spectre patches (VMSA-2018-0004), including a new check for newly exposed CPU instructions, and the BIOS check has been updated to also look for CPU microcode updates provided by VMware in https://kb.vmware.com/s/article/52085.  
@@ -111,6 +109,7 @@ While this cmdlet can be piped into a report like in the second example above, p
 
  *Bug Fixes:* none
 
+
 __v2.3.0__ Very meaty update, with a new cmdlet aimed at verifying the first wave of vSphere mitigations against Meltdown and Spectre (VMSA-2018-0002 and manufacturer-issued BIOS updates) developed by project lead Edgar Sanchez (twitter <a href="https://twitter.com/edmsanchez13/" target="_blank"> @edmsanchez13</a>). A much better overview of the new function can be found on his blog  <a href="https://virtualcornerstone.com/2018/01/08/validating-compliance-of-vmsa-2018-0002-and-bios-update/" target="_blank"> virtualcornerstone.com</a>.
 
  *Additions:*  
@@ -125,6 +124,7 @@ __v2.3.0__ Very meaty update, with a new cmdlet aimed at verifying the first wav
         * Runtime Name
         * Device Path
 
+
 __v2.2.0__ Another meaty update, with a new vSAN cmdlet donated by Graham Barker (twitter <a href="https://twitter.com/VirtualG_UK" target="_blank"> @VirtualG_UK</a> website  <a href="https://virtualg.uk/" target="_blank"> virtualg.uk</a>)! This brings the total number of vDocumentation cmdlets to six from our initial launch of 4! 
 
  *Additions:*  
@@ -133,6 +133,7 @@ __v2.2.0__ Another meaty update, with a new vSAN cmdlet donated by Graham Barker
         
  *Bug Fixes:*  
 - Minor code fixes in Get-ESXInventory, Get-ESXIODevice, and Get-ESXPatching
+
 
 __v2.1.0__ Meaty update, our first new cmdlet since the project's debut!  
 
@@ -143,6 +144,7 @@ __v2.1.0__ Meaty update, our first new cmdlet since the project's debut!
  *Bug Fixes:*  
 - Fixed reported issue #16 by DaveBF 'VMHostNeworkInfo type is deprecated' in Get-ESXNetworking Cmdlet
 - Fixed issue for Uptime in Get-ESXInventory where it was not being calculated correctly
+
 
 __v2.0.0__ Major update, on the backend, mostly safe for actual users  
 
@@ -169,15 +171,18 @@ __v2.0.0__ Major update, on the backend, mostly safe for actual users
  *Bug Fixes:*  
  Fixed Get-ESXNetworking script Cmdlet when querying UCS environment, or 3rd party Distributed switches.  While the information retrieved is not the same (due to the powershell command, not because of vDocumentation) the script will no longer fail, and will produce what it can.
  
+ 
 __v1.0.4__ new functionality added:  
 
  Updated export-excel so that it does no number conversion (IP addresses are now text) on any of the columns and it auto sizes them. Thanks to [@magneet_nl](https://twitter.com/Magneet_nl) for helping us discover this bug!
+
 
 __v1.0.3__ new functionality added:  
 
  Get-ESXInventory: Added RAC Firmware version, BIOS release date.  
  Get-ESXIODevice: Added support to get HP Smart Array Firmware from PowerCLI  
- 
+
+
 __1.0.2__ Formatting & Manifest changes
 
 __1.0.1__ Changes to support displaying datastore multipathing
