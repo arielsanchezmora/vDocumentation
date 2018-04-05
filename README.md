@@ -6,23 +6,33 @@ https://www.youtube.com/watch?v=-KK0ih8tuTo
 
 Original slides are [here](https://www.dropbox.com/s/f5e9hpxgzz0unq1/vmworld2017-Ariel%20and%20Edgar%20Sanchez-SER2077BU-Achieve%20Maximum%20vSphere%20Stability%20with%20PowerCLI%20Assisted%20Documentation%20From%20Buildout%20to%20Daily%20Administration.pptx?dl=0) as well as the [mindmap](https://www.dropbox.com/s/19jdgup6ldah3u9/SER2077BU%20Achieve%20maximum%20vSphere%20stability%20with%20PowerCLI%20assisted%20documentation%20%20from%20buildout%20to%20daily%20administration-mindmap201707231829EST.png?dl=0) we used to create this talk. We are passionate about this subject so please use the slides or let us know what you would like to add to the MindMap, and we can continue improving this presentation.
 
+# If you already have installed vDocumentation, here's some quick instructions to determine your version and to upgrade if needed
 
-# Quickstart for VMworld 2017
+**Get-Module vDocumentation -ListAvailable | Format-List**  
+**Find-Module vDocumentation**
 
-## First time usage on a *brand new machine* with PowerShell 5.x and an internet connection
+![Verify Installed and Available vDocumentation versions](https://github.com/arielsanchezmora/vDocumentation/blob/master/pictures/vDocumentation_quick_upgrade_check.png)
+
+If the available version in the Find-Module command is newer, use this command to uninstall the installed version (and repeat if you have several) and then install again
+
+**Uninstall-Module vDocumentation**  
+**Install-Module vDocumentation -Scope CurrentUser** 
+
+![Quick vDocumentation Upgrade steps](https://github.com/arielsanchezmora/vDocumentation/blob/master/pictures/vDocumentation_quick_upgrade_steps.png)
+
+# If you have not installed vDocumentation or used PowerCLI much, here's the installation instructions
+
+## First time usage on a *brand new machine* with PowerShell 5.x (or newer) and an open internet connection
 
 _Paste in a PowerShell window that has been Run as Administrator and answer Y_
 
 **Set-ExecutionPolicy RemoteSigned**  
-**Set-PowerCLIConfiguration -InvalidCertificateAction Ignore**
 
 ![Run PowerShell as Administrator](https://github.com/arielsanchezmora/vDocumentation/blob/master/pictures/PowerShell_as_administrator.png)
 
-![Enable remote scripts and ignore certificate warnings](https://github.com/arielsanchezmora/vDocumentation/blob/master/pictures/enable_RemoteSigned_Invalid_Certificate.png)
-
 _You can now close the PowerShell window that ran as Administrator_ 
 
-_In a new **normal** PowerShell console paste all of the below answering Y (this only affects your user, and it may take a while)_
+_In a new, **normal** PowerShell console, paste the below commands answering Y (this only affects your user, and it may take a while)_
 
 **Install-Module -Name VMware.PowerCLI -Scope CurrentUser**  
 **Install-Module ImportExcel -scope CurrentUser**  
@@ -36,8 +46,7 @@ _vDocumentation is now installed! You can verify with_
 
 ![Confirm vDocumentation installation](https://github.com/arielsanchezmora/vDocumentation/blob/master/pictures/Confirm_vDocumentation_installation2.png)
 
-
-## The vDocumentation module gives you four _new_ PowerCLI Commands you can use to create documentation of a vSphere environment
+## The vDocumentation module gives you eight _new_ PowerCLI Commands you can use to create documentation of a vSphere environment
 
 _Before you can use them, connect to your vCenter(s) using PowerCLI_
 
@@ -51,8 +60,135 @@ _When prompted for credentials use a vCenter Administrator-level account. Once c
 |**Get-ESXIODevice**|Document information from HBAs, NICs and other PCIe devices including PCI IDs, MACs, firmware & drivers|
 |**Get-ESXNetworking**|Document networking configuration information such as NICs, vSwitches, VMKernel details|
 |**Get-ESXStorage**|Document storage configurations such as iSCSI details, FibreChannel, Datastores & Multipathing|
+|**Get-ESXPatching**|Document installed and pending patches, including related time and KB information|
+|**Get-vSANInfo**|Document basic vSAN Cluster information|
+|**Get-ESXSpeculativeExecution**|Document ESXi host mitigation status for Spectre and Meltdown|
+|**Get-VMSpeculativeExecution**|Document VM mitigation status for Spectre and Meltdown|
 
-_Each script will output the corresponding data to terminal, and optionally create a file (XLSX, CSV) with the command name and a timestamp. You can use command switches to customize CSV or Excel output, file path (default is powershell working directory), and the command scope (report on all connected vCenters or just cluster or host)._
+_Each script will output the corresponding data to terminal, and optionally create a file (XLSX, CSV) with the command name and a timestamp. You can use command switches to customize CSV or Excel output, file path (default is powershell working directory), and the command scope (report on all connected vCenters or just cluster or host). Please check the section after the changelog for more details_
+
+
+# Changelog
+
+__2.4.1__ Meaty release updating three of the new cmdlets - lots of work by Edgar especially regarding Spectre/Meltdown checks. vDocumentation has has over 1000 downloads in the PowerShell Gallery!
+
+**Get-vSANInfo** gets updates! Thanks Graham Barker (twitter <a href="https://twitter.com/VirtualG_UK" target="_blank"> @VirtualG_UK</a> website  <a href="https://virtualg.uk/" target="_blank"> virtualg.uk</a>)!
+Code cleaning:
+•	General code cleanup (remove old comments etc)
+Additions:
+•	Code execution time improvement
+•	Validate that vCenter Server is running at least version 6.5.0 before execution
+Bug Fixes:
+•	Fixed bug with calculating vSAN cluster sizes
+•	Fixed typo in Excel tab
+•	Tested against larger cluster
+
+Edgar Sanchez (twitter <a href="https://twitter.com/edmsanchez13/" target="_blank"> @edmsanchez13</a>) has Updated **Get-ESXSpeculativeExecution** and **Get-VMSpeculativeExecution** for new Intel MCU checks. To really follow and understand all the complexities, please see his blog post <a href="https://virtualcornerstone.com/2018/03/19/verify-new-spectre-mitigation-patches-using-powercli-and-vdocumentation/" target="_blank"> virtualcornerstone.com</a>.
+
+Fixed Issue #31 reported by OlivierFaucon, thank you! https://github.com/arielsanchezmora/vDocumentation/issues/31
+
+
+__v2.4.0__  Rapid release by project lead Edgar Sanchez (twitter <a href="https://twitter.com/edmsanchez13/" target="_blank"> @edmsanchez13</a>) to follow up with latest VMware security releases. The changes are explained in more detail on his blog  <a href="https://virtualcornerstone.com/2018/01/11/validating-compliance-of-vmsa-2018-0004-spectre-on-esxi-and-vm/" target="_blank"> virtualcornerstone.com</a>.
+
+ *Additions:*  
+    
+- **Get-ESXSpeculativeExecution** cmdlet has been updated to validate the second wave of Spectre patches (VMSA-2018-0004), including a new check for newly exposed CPU instructions, and the BIOS check has been updated to also look for CPU microcode updates provided by VMware in https://kb.vmware.com/s/article/52085.  
+
+![v240PatchCompliance](https://github.com/arielsanchezmora/vDocumentation/blob/master/pictures/v240PatchCompliance.png)  
+![v240BIOS_Compliance](https://github.com/arielsanchezmora/vDocumentation/blob/master/pictures/v240BIOS_Compliance.png)  
+
+- **Get-ESXSpeculativeExecution** will now also report on VM Hypervisor-Assisted Guest Mitigations if **-ReportOnVMs** is manually specified (this is easier for generating large reports). Due to this report only being valid after Guest OS mitigations and VMHardware has been updated, we felt adding it as an extra option was more appropriate instead of a standalone function.
+
+![v240VM_Compliance](https://github.com/arielsanchezmora/vDocumentation/blob/master/pictures/v240VM_Compliance.png)  
+
+- In a first for vDocumentation, we've added a cmdlet which does not generate a report by itself, but is useful for checking VM compliance interactively in Powershell. You can now pipe a VM Object (not the VM name) to **Get-VMSpeculativeExecution** to get report on VM compliance. Usage examples:  
+`Get-VM "testvm" |  Get-VMSpeculativeExecution`  
+`Get-VMHost "hostname.fqdn" | Get-VM | Get-VMSpeculativeExecution | Export-Excel "HostVMSpectreReport.xlsx" -WorkSheetname "VMresults"`
+
+While this cmdlet can be piped into a report like in the second example above, please remember you can use the -ReportOnVMs switch for Get-ESXSpeculativeExecution - it's easier and the filename with timestamp will be created automatically for you.
+
+ *Bug Fixes:* none
+
+
+__v2.3.0__ Very meaty update, with a new cmdlet aimed at verifying the first wave of vSphere mitigations against Meltdown and Spectre (VMSA-2018-0002 and manufacturer-issued BIOS updates) developed by project lead Edgar Sanchez (twitter <a href="https://twitter.com/edmsanchez13/" target="_blank"> @edmsanchez13</a>). A much better overview of the new function can be found on his blog  <a href="https://virtualcornerstone.com/2018/01/08/validating-compliance-of-vmsa-2018-0002-and-bios-update/" target="_blank"> virtualcornerstone.com</a>.
+
+ *Additions:*  
+ - Added **Get-ESXSpeculativeExecution** Cmdlet to check compliane for VMSA-2018-0002 Security Advisory and BIOS version. He is already working on additional checks for v2.3.1
+
+ *Bug Fixes:*  
+ - Code fix in Get-ESXPatching - now able to get reference URLss for description fields containing "https" (example: ESXi650-201712103-SG is https://kb.vmware.com/kb/000051196)  
+ - Get-ESXInventory  - Added more details for ESXi Install source
+
+        * Device Model
+        * Boot Device
+        * Runtime Name
+        * Device Path
+
+
+__v2.2.0__ Another meaty update, with a new vSAN cmdlet donated by Graham Barker (twitter <a href="https://twitter.com/VirtualG_UK" target="_blank"> @VirtualG_UK</a> website  <a href="https://virtualg.uk/" target="_blank"> virtualg.uk</a>)! This brings the total number of vDocumentation cmdlets to six from our initial launch of 4! 
+
+ *Additions:*  
+- Added new Cmdlet: **Get-vSANInfo**, NOTE! It depends on _Get-VsanClusterConfiguration_ which only works on vSphere 6.5! Documentation update and examples coming soon!  
+- Added RAC MAC to **Get-ESXInventory**
+        
+ *Bug Fixes:*  
+- Minor code fixes in Get-ESXInventory, Get-ESXIODevice, and Get-ESXPatching
+
+
+__v2.1.0__ Meaty update, our first new cmdlet since the project's debut!  
+
+ *Additions:*  
+- Added new Cmdlet: **Get-ESXPatching**, documentation update and examples coming soon!  
+- Added the following to **Get-ESXInventory**, Configuration tab: SSH and ESXi Shell Service details requested by akozlow in Issue #19, and Boot Time
+        
+ *Bug Fixes:*  
+- Fixed reported issue #16 by DaveBF 'VMHostNeworkInfo type is deprecated' in Get-ESXNetworking Cmdlet
+- Fixed issue for Uptime in Get-ESXInventory where it was not being calculated correctly
+
+
+__v2.0.0__ Major update, on the backend, mostly safe for actual users  
+
+ *Code cleaning:*  
+ Each script module exists now in its own .ps1 file which will allow easier editing by the community  
+ Scripts code optimization and formatting updated  
+ [@jpsider](https://github.com/jpsider) championed the removal of the CLS command that would clear screen before starting screen output, and contributed the code, which was included in this release.  
+ 
+ *Removed:*  
+ Get-ESXInventory function (and thus, a report column) removed: Deprecated script Cmdlet - Software/Patch Name(s) from host configuration has been deprecated. What Patches gets pushed can be manually verified using the Build ID  
+ 
+ *Additions:*  
+  [@jpsider](https://github.com/jpsider) championed the addition of a -passthru option and contributed the code, which was included in this release.  
+ Get-ESXInventory - Host Configuration script now has the following:  
+ - Gather ESXi Installation Type and Boot source
+ - Gather ESXi Image Profile
+ - Gather ESXi Software Acceptance Level
+ - Gather ESXi Uptime (thanks to the person who asked in #SER2077BU, send us your name to give you credit!)
+ - Gather ESXi Install Date
+ 
+ Get-ESXIODevice - NIC and HBA script now has the following:
+ - Updated string match to check for HPSA firmware, as it changed between 5.5, and 6.0 and possibly between firmware versions.
+ 
+ *Bug Fixes:*  
+ Fixed Get-ESXNetworking script Cmdlet when querying UCS environment, or 3rd party Distributed switches.  While the information retrieved is not the same (due to the powershell command, not because of vDocumentation) the script will no longer fail, and will produce what it can.
+ 
+ 
+__v1.0.4__ new functionality added:  
+
+ Updated export-excel so that it does no number conversion (IP addresses are now text) on any of the columns and it auto sizes them. Thanks to [@magneet_nl](https://twitter.com/Magneet_nl) for helping us discover this bug!
+
+
+__v1.0.3__ new functionality added:  
+
+ Get-ESXInventory: Added RAC Firmware version, BIOS release date.  
+ Get-ESXIODevice: Added support to get HP Smart Array Firmware from PowerCLI  
+
+
+__1.0.2__ Formatting & Manifest changes
+
+__1.0.1__ Changes to support displaying datastore multipathing
+
+__1.0.0__ First release to PowerShell Gallery with 4 commands: Get-ESXInventory, Get-ESXIODevice, Get-ESXNetworking & Get-ESXStorage
+
 
 ## Command switch options
 
@@ -140,13 +276,20 @@ Get-ESXStorage -Datastores
 
 
 
-**[Document your vSphere environment? Yes you can!](https://notesfrommwhite.net/2017/08/16/document-your-vsphere-environment-yes-you-can/) Blog article with Excel outputs thanks to [@mwVme](https://twitter.com/mwVme)**
+**[Document your vSphere environment? Yes you can!](https://notesfrommwhite.net/2017/08/16/document-your-vsphere-environment-yes-you-can/) Blog article with Excel outputs thanks to [@mwVme](https://twitter.com/mwVme)**  
 
 
+## Uninstalling the vDocumentation script
+
+**Uninstall-Module vDocumentation**
+
+![Uninstall vDocumentation](https://github.com/arielsanchezmora/vDocumentation/blob/master/pictures/uninstall_vDocumentation.png)
 
 ## Upgrading from a previous version
 
-_If the prompt returns without doing anything, you are running latest._
+There is a known limitation in just upgrading through the PowerShell Gallery: using the Update-Module command installs a new version but does **not** remove the old version. While PowerShell/PowerCLI will use the latest module, if you wish to only have the latest listed in your computer, uninstall all existing vDocumentation modules **before** installing the latest by using Uninstall-Module as many times as needed, before using **Install-Module** as with a new installation.  
+
+However, in an effort to keep it simple, you can just use the following commands (and again, it does seem it always uses the latest version). If the prompt returns without doing anything, you are already running the latest.
 
 **Update-Module VMware.PowerCLI**  
 **Update-Module ImportExcel**  
@@ -154,11 +297,6 @@ _If the prompt returns without doing anything, you are running latest._
 
 ![Upgrade Commands](https://github.com/arielsanchezmora/vDocumentation/blob/master/pictures/upgrade_commands.png)
 
-## Uninstalling the vDocumentation script
-
-**Uninstall-Module vDocumentation**
-
-![Uninstall vDocumentation](https://github.com/arielsanchezmora/vDocumentation/blob/master/pictures/uninstall_vDocumentation.png)
 
 ## FAQ
 
@@ -195,48 +333,18 @@ Why do I get a warning about deprecated features when running the script?
 
 - _This is native from PowerCLI as they plan future changes. vDocumentation does not use any feature that is known to be in deprecation plans. You can disable the warnings with `Set-PowerCLIConfiguration -DisplayDeprecationWarnings $false -Scope User`_
 
+I get certificate warnings
+
+- _You can disable self-signed certificate warnings with the following command, or install proper certs ;)_
+
+**Set-PowerCLIConfiguration -InvalidCertificateAction Ignore**
+
+![Enable remote scripts and ignore certificate warnings](https://github.com/arielsanchezmora/vDocumentation/blob/master/pictures/enable_RemoteSigned_Invalid_Certificate.png)
+
 I get this error "Get-EsxCli : A parameter cannot be found that matches parameter name 'V2'" why?
 
 - _This probably means you are running a version of PowerCLI that is older than 6.3. We encourage uninstalling all versions and then using the latest version - that should take care of this error, which comes from a feature that was added in PowerCLI 6.3_
 
-# Module Changelog
-
-__v2.00__ Major update, on the backend, mostly safe for actual users  
- *Code cleaning:*  
- Each script module exists now in its own .ps1 file which will allow easier editing by the community  
- Scripts code optimization and formatting updated  
- [@jpsider](https://github.com/jpsider) championed the removal of the CLS command that would clear screen before starting screen output, and contributed the code, which was included in this release.  
- 
- *Removed:*  
- Get-ESXInventory function (and thus, a report column) removed: Deprecated script Cmdlet - Software/Patch Name(s) from host configuration has been deprecated. What Patches gets pushed can be manually verified using the Build ID  
- 
- *Additions:*  
-  [@jpsider](https://github.com/jpsider) championed the addition of a -passthru option and contributed the code, which was included in this release.  
- Get-ESXInventory - Host Configuration script now has the following:  
- - Gather ESXi Installation Type and Boot source
- - Gather ESXi Image Profile
- - Gather ESXi Software Acceptance Level
- - Gather ESXi Uptime (thanks to the person who asked in #SER2077BU, send us your name to give you credit!)
- - Gather ESXi Install Date
- 
- Get-ESXIODevice - NIC and HBA script now has the following:
- - Updated string match to check for HPSA firmware, as it changed between 5.5, and 6.0 and possibly between firmware versions.
- 
- *Bug Fixes:*  
- Fixed Get-ESXNetworking script Cmdlet when querying UCS environment, or 3rd party Distributed switches.  While the information retrieved is not the same (due to the powershell command, not because of vDocumentation) the script will no longer fail, and will produce what it can.
- 
-__v1.04__ new functionality added:  
- Updated export-excel so that it does no number conversion (IP addresses are now text) on any of the columns and it auto sizes them. Thanks to [@magneet_nl](https://twitter.com/Magneet_nl) for helping us discover this bug!
-
-__v1.03__ new functionality added:  
- Get-ESXInventory: Added RAC Firmware version, BIOS release date.  
- Get-ESXIODevice: Added support to get HP Smart Array Firmware from PowerCLI  
- 
-__1.02__ Formatting & Manifest changes
-
-__1.01__ Changes to support displaying datastore multipathing
-
-__1.0__ First release to PowerShell Gallery with 4 commands: Get-ESXInventory, Get-ESXIODevice, Get-ESXNetworking & Get-ESXStorage
 
 
 # vDocumentation backstory
@@ -374,6 +482,34 @@ REMARKS
     For more information, type: "get-help Get-ESXStorage -detailed".
     For technical information, type: "get-help Get-ESXStorage -full".
     For online help, type: "get-help Get-ESXStorage -online"
+    
+
+__Get-Help Get-ESXPatching__  
+
+NAME
+    Get-ESXPatching
+
+SYNOPSIS
+    Get ESXi patch compliance
+
+
+SYNTAX
+    Get-ESXPatching [[-esxi] <Object>] [[-cluster] <Object>] [[-datacenter] <Object>] [[-baseline] <Object>]
+    [-ExportCSV] [-ExportExcel] [-Patching] [-PassThru] [[-folderPath] <Object>] [<CommonParameters>]
+
+
+DESCRIPTION
+    Will get patch compliance for a vSphere Cluster, Datacenter or individual ESXi host
+
+
+RELATED LINKS
+    https://github.com/arielsanchezmora/vDocumentation
+
+REMARKS
+    To see the examples, type: "get-help Get-ESXPatching -examples".
+    For more information, type: "get-help Get-ESXPatching -detailed".
+    For technical information, type: "get-help Get-ESXPatching -full".
+    For online help, type: "get-help Get-ESXPatching -online"
 
 
 # Licensing

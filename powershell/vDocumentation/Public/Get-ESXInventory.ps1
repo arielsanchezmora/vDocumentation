@@ -99,7 +99,7 @@
       running Verbose
     #>
     if ($VerbosePreference -eq "continue") {
-        Write-Verbose -Message ((Get-Date -Format G) + "`tPowercli Version:")
+        Write-Verbose -Message ((Get-Date -Format G) + "`tPowerCLI Version:")
         Get-Module -Name VMware.* | Select-Object -Property Name, Version | Format-Table -AutoSize
         Write-Verbose -Message ((Get-Date -Format G) + "`tvDocumentation Version:")
         Get-Module -Name vDocumentation | Select-Object -Property Name, Version | Format-Table -AutoSize
@@ -150,11 +150,11 @@
                     Write-Host "`tGathering host list from the following DataCenter(s): " (@($datacenter) -join ',')
                     foreach ($vDCname in $datacenter) {
                         $tempList = Get-Datacenter -Name $vDCname.Trim() -ErrorAction SilentlyContinue | Get-VMHost 
-                        if ([string]::IsNullOrWhiteSpace($tempList)) {
-                            Write-Warning -Message "`tDatacenter with name $vDCname was not found in $Global:DefaultViServers"
+                        if ($tempList) {
+                            $vHostList += $tempList | Sort-Object -Property Name
                         }
                         else {
-                            $vHostList += $tempList | Sort-Object -Property Name
+                            Write-Warning -Message "`tDatacenter with name $vDCname was not found in $Global:DefaultViServers"
                         } #END if/else
                     } #END foreach
                 } #END if/else
@@ -165,11 +165,11 @@
             Write-Host "`tGathering host list from the following Cluster(s): " (@($cluster) -join ',')
             foreach ($vClusterName in $cluster) {
                 $tempList = Get-Cluster -Name $vClusterName.Trim() -ErrorAction SilentlyContinue | Get-VMHost 
-                if ([string]::IsNullOrWhiteSpace($tempList)) {
-                    Write-Warning -Message "`tCluster with name $vClusterName was not found in $Global:DefaultViServers"
+                if ($tempList) {
+                    $vHostList += $tempList | Sort-Object -Property Name
                 }
                 else {
-                    $vHostList += $tempList | Sort-Object -Property Name
+                    Write-Warning -Message "`tCluster with name $vClusterName was not found in $Global:DefaultViServers"
                 } #END if/else
             } #END foreach
         } #END if/else
@@ -178,9 +178,16 @@
         Write-Verbose -Message ((Get-Date -Format G) + "`tExecuting Cmdlet using esxi parameter")
         Write-Host "`tGathering host list..."
         foreach ($invidualHost in $esxi) {
-            $vHostList += $invidualHost.Trim() | Sort-Object -Property Name
+            $tempList = Get-VMHost -Name $invidualHost.Trim() -ErrorAction SilentlyContinue
+            if ($tempList) {
+                $vHostList += $tempList | Sort-Object -Property Name
+            }
+            else {
+                Write-Warning -Message "`tESXi host $invidualHost was not found in $Global:DefaultViServers"
+            } #END if/else
         } #END foreach
     } #END if/else
+    $tempList = $null
     
     <#
       Validate export switches,
@@ -249,13 +256,12 @@
         $serviceInstance = Get-View ServiceInstance
         $licenseManager = Get-View $ServiceInstance.Content.LicenseManager
         $licenseManagerAssign = Get-View $LicenseManager.LicenseAssignmentManager
-    }
+    } #END if
     
     <#
       Main code execution
     #>
-    foreach ($esxihost in $vHostList) {
-        $vmhost = Get-VMHost -Name $esxihost -ErrorAction SilentlyContinue
+    foreach ($vmhost in $vHostList) {
     
         <#
           Skip if ESXi host is not in a Connected
@@ -273,19 +279,15 @@
               hosts and continue to the next foreach loop
             #>
             $skipCollection += [pscustomobject]@{
-                'Hostname'         = $esxihost
-                'Connection State' = $esxihost.ConnectionState
+                'Hostname'         = $vmhost.Name
+                'Connection State' = $vmhost.ConnectionState
             } #END [PSCustomObject]
             continue
         } #END if/else
-        $esxcli2 = Get-EsxCli -VMHost $esxihost -V2
+        $esxcli = Get-EsxCli -VMHost $vmhost -V2
         $hostHardware = $vmhost | Get-VMHostHardware -WaitForAllData -SkipAllSslCertificateChecks -ErrorAction SilentlyContinue
-    
-        <#
-          Get ESXi version details
-        #>
         $vmhostView = $vmhost | Get-View
-        $esxiVersion = $esxcli2.system.version.get.Invoke()
+        $esxiVersion = $esxcli.system.version.get.Invoke()
                     
         <#
           Get Hardware invetory details
@@ -293,7 +295,7 @@
         if ($Hardware) {
             Write-Host "`tGathering Hardware inventory from $vmhost ..."
             $mgmtIP = $vmhost | Get-VMHostNetworkAdapter | Where-Object {$_.ManagementTrafficEnabled -eq 'True'} | Select-Object -ExpandProperty IP
-            $hardwarePlatfrom = $esxcli2.hardware.platform.get.Invoke()
+            $hardwarePlatfrom = $esxcli.hardware.platform.get.Invoke()
     
             <#
               Get RAC IP, and Firmware
@@ -306,6 +308,7 @@
             $rac = $session | Get-CimInstance CIM_IPProtocolEndpoint -ErrorAction SilentlyContinue | Where-Object {$_.Name -match "Management Controller IP"}
             if ($rac.Name) {
                 $racIP = $rac.IPv4Address
+                $racMAC = $rac.MACAddress
             }
             else { 
                 $racIP = $null
@@ -322,9 +325,10 @@
               collected data
             #>
             $hardwareCollection += [PSCustomObject]@{
-                'Hostname'           = $vmhost
+                'Hostname'           = $vmhost.Name
                 'Management IP'      = $mgmtIP
                 'RAC IP'             = $racIP
+                'RAC MAC'            = $racMAC
                 'RAC Firmware'       = $bmcFirmware
                 'Product'            = $vmhostView.Config.Product.Name
                 'Version'            = $vmhostView.Config.Product.Version
@@ -335,8 +339,8 @@
                 'Model'              = $hostHardware.Model
                 'S/N'                = $hardwarePlatfrom.serialNumber
                 'BIOS'               = $hostHardware.BiosVersion
-                'BIOS Release Date'  = (($vmhost.ExtensionData.Hardware.BiosInfo.ReleaseDate -split " ")[0])
-                'CPU Model'          = $hostHardware.CpuModel
+                'BIOS Release Date'  = (($vmhostView.Hardware.BiosInfo.ReleaseDate -split " ")[0])
+                'CPU Model'          = $hostHardware.CpuModel -replace '\s+', ' '
                 'CPU Count'          = $hostHardware.CpuCount
                 'CPU Core Total'     = $hostHardware.CpuCoreCountTotal
                 'Speed (MHz)'        = $hostHardware.MhzPerCpu
@@ -360,26 +364,32 @@
             #>
             $vmhostID = $vmhostView.Config.Host.Value
             $vmhostLM = $licenseManagerAssign.QueryAssignedLicenses($vmhostID)
-            $vmhostPatch = $esxcli2.software.vib.list.Invoke() | Where-Object {$_.ID -match $vmhost.Build} | Select-Object -First 1
+            $vmhostPatch = $esxcli.software.vib.list.Invoke() | Where-Object {$_.ID -match $vmhost.Build} | Select-Object -First 1
             $vmhostvDC = $vmhost | Get-Datacenter | Select-Object -ExpandProperty Name
             $vmhostCluster = $vmhost | Get-Cluster | Select-Object -ExpandProperty Name
-            $imageProfile = $esxcli2.software.profile.get.Invoke()
+            $imageProfile = $esxcli.software.profile.get.Invoke()
                    
             <#
-              Get NTP configuraiton
+              Get services configuration
             #>
-            Write-Verbose -Message ((Get-Date -Format G) + "`tGathering NTP configuration...")
-            $ntpServerList = $vmhost | Get-VMHostNtpServer
-            $ntpService = $vmhost | Get-VMHostService | Where-Object {$_.key -eq "ntpd"}
+            Write-Verbose -Message ((Get-Date -Format G) + "`tGathering services configuration...")
+            $vmServices = $vmhost | Get-VMHostService
             $vmhostFireWall = $vmhost | Get-VMHostFirewallException
-            $ntpFWException = $vmhostFireWall | Select-Object Name, Enabled | Where-Object {$_.Name -eq "NTP Client"}
+            $ntpServerList = $vmhost | Get-VMHostNtpServer
+            $ntpService = $vmServices | Where-Object {$_.key -eq "ntpd"}
+            $ntpFWException = $vmhostFireWall | Select-Object -Property Name, Enabled | Where-Object {$_.Name -eq "NTP Client"}
+            $sshService = $vmServices | Where-Object {$_.key -eq "TSM-SSH"}
+            $sshServerFWException = $vmhostFireWall | Select-Object -Property Name, Enabled | Where-Object {$_.Name -eq "SSH Server"}
+            $esxiShellService = $vmServices | Where-Object {$_.key -eq "TSM"}
+            $ShellTimeOut = (Get-AdvancedSetting -Entity $vmhost -Name "UserVars.ESXiShellTimeOut" -ErrorAction SilentlyContinue).value
+            $interactiveShellTimeOut = (Get-AdvancedSetting -Entity $vmhost -Name "UserVars.ESXiShellInteractiveTimeOut" -ErrorAction SilentlyContinue).value
     
             <#
               Get syslog configuration
             #>
             Write-Verbose -Message ((Get-Date -Format G) + "`tGathering Syslog Configuration...")
             $syslogList = @()
-            $syslogFWException = $vmhostFireWall | Select-Object Name, Enabled | Where-Object {$_.Name -eq "syslog"}
+            $syslogFWException = $vmhostFireWall | Select-Object -Property Name, Enabled | Where-Object {$_.Name -eq "syslog"}
             foreach ($syslog in  $vmhost | Get-VMHostSysLogServer) {
                 $syslogList += $syslog.Host + ":" + $syslog.Port
             } #END foreach
@@ -388,31 +398,39 @@
               Get UpTime and install date
             #>
             Write-Verbose -Message ((Get-Date -Format G) + "`tGathering UpTime Configuration...")
-            $bootTime = $vmhost.ExtensionData.Runtime.BootTime
-            $today = Get-Date
-            $upTime = $today - $BootTime | Select-Object Days, Hours, Minutes
+            $bootTimeUTC = $vmhostView.Runtime.BootTime
+            $BootTime = $bootTimeUTC.ToLocalTime()
+            $upTime = New-TimeSpan -Seconds $vmhostView.Summary.QuickStats.Uptime
             $upTimeDays = $upTime.Days
             $upTimeHours = $upTime.Hours
             $upTimeMinutes = $upTime.Minutes
-            $vmUUID = $esxcli2.system.uuid.get.Invoke()
+            $vmUUID = $esxcli.system.uuid.get.Invoke()
             $decimalDate = [Convert]::ToInt32($vmUUID.Split("-")[0], 16)
-            $installDate = [System.TimeZone]::CurrentTimeZone.ToLocalTime(([DateTime]'1/1/1970').AddSeconds($decimalDate))
+            $installDate = ([DateTime]'1/1/1970').AddSeconds($decimalDate).ToLocalTime()
 
             <#
               Get ESXi installation type
               and Boot config
             #>
             Write-Verbose -Message ((Get-Date -Format G) + "`tGathering ESXi installation type...")
-            $bootDevice = $esxcli2.system.boot.device.get.Invoke()
+            $bootDevice = $esxcli.system.boot.device.get.Invoke()
             if ($bootDevice.BootFilesystemUUID) {
                 if ($bootDevice.BootFilesystemUUID[6] -eq 'e') {
                     $installType = "Embedded"
-                    $bootSource = $null
                 }
                 else {
                     $installType = "Installable"
-                    $bootSource = $esxcli2.storage.filesystem.list.Invoke() | Where-Object {$_.UUID -eq $bootDevice.BootFilesystemUUID} | Select-Object -ExpandProperty MountPoint
+                    $bootSource = $esxcli.storage.filesystem.list.Invoke() | Where-Object {$_.UUID -eq $bootDevice.BootFilesystemUUID} | Select-Object -ExpandProperty MountPoint
                 } #END if/else
+                $storageDevice = $esxcli.storage.core.device.list.Invoke() | Where-Object {$_.IsBootDevice -eq $true}
+                $bootVendor = $storageDevice.Vendor + " " + $storageDevice.Model
+                $bootDisplayName = $storageDevice.DisplayName
+                $bootPath = $storageDevice.DevfsPath
+                $storagePath = $esxcli.storage.core.path.list.Invoke() | Where-Object {$_.Device -eq $storageDevice.Device}
+                $bootRuntime = $storagePath.RuntimeName
+                if ($installType -eq "Embedded") {
+                    $bootSource = $storageDevice.DisplayName.Split('(')[0]
+                }
             }
             else {
                 if ($bootDevice.StatelessBootNIC) {
@@ -423,6 +441,10 @@
                     $installType = "PXE"
                     $bootSource = $bootDevice.BootNIC
                 } #END if/else
+                $bootVendor = $null
+                $bootDisplayName = $null
+                $bootPath = $null
+                $bootRuntime = $null
             } #END if/else
 
             <#
@@ -430,41 +452,56 @@
               collected data
             #>
             $configurationCollection += [PSCustomObject]@{
-                'Hostname'              = $vmhost
-                'Make'                  = $hostHardware.Manufacturer
-                'Model'                 = $hostHardware.Model
-                'CPU Model'             = $hostHardware.CpuModel
-                'Hyper-Threading'       = $vmhost.HyperthreadingActive
-                'Max EVC Mode'          = $vmhost.MaxEVCMode
-                'Product'               = $vmhostView.Config.Product.Name
-                'Version'               = $vmhostView.Config.Product.Version
-                'Build'                 = $vmhost.Build
-                'Update'                = $esxiVersion.Update
-                'Patch'                 = $esxiVersion.Patch
-                'Install Type'          = $installType
-                'Boot From'             = $bootSource
-                'Image Profile'         = $imageProfile.Name
-                'Acceptance Level'      = $imageProfile.AcceptanceLevel 
-                'Uptime'                = "$upTimeDays Day(s), $upTimeHours Hour(s), $upTimeMinutes Minute(s)"
-                'Install Date'          = $installDate
-                'Last Patched'          = $vmhostPatch.InstallDate
-                'License Version'       = $vmhostLM.AssignedLicense.Name | Select-Object -Unique
-                'License Key'           = $vmhostLM.AssignedLicense.LicenseKey | Select-Object -Unique
-                'Connection State'      = $vmhost.ConnectionState
-                'Standalone'            = $vmhost.IsStandalone
-                'Cluster'               = $vmhostCluster
-                'Virtual Datacenter'    = $vmhostvDC
-                'vCenter'               = $vmhost.ExtensionData.CLient.ServiceUrl.Split('/')[2]
-                'Service'               = $ntpService.Label
-                'Service Running'       = $ntpService.Running
-                'Startup Policy'        = $ntpService.Policy
-                'NTP Client Enabled'    = $ntpFWException.Enabled
-                'NTP Server'            = (@($ntpServerList) -join ',')
-                'Syslog Server'         = (@($syslogList) -join ',')
-                'Syslog Client Enabled' = $syslogFWException.Enabled
+                'Hostname'                  = $vmhost.Name
+                'Make'                      = $hostHardware.Manufacturer
+                'Model'                     = $hostHardware.Model
+                'CPU Model'                 = $hostHardware.CpuModel -replace '\s+', ' '
+                'Hyper-Threading'           = $vmhost.HyperthreadingActive
+                'Max EVC Mode'              = $vmhost.MaxEVCMode
+                'Product'                   = $vmhostView.Config.Product.Name
+                'Version'                   = $vmhostView.Config.Product.Version
+                'Build'                     = $vmhost.Build
+                'Update'                    = $esxiVersion.Update
+                'Patch'                     = $esxiVersion.Patch
+                'Install Type'              = $installType
+                'Boot From'                 = $bootSource
+                'Device Model'              = $bootVendor
+                'Boot Device'               = $bootDisplayName
+                'Runtime Name'              = $bootRuntime
+                'Device Path'               = $bootPath
+                'Image Profile'             = $imageProfile.Name
+                'Acceptance Level'          = $imageProfile.AcceptanceLevel 
+                'Boot Time'                 = $BootTime
+                'Uptime'                    = "$upTimeDays Day(s), $upTimeHours Hour(s), $upTimeMinutes Minute(s)"
+                'Install Date'              = $installDate
+                'Last Patched'              = $vmhostPatch.InstallDate
+                'License Version'           = $vmhostLM.AssignedLicense.Name | Select-Object -Unique
+                'License Key'               = $vmhostLM.AssignedLicense.LicenseKey | Select-Object -Unique
+                'Connection State'          = $vmhost.ConnectionState
+                'Standalone'                = $vmhost.IsStandalone
+                'Cluster'                   = $vmhostCluster
+                'Virtual Datacenter'        = $vmhostvDC
+                'vCenter'                   = $vmhostView.CLient.ServiceUrl.Split('/')[2]
+                'NTP'                       = $ntpService.Label
+                'NTP Running'               = $ntpService.Running
+                'NTP Startup Policy'        = $ntpService.Policy
+                'NTP Client Enabled'        = $ntpFWException.Enabled
+                'NTP Server'                = (@($ntpServerList) -join ',')
+                'SSH'                       = $sshService.Label
+                'SSH Running'               = $sshService.Running
+                'SSH Startup Policy'        = $sshService.Policy
+                'SSH TimeOut'               = $ShellTimeOut
+                'SSH Server Enabled'        = $sshServerFWException.Enabled
+                'ESXi Shell'                = $esxiShellService.Label
+                'ESXi Shell Running'        = $esxiShellService.Running
+                'ESXi Shell Startup Policy' = $esxiShellService.Policy
+                'ESXi Shell TimeOut'        = $interactiveShellTimeOut
+                'Syslog Server'             = (@($syslogList) -join ',')
+                'Syslog Client Enabled'     = $syslogFWException.Enabled
             } #END [PSCustomObject]
         } #END if
     } #END foreach
+    Write-Verbose -Message ((Get-Date -Format G) + "`tMain code execution completed")
     
     <#
       Display skipped hosts and their connection status

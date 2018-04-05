@@ -91,7 +91,7 @@
       running Verbose
     #>
     if ($VerbosePreference -eq "continue") {
-        Write-Verbose -Message ((Get-Date -Format G) + "`tPowercli Version:")
+        Write-Verbose -Message ((Get-Date -Format G) + "`tPowerCLI Version:")
         Get-Module -Name VMware.* | Select-Object -Property Name, Version | Format-Table -AutoSize
         Write-Verbose -Message ((Get-Date -Format G) + "`tvDocumentation Version:")
         Get-Module -Name vDocumentation | Select-Object -Property Name, Version | Format-Table -AutoSize
@@ -125,7 +125,7 @@
       Gather host list based on parameter used
     #>
     Write-Verbose -Message ((Get-Date -Format G) + "`tGather host list")
-    if ([string]::IsNullOrWhiteSpace($esxi)) {
+    if ([string]::IsNullOrWhiteSpace($esxi)) {      
         Write-Verbose -Message ((Get-Date -Format G) + "`t-esxi parameter is Null or Empty")
         if ([string]::IsNullOrWhiteSpace($cluster)) {
             Write-Verbose -Message ((Get-Date -Format G) + "`t-cluster parameter is Null or Empty")
@@ -136,17 +136,17 @@
                 Write-Verbose -Message ((Get-Date -Format G) + "`tExecuting Cmdlet using datacenter parameter")
                 if ($datacenter -eq "all vdc") {
                     Write-Host "`tGathering all hosts from the following vCenter(s): " $Global:DefaultViServers
-                    $vHostList = Get-VMHost | Sort-Object -Property Name
+                    $vHostList = Get-VMHost | Sort-Object -Property Name                    
                 }
                 else {
                     Write-Host "`tGathering host list from the following DataCenter(s): " (@($datacenter) -join ',')
                     foreach ($vDCname in $datacenter) {
                         $tempList = Get-Datacenter -Name $vDCname.Trim() -ErrorAction SilentlyContinue | Get-VMHost 
-                        if ([string]::IsNullOrWhiteSpace($tempList)) {
-                            Write-Warning -Message "`tDatacenter with name $vDCname was not found in $Global:DefaultViServers"
+                        if ($tempList) {
+                            $vHostList += $tempList | Sort-Object -Property Name
                         }
                         else {
-                            $vHostList += $tempList | Sort-Object -Property Name
+                            Write-Warning -Message "`tDatacenter with name $vDCname was not found in $Global:DefaultViServers"
                         } #END if/else
                     } #END foreach
                 } #END if/else
@@ -157,11 +157,11 @@
             Write-Host "`tGathering host list from the following Cluster(s): " (@($cluster) -join ',')
             foreach ($vClusterName in $cluster) {
                 $tempList = Get-Cluster -Name $vClusterName.Trim() -ErrorAction SilentlyContinue | Get-VMHost 
-                if ([string]::IsNullOrWhiteSpace($tempList)) {
-                    Write-Warning -Message "`tCluster with name $vClusterName was not found in $Global:DefaultViServers"
+                if ($tempList) {
+                    $vHostList += $tempList | Sort-Object -Property Name
                 }
                 else {
-                    $vHostList += $tempList | Sort-Object -Property Name
+                    Write-Warning -Message "`tCluster with name $vClusterName was not found in $Global:DefaultViServers"
                 } #END if/else
             } #END foreach
         } #END if/else
@@ -170,9 +170,16 @@
         Write-Verbose -Message ((Get-Date -Format G) + "`tExecuting Cmdlet using esxi parameter")
         Write-Host "`tGathering host list..."
         foreach ($invidualHost in $esxi) {
-            $vHostList += $invidualHost.Trim() | Sort-Object -Property Name
+            $tempList = Get-VMHost -Name $invidualHost.Trim() -ErrorAction SilentlyContinue
+            if ($tempList) {
+                $vHostList += $tempList | Sort-Object -Property Name
+            }
+            else {
+                Write-Warning -Message "`tESXi host $invidualHost was not found in $Global:DefaultViServers"
+            } #END if/else
         } #END foreach
     } #END if/else
+    $tempList = $null
     
     <#
       Validate export switches,
@@ -236,8 +243,7 @@
     <#
       Main code execution
     #>
-    foreach ($esxihost in $vHostList) {
-        $vmhost = Get-VMHost -Name $esxihost -ErrorAction SilentlyContinue
+    foreach ($vmhost in $vHostList) {
     
         <#
           Skip if ESXi host is not in a Connected
@@ -255,12 +261,12 @@
               hosts and continue to the next foreach loop
             #>
             $skipCollection += [pscustomobject]@{
-                'Hostname'         = $esxihost
-                'Connection State' = $esxihost.ConnectionState
+                'Hostname'         = $vmhost.Name
+                'Connection State' = $vmhost.ConnectionState
             } #END [PSCustomObject]
             continue
         } #END if/else
-        $esxcli2 = Get-EsxCli -VMHost $esxihost -V2
+        $esxcli1 = Get-EsxCli -VMHost $vmhost -V2
     
         <#
           Get Storage adapters (HBA) details
@@ -274,7 +280,7 @@
             Write-Verbose -Message ((Get-Date -Format G) + "`tGet iSCSI Software Adapter...")
             if ($hba = $vmhost | Get-VMHostHba -Type iScsi | Where-Object {$_.Model -eq "iSCSI Software Adapter"}) {
                 Write-Verbose -Message ((Get-Date -Format G) + "`tGet iSCSI HBA details for: " + $hba.Device)
-                $hbaBinding = $esxcli2.iscsi.networkportal.list.Invoke(@{adapter = $hba.Device})
+                $hbaBinding = $esxcli1.iscsi.networkportal.list.Invoke(@{adapter = $hba.Device})
                 $hbaTarget = Get-IScsiHbaTarget -IScsiHba $hba
                 $sendList = $hbaTarget | Where-Object {$_.Type -eq "Send"} | Select-Object -ExpandProperty Address
                 $staticList = $hbaTarget | Where-Object {$_.Type -eq "Static"} | Select-Object -ExpandProperty Address
@@ -287,19 +293,19 @@
                 foreach ($vmkNic in $hbaBinding) {
                     Write-Verbose -Message ((Get-Date -Format G) + "`tGet active physical adapter for: " + $vmkNic.PortGroup)
                     $vmNic = $vmhost | Get-VMHostNetworkAdapter | Where-Object {$_.Mac -eq $vmkNic.MACAddress}
-                    $nicList = $esxcli2.network.nic.list.Invoke() | Where-Object {$_.Name -eq $vmNic.Name}
+                    $nicList = $esxcli1.network.nic.list.Invoke() | Where-Object {$_.Name -eq $vmNic.Name}
                     $portGroupTeam = Get-VirtualPortGroup -VMhost $vmhost -Name $vmkNic.PortGroup | Where-Object {$_.VirtualSwitchName -eq $vmkNic.Vswitch} | Get-NicTeamingPolicy
                     if ($portGroup = Get-VirtualPortGroup -VMhost $vmhost -Name $vmkNic.PortGroup -Standard -ErrorAction SilentlyContinue | Where-Object {$_.VirtualSwitchName -eq $vmkNic.Vswitch}) {
                         Write-Verbose -Message ((Get-Date -Format G) + "`tStandard vSwitch")
                         $portGroupTeam = $portGroup | Get-NicTeamingPolicy
-                        $vSwitch = $esxcli2.network.vswitch.standard.list.Invoke(@{vswitchname = $vmkNic.Vswitch})
+                        $vSwitch = $esxcli1.network.vswitch.standard.list.Invoke(@{vswitchname = $vmkNic.Vswitch})
                         $activeAdapters = (@($PortGroupTeam.ActiveNic) -join ',')
                     }
                     else {
                         Write-Verbose -Message ((Get-Date -Format G) + "`tDistributed vSwitch")
                         $portGroup = Get-VDPortgroup -Name $vmkNic.PortGroup -VDSwitch $vmkNic.Vswitch -ErrorAction SilentlyContinue
                         $portGroupTeam = $portGroup | Get-VDUplinkTeamingPolicy
-                        $vSwitch = $esxcli2.network.vswitch.dvs.vmware.list.Invoke(@{vdsname = $vmkNic.Vswitch})
+                        $vSwitch = $esxcli1.network.vswitch.dvs.vmware.list.Invoke(@{vdsname = $vmkNic.Vswitch})
                         $activeAdapters = (@($PortGroupTeam.ActiveUplinkPort) -join ',')
                     } #END if/else
     
@@ -308,7 +314,7 @@
                       collected data
                     #>
                     $iSCSICollection += [PSCustomObject]@{
-                        'Hostname'                 = $vmhost
+                        'Hostname'                 = $vmhost.Name
                         'Device'                   = $hba.Device
                         'iSCSI Name'               = $hba.IScsiName
                         'Model'                    = $hba.Model
@@ -338,7 +344,7 @@
                       collected data
                     #>
                     $FibreChannelCollection += [PSCustomObject]@{
-                        'Hostname'   = $vmhost
+                        'Hostname'   = $vmhost.Name
                         'Device'     = $hbaDevice.Device
                         'Model'      = $hbaDevice.Model
                         'Node WWN'   = $nodeWWN
@@ -360,7 +366,7 @@
             foreach ($oneDS in $hostDSList) {
                 Write-Verbose -Message ((Get-Date -Format G) + "`tGet Datastore details for: " + $oneDS.Name)
                 $dsCName = $oneDS.ExtensionData.Info.Vmfs.Extent | Select-Object -ExpandProperty DiskName
-                $dsDisk = $esxcli2.storage.nmp.device.list.Invoke(@{device = $dsCName})
+                $dsDisk = $esxcli1.storage.nmp.device.list.Invoke(@{device = $dsCName})
     
                 <#
                   Validate against exising collection
@@ -386,7 +392,7 @@
                     $dsView = $oneDS | Get-View
                     $dsSummary = $dsView | Select-Object -ExpandProperty Summary
                     $provisionedGB = [math]::round(($dsSummary.Capacity - $dsSummary.FreeSpace + $dsSummary.Uncommitted) / 1GB, 2)
-                    $dspath = $esxcli2.storage.core.path.list.Invoke(@{device = $dsCName}) | Select-Object -First 1
+                    $dspath = $esxcli1.storage.core.path.list.Invoke(@{device = $dsCName}) | Select-Object -First 1
                     $dsDisplayName = (($dspath.DeviceDisplayName -Split " [(]")[0])
                     $LUN = $dspath.LUN
                     $vmHBA = $dspath.Adapter
@@ -413,7 +419,7 @@
                   collected data
                 #>
                 $DatastoresCollection += [PSCustomObject]@{
-                    'Hostname'               = $vmhost
+                    'Hostname'               = $vmhost.Name
                     'Datastore Name'         = $dsName
                     'Device Name'            = $dsDisplayName
                     'Canonical Name'         = $dsCName
@@ -431,6 +437,7 @@
             } #END foreach
         } #END if
     } #END foreach
+    Write-Verbose -Message ((Get-Date -Format G) + "`tMain code execution completed")
     
     <#
       Display skipped hosts and their connection status
