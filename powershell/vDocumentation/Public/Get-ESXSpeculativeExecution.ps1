@@ -446,7 +446,12 @@
         #>        
         Write-Verbose -Message ((Get-Date -Format G) + "`tGathering BIOS details...")
         if ($biosCsvCollection) {
-            $biosReleaseDate = Get-Date (($vmhostView.Hardware.BiosInfo.ReleaseDate -split " ")[0])
+			# This does not work when the data culture is dd/mm/yyyy
+            #$biosReleaseDate = Get-Date (($vmhostView.Hardware.BiosInfo.ReleaseDate -split " ")[0])
+			# This works better - tested
+			$biosReleaseDate = get-date ($vmhostview.hardware.biosinfo.releasedate.toshortdatestring())
+			# this might work even better but have not been able to test
+			#$biosReleaseDate = $vmhostview.hardware.biosinfo.releasedate.date
             $minVersion = $biosCsvCollection | Where-Object {$_.Model -eq $vmhost.Model}
             if ($minVersion) {
 
