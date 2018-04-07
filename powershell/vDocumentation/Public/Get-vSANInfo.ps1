@@ -58,7 +58,7 @@ function Get-vSANInfo {
     #$hardwareCollection = @()
     $configurationCollection = @()
     $skipCollection = @()
-    $vSANClusterList = @()
+    $vSANClusters = @()
     $returnCollection = @()
     $date = Get-Date -format s
     $date = $date -replace ":", "-"
@@ -102,7 +102,7 @@ function Get-vSANInfo {
     if ([string]::IsNullOrWhiteSpace($cluster) ) {
         Write-Verbose -Message ((Get-Date -Format G) + "`tA parameter (-cluster) was not specified. Will gather all clusters")
         Write-Host "`tGathering all clusters from the following vCenter(s): " $Global:DefaultViServers
-        $vSANClusterList = Get-Cluster | Sort-Object -Property Name
+        $vSANClusters = Get-Cluster | Sort-Object -Property Name
     }
     else {
         Write-Verbose -Message ((Get-Date -Format G) + "`tExecuting Cmdlet using cluster parameter")
@@ -113,7 +113,7 @@ function Get-vSANInfo {
                 Write-Warning -Message "`tCluster with name $vClusterName was not found in $Global:DefaultViServers"
             }
             else {
-                $vSANClusterList += $tempList | Sort-Object -Property Name
+                $vSANClusters += $tempList | Sort-Object -Property Name
             } #END if/else
         } #END foreach        
     } #END if/else
@@ -164,12 +164,12 @@ function Get-vSANInfo {
     <#
       Main code execution
     #>
-    foreach ($vSAN in $vSANClusterList) {
+    foreach ($vSANCluster in $vSANClusters) {
   
         <#
           Skip if cluster is not vSAN enabled
         #>
-        if ($vSAN.VsanEnabled -eq $true) {
+        if ($vSANCluster.VsanEnabled -eq $true) {
             <#
               Do nothing - Cluster is vSAN Enabled
             #>
@@ -180,7 +180,7 @@ function Get-vSANInfo {
               clusters and continue to the next foreach loop
             #>
             $skipCollection += [pscustomobject]@{
-                'Cluster' = $vSAN.Name
+                'Cluster' = $vSANCluster.Name
                 'Status'  = "Not vSAN Enabled"
             } #END [PSCustomObject]
             continue
@@ -189,9 +189,9 @@ function Get-vSANInfo {
         <#
           Get vSAN configuration details
         #>
-        Write-Host "`tGathering configuration details from vSAN Cluster: $vSAN ..."
+        Write-Host "`tGathering configuration details from vSAN Cluster: $vSANCluster ..."
         Write-Verbose -Message ((Get-Date -Format G) + "`tGathering claimed disks configuration...")
-        $vSAN = $vSAN | Get-VsanClusterConfiguration
+        $vSAN = $vSANCluster | Get-VsanClusterConfiguration
         $vSanDiskGroups = Get-VsanDiskGroup -Cluster $vSAN.name
         $vSanDisks = Get-VsanDisk -vSANDiskGroup $vSanDiskGroups
         $numberDisks = $vSanDisks.Count
@@ -242,7 +242,14 @@ function Get-vSANInfo {
           Get vSAN Capacity
           TODO: Must be an easier, more accurate & safer way to do this but cannot see anything in PowerCLI documentation
         #>
-        $dStore = Get-Datastore -Name "vsanDatastore"
+
+		# Begin Change
+		# this does not work if you change the name of the vsan DS
+		#$dStore = Get-Datastore -Name "vsanDatastore"
+		# Changed to use the Datastore from the Cluster.
+		# this may not work well if vsan and san used at the same time - have not been able to test a solution
+		$dStore = get-cluster -name $vsan.name | get-datastore
+		# end change
         $vSANCapacity = [math]::round(($dStore.CapacityGB), 2)
                     
         <#
