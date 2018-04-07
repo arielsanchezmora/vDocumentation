@@ -460,7 +460,17 @@
                   else compare against BIOS version
                 #>
                 if ($minVersion.Manufacturer -like "HP*") {
-                    $biosCsvDate = Get-Date $minVersion.BIOSReleaseDate
+	
+					# this does not work when date culture is dd/mm/yyyy		  
+                    #$biosCsvDate = Get-Date $minVersion.BIOSReleaseDate
+					# Get the actual separator used for dates
+					$DateSeparator =  get-culture | select -expand datetimeformat | select -expandproperty DateSeparator
+					# Split the date using this value
+					$BiosCSVDateArray =  $NowString.split($DateSeparator)
+					# Assuming the BIOSReleaseDate is always presented as a string formatted "mm/dd/yyyy"
+					$biosCsvDate = Get-Date (new-object System.DateTime $BiosCSVDateArray[2], $BiosCSVDateArray[0], $BiosCSVDateArray[1])
+					#end change
+											
                     if ($biosReleaseDate -ge $biosCsvDate) {
                         $biosComplianceStatus = "Proper BIOS installed"
                     }
