@@ -242,7 +242,14 @@ function Get-vSANInfo {
           Get vSAN Capacity
           TODO: Must be an easier, more accurate & safer way to do this but cannot see anything in PowerCLI documentation
         #>
-        $dStore = Get-Datastore -Name "vsanDatastore"
+
+		# Begin Change
+		# this does not work if you change the name of the vsan DS
+		#$dStore = Get-Datastore -Name "vsanDatastore"
+		# Changed to use the Datastore from the Cluster.
+		# this may not work well if vsan and san used at the same time - have not been able to test a solution
+		$dStore = get-cluster -name $vsan.name | get-datastore
+		# end change
         $vSANCapacity = [math]::round(($dStore.CapacityGB), 2)
                     
         <#
