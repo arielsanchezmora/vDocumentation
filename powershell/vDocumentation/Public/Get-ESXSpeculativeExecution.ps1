@@ -4,6 +4,7 @@
        Get ESXi host mitigation status for Spectre
      .DESCRIPTION
        Will validate ESXi host for Spectre/Hypervisor-Assisted Guest Mitigation
+       https://www.vmware.com/security/advisories/VMSA-2018-0004.html
      .NOTES
        Author     : Edgar Sanchez - @edmsanchez13
        Contributor: Ariel Sanchez - @arielsanchezmor
@@ -97,6 +98,12 @@
     $date = Get-Date -format s
     $date = $date -replace ":", "-"
     $outputFile = "SpeculativeExecution" + $date
+    <#
+      VMSA-2018-0004.3 Build IDs
+    #>
+    $esx55Build = "7967571"
+    $esx60Build = "7967664"
+    $esx65Build = "7967591"
     
     <#
      ----------------------------------------------------------[Execution]----------------------------------------------------------
@@ -352,7 +359,6 @@
 
         <#
           Get ESXi CPUID details
-          for Intel CPU
         #>
         Write-Host "`tGathering details from $vmhost ..."
         $esxcli = Get-EsxCli -VMHost $vmhost -V2
@@ -380,7 +386,8 @@
           converted to local time
         #>
         Write-Verbose -Message ((Get-Date -Format G) + "`tGathering last patched date...")
-        $vmhostPatch = $esxcli.software.vib.list.Invoke() | Where-Object {$_.ID -match $vmhost.Build} | Select-Object -First 1
+        $esxPatches = $esxcli.software.vib.list.Invoke()
+        $vmhostPatch = $esxPatches | Where-Object {$_.ID -match $vmhost.Build} | Select-Object -First 1
         if ($vmhost.ApiVersion -notmatch '6.5') {
             $lastPatched = Get-Date $vmhostPatch.InstallDate -Format d
         }
@@ -390,7 +397,68 @@
             $softwarePackages = $configManagerView.fetchSoftwarePackages() | Where-Object {$_.CreationDate -ge $vmhostPatch.InstallDate}
             $dateInstalledUTC = ($softwarePackages | Where-Object {$_.Name -eq $vmhostPatch.Name -and $_.Version -eq $vmhostPatch.Version}).CreationDate
             $lastPatched = Get-Date ($dateInstalledUTC.ToLocalTime()) -Format d
-        } #END if/else               
+        } #END if/else
+        
+        <#
+          Get ESXi VMSA-2018-0004.3
+          path details
+        #>
+        $esxFrameworkStatus = $null
+        $esxv2McuStatus = $null
+        if ($vmhost.ApiVersion -eq "5.5") {
+            $esxFrameworkStatus = "Framework Missing"
+            $esxv2McuStatus = "v2 MCU Missing"
+            if ($vmhost.Build -ge $esx55Build) {
+                $esxFrameworkPatch = $esxPatches | Where-Object {$_.Name -eq "esx-base"}
+                $esxv2McuPatch = $esxPatches | Where-Object {$_.Name -eq "cpu-microcode"}
+                if ($esxFrameworkPatch) {
+                    if (($esxFrameworkPatch.Version.Split('.') | Select-Object -Last 1) -ge $esx55Build) {
+                        $esxFrameworkStatus = "Framework Installed"
+                    } #END if
+                } #END if
+                if ($esxv2McuPatch) {
+                    if (($esxv2McuPatch.Version.Split('.') | Select-Object -Last 1) -ge $esx55Build) {
+                        $esxv2McuStatus = "v2 MCU Installed"
+                    } #END if
+                } #END if
+            } #END if
+        } #END if
+        if ($vmhost.ApiVersion -eq "6.0") {
+            $esxFrameworkStatus = "Framework Missing"
+            $esxv2McuStatus = "v2 MCU Missing"
+            if ($vmhost.Build -ge $esx60Build) {
+                $esxFrameworkPatch = $esxPatches | Where-Object {$_.Name -eq "esx-base"}
+                $esxv2McuPatch = $esxPatches | Where-Object {$_.Name -eq "cpu-microcode"}
+                if ($esxFrameworkPatch) {
+                    if (($esxFrameworkPatch.Version.Split('.') | Select-Object -Last 1) -ge $esx60Build) {
+                        $esxFrameworkStatus = "Framework Installed"
+                    } #END if
+                } #END if
+                if ($esxv2McuPatch) {
+                    if (($esxv2McuPatch.Version.Split('.') | Select-Object -Last 1) -ge $esx60Build) {
+                        $esxv2McuStatus = "v2 MCU Installed"
+                    } #END if
+                } #END if
+            } #END if
+        } #END if
+        if ($vmhost.ApiVersion -eq "6.5") {
+            $esxFrameworkStatus = "Framework Missing"
+            $esxv2McuStatus = "v2 MCU Missing"
+            if ($vmhost.Build -ge $esx65Build) {
+                $esxFrameworkPatch = $esxPatches | Where-Object {$_.Name -eq "esx-base"}
+                $esxv2McuPatch = $esxPatches | Where-Object {$_.Name -eq "cpu-microcode"}
+                if ($esxFrameworkPatch) {
+                    if (($esxFrameworkPatch.Version.Split('.') | Select-Object -Last 1) -ge $esx65Build) {
+                        $esxFrameworkStatus = "Framework Installed"
+                    } #END if
+                } #END if
+                if ($esxv2McuPatch) {
+                    if (($esxv2McuPatch.Version.Split('.') | Select-Object -Last 1) -ge $esx65Build) {
+                        $esxv2McuStatus = "v2 MCU Installed"
+                    } #END if
+                } #END if
+            } #END if
+        } #END if
 
         <#
           Get UpTime
@@ -409,6 +477,7 @@
         $mcuUpdate = $null
         $mcuOriginal = $null
         $mcuCurrent = $null
+        $biosReleaseDate = $null
         if ($poshSSH) {
             Write-Verbose -Message ((Get-Date -Format G) + "`tGathering ESXi MCU revisions through SSH...")
             $sshServerFWException = $vmhost | Get-VMHostFirewallException -Name "SSH Server"
@@ -426,6 +495,15 @@
                     $mcuOriginal = ($sshCommand.Output | Where-Object {$_ -match "Original Revision"}).Split(':')[1]
                     $mcuCurrent = ($sshCommand.Output | Where-Object {$_ -match "Current Revision"}).Split(':')[1]
                 } #END if
+                $sshCommand = Invoke-SSHCommand -Command "esxcfg-info --hardware | grep -i 'bios releasedate'" -SessionId $sshSession.SessionId
+                if ($sshCommand.ExitStatus -eq '0') {
+                    $intDate = @()
+                    $stringDate = (($sshCommand.Output).Split('.') | Select-Object -Last 1 -ErrorAction SilentlyContinue).Split('T')[0]
+                    foreach ($string in $stringDate.Split('-')) {
+                        $intDate += [int]$string
+                    } #END foreach
+                    $biosReleaseDate = Get-Date (@($intDate) -join '/') -ErrorAction SilentlyContinue
+                } #END if
                 Remove-SSHSession $sshSession | Out-Null
             }
             else {
@@ -439,14 +517,24 @@
                 $mcuUpdate = "Active"
             } #END if/elseif
         } #END if
-
+        if ($biosReleaseDate) {
+            Write-Verbose -Message ((Get-Date -Format G) + "`tBIOS release date was gathered through SSH...")
+        }
+        else {
+            if ($vmhostView.Hardware.BiosInfo.ReleaseDate) {
+                $biosReleaseDate = Get-Date $vmhostView.Hardware.BiosInfo.ReleaseDate
+            }
+            else {
+                Write-Verbose -Message ((Get-Date -Format G) + "`tFailed to gather BIOS release date, its null...")
+            } #END if/else
+        } #END if/else
+        
         <#
           Check for BIOS
           version details
         #>        
         Write-Verbose -Message ((Get-Date -Format G) + "`tGathering BIOS details...")
         if ($biosCsvCollection) {
-            $biosReleaseDate = Get-Date (($vmhostView.Hardware.BiosInfo.ReleaseDate -split " ")[0])
             $minVersion = $biosCsvCollection | Where-Object {$_.Model -eq $vmhost.Model}
             if ($minVersion) {
 
@@ -476,15 +564,18 @@
                 $biosComplianceStatus = "Unknown - Check with manufacturer"
             } #END if/else
         } #END if
-        
+        if ($biosReleaseDate) {
+            $biosReleaseDate = $biosReleaseDate.ToShortDateString()
+        } #END if
+            
         <#
           Check for CPU Signatures
           Intel Sighting
         #>
         Write-Verbose -Message ((Get-Date -Format G) + "`tGathering Intel MCU and sighting details...")
+        $cpuidEAX = ($esxcli.hardware.cpu.cpuid.get.Invoke(@{cpu = 0}) | Where-Object {$_.Level -eq 1}).EAX
+        $cpuidHEX = [System.Convert]::ToString($cpuidEAX, 16)
         if ($cpuList.Family -eq "6") {
-            $cpuidEAX = ($esxcli.hardware.cpu.cpuid.get.Invoke(@{cpu = 0}) | Where-Object {$_.Level -eq 1}).EAX
-            $cpuidHEX = [System.Convert]::ToString($cpuidEAX, 16)
             if ($mcuCsvCollection) {
                 $intelMcuList = $mcuCsvCollection | Where-Object {$_.CPUID -eq $cpuidHEX}
                 if ($intelMcuList) {
@@ -603,8 +694,9 @@
             'CPUID'                         = $cpuidHEX
             'Max EVC mode'                  = $vmhost.MaxEVCMode
             'BIOS version'                  = $vmhostView.Hardware.BiosInfo.BiosVersion
-            'BIOS release date'             = (($vmhostView.Hardware.BiosInfo.ReleaseDate -split " ")[0])
+            'BIOS release date'             = $biosReleaseDate
             'BIOS guidance'                 = $biosComplianceStatus
+            'ESXi guidance'                 = $esxFrameworkStatus + "/" + $esxv2McuStatus
             'MCU CPUID'                     = $hostMcuCPuid
             'PCID/INVPCID'                  = $hostCpuPcid
             'ESXi applied MCU'              = $mcuUpdate

@@ -497,7 +497,7 @@
         } #END if/else
     } #END if
     if ($DatastoresCollection) {
-        Write-Host "`n" "ESXi FibreChannel HBA:" -ForegroundColor Green
+        Write-Host "`n" "ESXi Datastores:" -ForegroundColor Green
         if ($ExportCSV) {
             $DatastoresCollection | Export-Csv ($outputFile + "Datastores.csv") -NoTypeInformation
             Write-Host "`tData exported to" ($outputFile + "Datastores.csv") "file" -ForegroundColor Green
