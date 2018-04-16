@@ -6,8 +6,10 @@
        Will validate ESXi host for Spectre/Hypervisor-Assisted Guest Mitigation
        https://www.vmware.com/security/advisories/VMSA-2018-0004.html
      .NOTES
-       Author     : Edgar Sanchez - @edmsanchez13
-       Contributor: Ariel Sanchez - @arielsanchezmor
+       File Name    : Get-ESXSpeculativeExecution.ps1
+       Author       : Edgar Sanchez - @edmsanchez13
+       Contributor  : Ariel Sanchez - @arielsanchezmor
+       Version      : 2.4.3     
      .Link
        https://github.com/arielsanchezmora/vDocumentation
      .INPUTS
@@ -479,7 +481,7 @@
         $mcuCurrent = $null
         $biosReleaseDate = $null
         if ($poshSSH) {
-            Write-Verbose -Message ((Get-Date -Format G) + "`tGathering ESXi MCU revisions through SSH...")
+            Write-Verbose -Message ((Get-Date -Format G) + "`tGathering ESXi MCU revisions and BIOS release date through SSH...")
             $sshServerFWException = $vmhost | Get-VMHostFirewallException -Name "SSH Server"
             if ($sshServerFWException.Enabled -eq $false) {
                 $sshServerFWException | Set-VMHostFirewallException -Enabled $true -Confirm:$false | Out-Null
@@ -497,6 +499,7 @@
                 } #END if
                 $sshCommand = Invoke-SSHCommand -Command "esxcfg-info --hardware | grep -i 'bios releasedate'" -SessionId $sshSession.SessionId
                 if ($sshCommand.ExitStatus -eq '0') {
+                    Write-Verbose -Message ((Get-Date -Format G) + $sshCommand.Output)
                     $intDate = @()
                     $stringDate = (($sshCommand.Output).Split('.') | Select-Object -Last 1 -ErrorAction SilentlyContinue).Split('T')[0]
                     foreach ($string in $stringDate.Split('-')) {
@@ -543,7 +546,7 @@
                   else compare against BIOS version
                 #>
                 if ($minVersion.Manufacturer -like "HP*") {
-                    $biosCsvDate = Get-Date $minVersion.BIOSReleaseDate
+                    $biosCsvDate = [DateTime]$minVersion.BIOSReleaseDate
                     if ($biosReleaseDate -ge $biosCsvDate) {
                         $biosComplianceStatus = "Proper BIOS installed"
                     }

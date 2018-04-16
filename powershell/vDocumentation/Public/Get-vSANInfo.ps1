@@ -8,16 +8,18 @@ function Get-vSANInfo {
        vSAN Cluster Name, Cluster Type, Disk Claim Mode, Dedupe & Compression Enabled, Stretched Cluster Enabled, 
        Oldest Disk Format Version, Total Disks, Total Disk Groups, vSAN Capacity GB 
      .NOTES
-       Author     : Graham Barker - @VirtualG_UK
-       Contributor: Edgar Sanchez - @edmsanchez13
-       Contributor: Ariel Sanchez - @arielsanchezmor
+       File Name    : Get-vSANInfo.ps1
+       Author       : Graham Barker - @VirtualG_UK
+       Contributor  : Edgar Sanchez - @edmsanchez13
+       Contributor  : Ariel Sanchez - @arielsanchezmor
+       Version      : 2.4.3
      .Link
        https://github.com/arielsanchezmora/vDocumentation
      .INPUTS
        No inputs required
      .OUTPUTS
        CSV file
-       Excel fil
+       Excel file
      .PARAMETER cluster
        The name(s) of the vSphere Cluster(s)
      .EXAMPLE
@@ -45,7 +47,6 @@ function Get-vSANInfo {
     <#
      ----------------------------------------------------------[Declarations]----------------------------------------------------------
     #>
-  
     [CmdletBinding()]
     param (
         $cluster,
@@ -55,17 +56,14 @@ function Get-vSANInfo {
         $folderPath
     )
     
-    #$hardwareCollection = @()
     $configurationCollection = @()
     $skipCollection = @()
     $vSANClusterList = @()
     $returnCollection = @()
     $date = Get-Date -format s
     $date = $date -replace ":", "-"
-    $dStore = 0;
-    $outputFile = "vsan-info" + $date
+    $outputFile = "vSAN-info" + $date
 
-    
     <#
      ----------------------------------------------------------[Execution]----------------------------------------------------------
     #>
@@ -187,17 +185,26 @@ function Get-vSANInfo {
         } #END if/else
 
         <#
-          Get vSAN configuration details
+          Get vSAN oldest system version
         #>
         Write-Host "`tGathering configuration details from vSAN Cluster: $vSAN ..."
         Write-Verbose -Message ((Get-Date -Format G) + "`tGathering claimed disks configuration...")
+        $clusterMoRef = $vSAN.ExtensionData.MoRef
+        $vSanClusterHealth = Get-VSANView -Id "VsanVcClusterHealthSystem-vsan-cluster-health-system"
+        $vSanSystemVersions = $vSanClusterHealth.VsanVcClusterQueryVerifyHealthSystemVersions($clusterMoRef)
+        $oldestvSanSystemVersion = $vSanSystemVersions.HostResults | Select-Object -ExpandProperty Version | Sort-Object -Descending | Select-Object -Last 1
+
+        <#
+          Get vSAN configuration details
+        #>
         $vSAN = $vSAN | Get-VsanClusterConfiguration
         $vSanDiskGroups = Get-VsanDiskGroup -Cluster $vSAN.name
         $vSanDisks = Get-VsanDisk -vSANDiskGroup $vSanDiskGroups
         $numberDisks = $vSanDisks.Count
+        $vSanView = $vSAN | Get-View
 
         <#
-          Get disk format version configuration
+          Get vSAN oldest disk format version
         #>
         Write-Verbose -Message ((Get-Date -Format G) + "`tGathering disk format Configuration...")
         $oldestDiskFormatVersion = $vSanDisks.DiskFormatVersion | Sort-Object -Unique | Select-Object -First 1
@@ -240,24 +247,38 @@ function Get-vSANInfo {
             
         <#
           Get vSAN Capacity
-          TODO: Must be an easier, more accurate & safer way to do this but cannot see anything in PowerCLI documentation
         #>
-        $dStore = Get-Datastore -Name "vsanDatastore"
-        $vSANCapacity = [math]::round(($dStore.CapacityGB), 2)
-                    
+        $vSanDS = Get-View $vSanView.Datastore
+        $vSanDsCapacityGB = [math]::round(($vSanDS.Summary.Capacity) / 1GB, 2)
+        $vSanProvisionedGB = [math]::round(($vSanDS.Summary.Capacity - $vSanDS.Summary.FreeSpace + $vSanDS.Summary.Uncommitted) / 1GB, 2)
+        $vSanDsFreeGB = [math]::round(($vSanDS.Summary.FreeSpace) / 1GB, 2)
+
+        <#
+          Get vSAN Storage Policy
+        #>
+        $vSanPolicy = (Get-SpbmStoragePolicy -Name $vSAN.StoragePolicy).AnyOfRuleSets.allofrules
+        $vSanFailureToTolerate = $vSanPolicy | Where-Object {$_.Capability -like "VSAN.hostFailuresToTolerate"} | Select-Object -ExpandProperty Value
+        $vSanStripeWidth = $vSanPolicy | Where-Object {$_.Capability -like "VSAN.stripeWidth"} | Select-Object -ExpandProperty Value
+
         <#
           Use a custom object to store collected data
         #>
         $configurationCollection += [PSCustomObject]@{
             'vSAN Cluster Name'                   = $vSAN.Name
+            'Effective Hosts'                     = $vSanView.Summary.NumEffectiveHosts
+            'Oldest vSAN Version'                 = $oldestvSanSystemVersion
+            'Oldest Disk Format'                  = $oldestDiskFormatVersion
             'Cluster Type'                        = $clusterType
             'Disk Claim Mode'                     = $diskClaimMode
             'Deduplication & Compression Enabled' = $deduplicationCompression
             'Stretched Cluster Enabled'           = $stretchedCluster
-            'Oldest Disk Format'                  = $oldestDiskFormatVersion
+            'Host Failures To Tolerate'           = $vSanFailureToTolerate
+            'vSAN Stripe Width'                   = $vSanStripeWidth
             'Total vSAN Claimed Disks'            = $numberDisks
             'Total Disk Groups'                   = $numberDiskGroups
-            'Total Capacity (GB)'                 = $vSANCapacity
+            'Total Capacity (GB)'                 = $vSanDsCapacityGB
+            'Provisioned Space (GB)'              = $vSanProvisionedGB
+            'Free Space (GB)'                     = $vSanDsFreeGB
         } #END [PSCustomObject]
     } #END foreach
     Write-Verbose -Message ((Get-Date -Format G) + "`tMain code execution completed")

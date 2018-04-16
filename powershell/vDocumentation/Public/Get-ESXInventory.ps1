@@ -8,8 +8,10 @@
        Hostname, Management IP, RAC IP, ESXi Version information, Hardware information
        and Host configuration
      .NOTES
-       Author     : Edgar Sanchez - @edmsanchez13
-       Contributor: Ariel Sanchez - @arielsanchezmor
+       File Name    : Get-ESXInventory.ps1
+       Author       : Edgar Sanchez - @edmsanchez13
+       Contributor  : Ariel Sanchez - @arielsanchezmor
+       Version      : 2.4.3     
      .Link
        https://github.com/arielsanchezmora/vDocumentation
      .INPUTS
