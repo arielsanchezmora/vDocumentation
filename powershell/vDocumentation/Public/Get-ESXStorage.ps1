@@ -9,7 +9,7 @@
        File Name    : Get-ESXStorage.ps1
        Author       : Edgar Sanchez - @edmsanchez13
        Contributor  : Ariel Sanchez - @arielsanchezmor
-       Version      : 2.4.3
+       Version      : 2.4.4
      .Link
        https://github.com/arielsanchezmora/vDocumentation
      .INPUTS
@@ -37,7 +37,7 @@
      .PARAMETER ExportExcel
        Switch to export all data to Excel file (No need to have Excel Installed). This relies on ImportExcel Module to be installed.
        ImportExcel Module can be installed directly from the PowerShell Gallery. See https://github.com/dfinke/ImportExcel for more information
-       File is saved to the current user directory from where the script was executed. Use -folderPath parameter to specify a alternate location
+       File is saved to the current user directory from where the script was executed. Use -folderPath parameter to specify an alternate location
      .EXAMPLE
        Get-ESXStorage -cluster production-cluster -ExportExcel
      .PARAMETER StorageAdapters

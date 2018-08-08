@@ -8,7 +8,7 @@
        File Name    : Get-ESXPatching.ps1
        Author       : Edgar Sanchez - @edmsanchez13
        Contributor  : Ariel Sanchez - @arielsanchezmor
-       Version      : 2.4.3     
+       Version      : 2.4.4
      .Link
        https://github.com/arielsanchezmora/vDocumentation
      .INPUTS

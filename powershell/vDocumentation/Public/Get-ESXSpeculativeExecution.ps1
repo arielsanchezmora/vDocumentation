@@ -5,11 +5,12 @@
      .DESCRIPTION
        Will validate ESXi host for Spectre/Hypervisor-Assisted Guest Mitigation
        https://www.vmware.com/security/advisories/VMSA-2018-0004.html
+       https://www.vmware.com/security/advisories/VMSA-2018-0012.1.html
      .NOTES
        File Name    : Get-ESXSpeculativeExecution.ps1
        Author       : Edgar Sanchez - @edmsanchez13
        Contributor  : Ariel Sanchez - @arielsanchezmor
-       Version      : 2.4.3     
+       Version      : 2.4.4
      .Link
        https://github.com/arielsanchezmora/vDocumentation
      .INPUTS
@@ -95,17 +96,18 @@
     $returnCollection = @()
     $biosCsvCollection = @()
     $mcuCsvCollection = @()
-    $biosUrl = 'https://raw.githubusercontent.com/edmsanchez/vDocumentation/master/powershell/vDocumentation/BIOSUpdates.csv'
-    $mcuUrl = 'https://raw.githubusercontent.com/edmsanchez/vDocumentation/master/powershell/vDocumentation/Intel_MCU.csv'
+    $biosUrl = 'https://raw.githubusercontent.com/edmsanchez/vDocumentation/master/powershell/vDocumentation/BIOSUpdates_v4.csv'
+    $mcuUrl = 'https://raw.githubusercontent.com/edmsanchez/vDocumentation/master/powershell/vDocumentation/Intel_MCU_v4.csv'
     $date = Get-Date -format s
     $date = $date -replace ":", "-"
     $outputFile = "SpeculativeExecution" + $date
     <#
       VMSA-2018-0004.3 Build IDs
     #>
-    $esx55Build = "7967571"
-    $esx60Build = "7967664"
-    $esx65Build = "7967591"
+    $esx55Build = "8934887"
+    $esx60Build = "8934903"
+    $esx65Build = "8935087"
+    $esx67Build = "8941472"
     
     <#
      ----------------------------------------------------------[Execution]----------------------------------------------------------
@@ -372,7 +374,7 @@
         $hostCpuPcid = $false
         $hostMcuCPuid = $null
         $hostFeatureCapability = $vmhostView.Config.FeatureCapability
-        $hostCpuid = $hostFeatureCapability | Where-Object {$_.FeatureName -eq "cpuid.IBRS" -and $_.Value -eq "1" -or $_.Featurename -eq "cpuid.IBPB" -and $_.Value -eq "1" -or $_.Featurename -eq "cpuid.STIBP" -and $_.Value -eq "1"} | Select-Object -ExpandProperty FeatureName
+        $hostCpuid = $hostFeatureCapability | Where-Object {$_.FeatureName -eq "cpuid.IBRS" -and $_.Value -eq "1" -or $_.Featurename -eq "cpuid.IBPB" -and $_.Value -eq "1" -or $_.Featurename -eq "cpuid.STIBP" -and $_.Value -eq "1" -or $_.Featurename -eq "cpuid.SSBD" -and $_.Value -eq "1"} | Select-Object -ExpandProperty FeatureName
         $hostInvPcid = $hostFeatureCapability | Where-Object {$_.FeatureName -eq "cpuid.INVPCID" -and $_.Value -eq "1"} | Select-Object -ExpandProperty FeatureName
         $hostPcid = $hostFeatureCapability | Where-Object {$_.Featurename -eq "cpuid.PCID" -and $_.Value -eq "1"} | Select-Object -ExpandProperty FeatureName
         if ($hostInvPcid -and $hostPcid) {
@@ -383,33 +385,33 @@
         } #END if
         
         <#
-          Get accurate last patched date if ESXi 6.5
+          Get accurate last patched date if ESXi 6.5 or above
           based on Date and time (UTC), which is
           converted to local time
         #>
         Write-Verbose -Message ((Get-Date -Format G) + "`tGathering last patched date...")
         $esxPatches = $esxcli.software.vib.list.Invoke()
         $vmhostPatch = $esxPatches | Where-Object {$_.ID -match $vmhost.Build} | Select-Object -First 1
-        if ($vmhost.ApiVersion -notmatch '6.5') {
-            $lastPatched = Get-Date $vmhostPatch.InstallDate -Format d
-        }
-        else {
+        if ($vmhost.ApiVersion -ge '6.5') {
             Write-Verbose -Message ((Get-Date -Format G) + "`tESXi version " + $vmhost.ApiVersion + ". Gathering VIB " + $vmhostPatch.Name + " install date through ImageConfigManager" )
             $configManagerView = Get-View $vmhostView.ConfigManager.ImageConfigManager
             $softwarePackages = $configManagerView.fetchSoftwarePackages() | Where-Object {$_.CreationDate -ge $vmhostPatch.InstallDate}
             $dateInstalledUTC = ($softwarePackages | Where-Object {$_.Name -eq $vmhostPatch.Name -and $_.Version -eq $vmhostPatch.Version}).CreationDate
             $lastPatched = Get-Date ($dateInstalledUTC.ToLocalTime()) -Format d
+        }
+        else {
+            $lastPatched = Get-Date $vmhostPatch.InstallDate -Format d
         } #END if/else
         
         <#
-          Get ESXi VMSA-2018-0004.3
+          Get ESXi VMSA-2018-0012.1
           path details
         #>
         $esxFrameworkStatus = $null
         $esxv2McuStatus = $null
         if ($vmhost.ApiVersion -eq "5.5") {
             $esxFrameworkStatus = "Framework Missing"
-            $esxv2McuStatus = "v2 MCU Missing"
+            $esxv2McuStatus = "New MCU Missing"
             if ($vmhost.Build -ge $esx55Build) {
                 $esxFrameworkPatch = $esxPatches | Where-Object {$_.Name -eq "esx-base"}
                 $esxv2McuPatch = $esxPatches | Where-Object {$_.Name -eq "cpu-microcode"}
@@ -420,14 +422,14 @@
                 } #END if
                 if ($esxv2McuPatch) {
                     if (($esxv2McuPatch.Version.Split('.') | Select-Object -Last 1) -ge $esx55Build) {
-                        $esxv2McuStatus = "v2 MCU Installed"
+                        $esxv2McuStatus = "New MCU Installed"
                     } #END if
                 } #END if
             } #END if
         } #END if
         if ($vmhost.ApiVersion -eq "6.0") {
             $esxFrameworkStatus = "Framework Missing"
-            $esxv2McuStatus = "v2 MCU Missing"
+            $esxv2McuStatus = "New MCU Missing"
             if ($vmhost.Build -ge $esx60Build) {
                 $esxFrameworkPatch = $esxPatches | Where-Object {$_.Name -eq "esx-base"}
                 $esxv2McuPatch = $esxPatches | Where-Object {$_.Name -eq "cpu-microcode"}
@@ -438,14 +440,14 @@
                 } #END if
                 if ($esxv2McuPatch) {
                     if (($esxv2McuPatch.Version.Split('.') | Select-Object -Last 1) -ge $esx60Build) {
-                        $esxv2McuStatus = "v2 MCU Installed"
+                        $esxv2McuStatus = "New MCU Installed"
                     } #END if
                 } #END if
             } #END if
         } #END if
         if ($vmhost.ApiVersion -eq "6.5") {
             $esxFrameworkStatus = "Framework Missing"
-            $esxv2McuStatus = "v2 MCU Missing"
+            $esxv2McuStatus = "New MCU Missing"
             if ($vmhost.Build -ge $esx65Build) {
                 $esxFrameworkPatch = $esxPatches | Where-Object {$_.Name -eq "esx-base"}
                 $esxv2McuPatch = $esxPatches | Where-Object {$_.Name -eq "cpu-microcode"}
@@ -456,7 +458,25 @@
                 } #END if
                 if ($esxv2McuPatch) {
                     if (($esxv2McuPatch.Version.Split('.') | Select-Object -Last 1) -ge $esx65Build) {
-                        $esxv2McuStatus = "v2 MCU Installed"
+                        $esxv2McuStatus = "New MCU Installed"
+                    } #END if
+                } #END if
+            } #END if
+        } #END if
+        if ($vmhost.ApiVersion -eq "6.7") {
+            $esxFrameworkStatus = "Framework Missing"
+            $esxv2McuStatus = "New MCU Missing"
+            if ($vmhost.Build -ge $esx67Build) {
+                $esxFrameworkPatch = $esxPatches | Where-Object {$_.Name -eq "esx-base"}
+                $esxv2McuPatch = $esxPatches | Where-Object {$_.Name -eq "cpu-microcode"}
+                if ($esxFrameworkPatch) {
+                    if (($esxFrameworkPatch.Version.Split('.') | Select-Object -Last 1) -ge $esx67Build) {
+                        $esxFrameworkStatus = "Framework Installed"
+                    } #END if
+                } #END if
+                if ($esxv2McuPatch) {
+                    if (($esxv2McuPatch.Version.Split('.') | Select-Object -Last 1) -ge $esx67Build) {
+                        $esxv2McuStatus = "New MCU Installed"
                     } #END if
                 } #END if
             } #END if
@@ -488,7 +508,14 @@
             } #END if
             $vmServices = $vmhost | Get-VMHostService
             $vmServices | Where-Object {$_.Key -eq "TSM-SSH"} | Start-VMHostService -Confirm:$false | Out-Null
-            $sshSession = New-SSHSession -ComputerName $vmhost -Credential $rootCreds -AcceptKey -ConnectionTimeout 90 -KeepAliveInterval 5 -ErrorAction SilentlyContinue
+            $sshSession = New-SSHSession -ComputerName $vmhost -Credential $rootCreds -ConnectionTimeout 90 -KeepAliveInterval 5 -AcceptKey -ErrorAction SilentlyContinue
+            if ($Global:Error[0].Exception.Message -match "Key exchange negotiation failed") {
+                $Global:Error.Clear()
+                Write-Warning "Cached SSH Key fingerprint mismatch. Removing cached Key..."
+                Remove-SSHTrustedHost -SSHHost $vmhost
+                $sshSession = New-SSHSession -ComputerName $vmhost -Credential $rootCreds -ConnectionTimeout 90 -KeepAliveInterval 5 -AcceptKey -ErrorAction SilentlyContinue
+            } #END if
+
             if ($sshSession) {
                 Write-Verbose -Message ((Get-Date -Format G) + "`tSSH session established...")
                 $sshCommand = Invoke-SSHCommand -Command "vsish -e cat /hardware/cpu/cpuList/0 | grep microcode -A 2" -SessionId $sshSession.SessionId
@@ -510,7 +537,7 @@
                 Remove-SSHSession $sshSession | Out-Null
             }
             else {
-                Write-Warning -Message ("`tFailed to establish SSH connection: " + $Error[0].Exception.Message)
+                Write-Warning -Message ("`tFailed to establish SSH connection: " + $Global:Error[0].Exception.Message)
             } #END if/else
             $vmServices | Where-Object {$_.Key -eq "TSM-SSH"} | Stop-VMHostService -Confirm:$false | Out-Null
             if ($mcuUpdate -eq "0") {
@@ -582,59 +609,30 @@
             if ($mcuCsvCollection) {
                 $intelMcuList = $mcuCsvCollection | Where-Object {$_.CPUID -eq $cpuidHEX}
                 if ($intelMcuList) {
-                    $cpuAffected = $null
                     if ($intelMcuList.Count -gt 1) {
                         if ($mcu = $intelMcuList | Where-Object {$cpuModel.Contains($_.Name.Split('')[3])}) {
                             $intelProduct = $mcu.Product
                             $prodStatus = $mcu.Status
-                            $affectedMCU = $mcu.AffectedMCU
                             $prodMCU = $mcu.ProductionMCU
-                            if ($affectedMCU -eq "N/A") {
-                                $cpuAffected = $false
-                            }
-                            else {
-                                if ($mcuCurrent) {
-                                    $cpuAffected = $affectedMCU.Contains($mcuCurrent)
-                                }
-                                else {
-                                    $cpuAffected = "Unknown"        
-                                } #END if/else
-                            } #END if/else
                         }
                         else {
                             Write-Verbose -Message ((Get-Date -Format G) + "`tNo Match found for: $cpuModel")
                             $intelProduct = "Unknown"
                             $prodStatus = "Unknown"
-                            $affectedMCU = "Unknown"
                             $prodMCU = "Unknown"
-                            $cpuAffected = "Unknown"
                         } #END if/else
                     }
                     else {
                         $intelProduct = $intelMcuList.Product
                         $prodStatus = $intelMcuList.Status
-                        $affectedMCU = $intelMcuList.AffectedMCU
                         $prodMCU = $intelMcuList.ProductionMCU
-                        if ($affectedMCU -eq "N/A") {
-                            $cpuAffected = $false
-                        }
-                        else {
-                            if ($mcuCurrent) {
-                                $cpuAffected = $affectedMCU.Contains($mcuCurrent)
-                            }
-                            else {
-                                $cpuAffected = "Unknown"        
-                            } #END if/else
-                        } #END if/else
                     } #END if/else
                 }
                 else {
                     Write-Verbose -Message ((Get-Date -Format G) + "`t$cpuModel not found in Intel MCU Guidance list provided.")
                     $intelProduct = "Unknown"
                     $prodStatus = "Unknown"
-                    $affectedMCU = "Unknown"
                     $prodMCU = "Unknown"
-                    $cpuAffected = "Unknown"
                 } #END if/else
             } #END if
         }
@@ -642,75 +640,40 @@
             Write-Verbose -Message ((Get-Date -Format G) + "`tNot an Intel CPU, skipping...")
             $intelProduct = "N/A"
             $prodStatus = "N/A"
-            $affectedMCU = "N/A"
             $prodMCU = "N/A"
-            $cpuAffected = "Unknown - Check with manufacturer"
         } #END if/Else
-
-        <#
-          Check for VMware
-          MCU workaround
-        #>
-        Write-Verbose -Message ((Get-Date -Format G) + "`tGathering details for VMware MCU workaround...")
-        $vmhostName = $vmhost.Name
-        $url = "https://$vmhostName/host/vmware_config"
-        $sessionManager = Get-View ($global:DefaultVIServer.ExtensionData.Content.sessionManager)
-        $spec = New-Object VMware.Vim.SessionManagerHttpServiceRequestSpec
-        $spec.Method = "httpGet"
-        $spec.Url = $url
-        $ticket = $sessionManager.AcquireGenericServiceTicket($spec)
-        $websession = New-Object Microsoft.PowerShell.Commands.WebRequestSession
-        $cookie = New-Object System.Net.Cookie
-        $cookie.Name = "vmware_cgi_ticket"
-        $cookie.Value = $ticket.id
-        $cookie.Domain = $vmhostName
-        $websession.Cookies.Add($cookie)
-        $result = Invoke-WebRequest -Uri $url -WebSession $websession
-        $esxconfig = $result.content
-        foreach ($line in $esxconfig.Split("`n")) {
-            if ($line -eq 'cpuid.7.edx = "----:00--:----:----:----:----:----:----"') {
-                $intelWorkaround = $true
-                break
-            }
-            else {
-                $intelWorkaround = $false
-            } #END if/else
-        } #END foreach
 
         <#
           Use a custom object to store
           collected data
         #>
         $patchCollection += [PSCustomObject]@{
-            'Hostname'                      = $vmhost.Name
-            'Management IP'                 = $mgmtIP
-            'Cluster'                       = $vmhost.Parent            
-            'Product'                       = $vmhostView.Config.Product.Name
-            'Version'                       = $vmhostView.Config.Product.Version
-            'Build'                         = $vmhost.Build            
-            'Last patched'                  = $lastPatched
-            'Boot time'                     = $bootTime
-            'Uptime'                        = "$upTimeDays Day(s), $upTimeHours Hr(s), $upTimeMinutes Min(s)"            
-            'Make'                          = $vmhost.Manufacturer
-            'Model'                         = $vmhost.Model
-            'CPU model'                     = $cpuModel
-            'CPUID'                         = $cpuidHEX
-            'Max EVC mode'                  = $vmhost.MaxEVCMode
-            'BIOS version'                  = $vmhostView.Hardware.BiosInfo.BiosVersion
-            'BIOS release date'             = $biosReleaseDate
-            'BIOS guidance'                 = $biosComplianceStatus
-            'ESXi guidance'                 = $esxFrameworkStatus + "/" + $esxv2McuStatus
-            'MCU CPUID'                     = $hostMcuCPuid
-            'PCID/INVPCID'                  = $hostCpuPcid
-            'ESXi applied MCU'              = $mcuUpdate
-            'MCU BIOS rev.'                 = $mcuOriginal
-            'MCU boot rev.'                 = $mcuCurrent
-            'Intel product'                 = $intelProduct
-            'Intel MCU status'              = $prodStatus
-            'Intel MCU(s) at risk'          = $affectedMCU
-            'Intel production MCU'          = $prodMCU
-            'MCU boot rev. at risk'         = $cpuAffected
-            'VMware MCU workaround applied' = $intelWorkaround
+            'Hostname'             = $vmhost.Name
+            'Management IP'        = $mgmtIP
+            'Cluster'              = $vmhost.Parent            
+            'Product'              = $vmhostView.Config.Product.Name
+            'Version'              = $vmhostView.Config.Product.Version
+            'Build'                = $vmhost.Build            
+            'Last patched'         = $lastPatched
+            'Boot time'            = $bootTime
+            'Uptime'               = "$upTimeDays Day(s), $upTimeHours Hr(s), $upTimeMinutes Min(s)"            
+            'Make'                 = $vmhost.Manufacturer
+            'Model'                = $vmhost.Model
+            'CPU model'            = $cpuModel
+            'CPUID'                = $cpuidHEX
+            'Max EVC mode'         = $vmhost.MaxEVCMode
+            'BIOS version'         = $vmhostView.Hardware.BiosInfo.BiosVersion
+            'BIOS release date'    = $biosReleaseDate
+            'BIOS guidance'        = $biosComplianceStatus
+            'ESXi guidance'        = $esxFrameworkStatus + "/" + $esxv2McuStatus
+            'MCU CPUID'            = $hostMcuCPuid
+            'PCID/INVPCID'         = $hostCpuPcid
+            'ESXi applied MCU'     = $mcuUpdate
+            'MCU BIOS rev.'        = $mcuOriginal
+            'MCU boot rev.'        = $mcuCurrent
+            'Intel product'        = $intelProduct
+            'Intel MCU status'     = $prodStatus
+            'Intel production MCU' = $prodMCU
         } #END [PSCustomObject]      
 
         <#
@@ -731,7 +694,7 @@
                 Write-Host "`tGathering VM hypervisor-assisted guest mitigation details from $vm ..."
                 $hardwareVersion = ($vm.Version.ToString()).Split('v')[1]              
                 $vmFeatureRequirement = $vm.ExtensionData.Runtime.FeatureRequirement
-                $vmCpuid = $vmFeatureRequirement | Where-Object {$_.FeatureName -eq "cpuid.IBRS" -or $_.Featurename -eq "cpuid.IBPB" -or $_.Featurename -eq "cpuid.STIBP"} | Select-Object -ExpandProperty FeatureName
+                $vmCpuid = $vmFeatureRequirement | Where-Object {$_.FeatureName -eq "cpuid.IBRS" -or $_.Featurename -eq "cpuid.IBPB" -or $_.Featurename -eq "cpuid.STIBP" -or $_.Featurename -eq "cpuid.SSBD"} | Select-Object -ExpandProperty FeatureName
                 $vmPcid = $vmFeatureRequirement | Where-Object {$_.FeatureName -eq "cpuid.INVPCID" -or $_.Featurename -eq "cpuid.PCID"} | Select-Object -ExpandProperty FeatureName
                 if ($vm.Guest.OSFullName) {
                     $vmGuestOs = $vm.Guest.OSFullName

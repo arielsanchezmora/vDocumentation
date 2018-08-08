@@ -12,7 +12,7 @@ function Get-vSANInfo {
        Author       : Graham Barker - @VirtualG_UK
        Contributor  : Edgar Sanchez - @edmsanchez13
        Contributor  : Ariel Sanchez - @arielsanchezmor
-       Version      : 2.4.3
+       Version      : 2.4.4
      .Link
        https://github.com/arielsanchezmora/vDocumentation
      .INPUTS
