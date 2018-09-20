@@ -3,10 +3,14 @@
      .SYNOPSIS
        Get VM compliance on VMSA-2018-0004 Security Advisory
      .DESCRIPTION
-       Will validate VM for VMware Security Advisory VMSA-2018-0004 Compliance (https://www.vmware.com/us/security/advisories/VMSA-2018-0004.html)
+       Will validate VM for Spectre/Hypervisor-Assisted Guest Mitigation
+       https://www.vmware.com/security/advisories/VMSA-2018-0004.html
+       https://www.vmware.com/security/advisories/VMSA-2018-0012.1.html
      .NOTES
-       Author     : Edgar Sanchez - @edmsanchez13
-       Contributor: Ariel Sanchez - @arielsanchezmor
+       File Name    : Get-VMSpeculativeExecution.ps1
+       Author       : Edgar Sanchez - @edmsanchez13
+       Contributor  : Ariel Sanchez - @arielsanchezmor
+       Version      : 2.4.4
      .Link
        https://github.com/arielsanchezmora/vDocumentation
      .PARAMETER VM
@@ -19,13 +23,19 @@
      .EXAMPLE
        C:\PS> Get-VM -Name "labvm001" | Get-VMSpeculativeExecution
 
-       Name                : labvm001
-       Power State         : PoweredOn
-       Hardware Version    : v10
-       ESXi Host           : labhost010
-       ESXi CPUID Features : IBPB,IBRS,STIBP
-       VM CPUID Features   : STIBP,IBRS,IBPB
-       SafeFromSpectre     : True
+       Name                                 : labvm001
+       Power state                          : PoweredOn
+       VM Guest OS                          : Microsoft Windows Server 2008 (32-bit)
+       ESXi Host                            : aluvm014.emea.convergys.com
+       Cluster EVC mode                     : Disabled
+       Hardware version                     : v13
+       ESXi MCU CPUID                       : IBPB,IBRS,SSBD,STIBP
+       ESXi PCID/INVPCID                    : True
+       VM MCU CPUID                         : STIBP,SSBD,IBRS,IBPB
+       VM PCID/INVPCID                      : PCID,INVPCID
+       Last PoweredOn                       : 7/31/2018 5:36:47 AM
+       Hypervisor-Assisted Guest mitigation : Supported/Enabled
+       PCID optimization                    : Supported/Enabled
 
      .EXAMPLE
        C:\PS> Get-VM -Location "MyClusterName" | Get-VMSpeculativeExecution
@@ -89,11 +99,11 @@
             $powerOnEvent = $null
             $hardwareVersion = ($oneVM.Version.ToString()).Split('v')[1]
             $hostFeatureCapability = $hostCpuidCollection | Where-Object {$_.Name -eq $oneVM.VMHost.Name} | Select-Object -ExpandProperty FeatureCapability
-            $hostCpuid = $hostFeatureCapability | Where-Object {$_.FeatureName -eq "cpuid.IBRS" -and $_.Value -eq "1" -or $_.Featurename -eq "cpuid.IBPB" -and $_.Value -eq "1" -or $_.Featurename -eq "cpuid.STIBP" -and $_.Value -eq "1"} | Select-Object -ExpandProperty FeatureName
+            $hostCpuid = $hostFeatureCapability | Where-Object {$_.FeatureName -eq "cpuid.IBRS" -and $_.Value -eq "1" -or $_.Featurename -eq "cpuid.IBPB" -and $_.Value -eq "1" -or $_.Featurename -eq "cpuid.STIBP" -and $_.Value -eq "1" -or $_.Featurename -eq "cpuid.SSBD" -and $_.Value -eq "1"} | Select-Object -ExpandProperty FeatureName
             $hostInvPcid = $hostFeatureCapability | Where-Object {$_.FeatureName -eq "cpuid.INVPCID" -and $_.Value -eq "1"} | Select-Object -ExpandProperty FeatureName
             $hostPcid = $hostFeatureCapability | Where-Object {$_.Featurename -eq "cpuid.PCID" -and $_.Value -eq "1"} | Select-Object -ExpandProperty FeatureName
             $vmFeatureRequirement = $oneVM.ExtensionData.Runtime.FeatureRequirement
-            $vmCpuid = $vmFeatureRequirement | Where-Object {$_.FeatureName -eq "cpuid.IBRS" -or $_.Featurename -eq "cpuid.IBPB" -or $_.Featurename -eq "cpuid.STIBP"} | Select-Object -ExpandProperty FeatureName
+            $vmCpuid = $vmFeatureRequirement | Where-Object {$_.FeatureName -eq "cpuid.IBRS" -or $_.Featurename -eq "cpuid.IBPB" -or $_.Featurename -eq "cpuid.STIBP" -or $_.Featurename -eq "cpuid.SSBD"} | Select-Object -ExpandProperty FeatureName
             $vmPcid = $vmFeatureRequirement | Where-Object {$_.FeatureName -eq "cpuid.INVPCID" -or $_.Featurename -eq "cpuid.PCID"} | Select-Object -ExpandProperty FeatureName
             if ($oneVM.Guest.OSFullName) {
                 $vmGuestOs = $oneVM.Guest.OSFullName
@@ -107,7 +117,7 @@
 
             <#
                   Validate VM Hardware
-                #>
+            #>
             Write-Verbose -Message ((Get-Date -Format G) + "`tValidating VM Hardware")
             if ([int]$hardwareVersion -ge "9" -and $vm.PowerState -eq "PoweredOn") {
                 if ($hostCpuid) {
@@ -192,4 +202,3 @@
         $vmCollection
     } #END process
 } #END function
-

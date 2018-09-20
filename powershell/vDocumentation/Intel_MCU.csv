@@ -1,10 +1,10 @@
 Product,Name,CPUID,Status,AffectedMCU,ProductionMCU
-Broadwell DE A1,Intel(R) Xeon(R) CPU D-1500 NS Product Family,50665,Production,N/A,0xe000009
+Broadwell DE A1,Intel(R) Xeon(R) CPU D-1500 NS Product Family,50665,Production,N/A,0x0e000009
 Broadwell DE V1,Intel(R) Xeon(R) CPU  D-1500 Product Family,50662,Production,0x00000014,0x00000015
-"Broadwell DE V2,V3",Intel(R) Xeon(R) CPU D-1500 Product Family,50663,Production,0x7000011,0x7000012
-Broadwell DE Y0,Intel(R) Xeon(R) CPU D-1500 Product Family,50664,Production,N/A,0xf000011
-"Broadwell E, EP, EP4S",Intel(R) Xeon(R) CPU E5 v4 Product Family,406F1,Production,"0xb000023, 0xb000025",0xb00002a
-Broadwell EX,Intel(R) Xeon(R) CPU E7 v4 Product Family,406F1,Production,"0xb000023, 0xb000025",0xb00002a
+"Broadwell DE V2,V3",Intel(R) Xeon(R) CPU D-1500 Product Family,50663,Production,0x07000011,0x07000012
+Broadwell DE Y0,Intel(R) Xeon(R) CPU D-1500 Product Family,50664,Production,N/A,0x0f000011
+"Broadwell E, EP, EP4S",Intel(R) Xeon(R) CPU E5 v4 Product Family,406F1,Production,"0x0b000023, 0x0b000025",0x0b00002a
+Broadwell EX,Intel(R) Xeon(R) CPU E7 v4 Product Family,406F1,Production,"0x0b000023, 0x0b000025",0x0b00002a
 Broadwell Xeon E3,Intel(R) Xeon(R) CPU E3 v4 Product Family,40671,Production,0x0000001b,0x0000001d
 "Haswell E, EP, EP4S",Intel(R) Xeon(R) CPU E5 v3 Product Family,306F2,Production,0x0000003b,0x0000003c
 Haswell EX,Intel(R) Xeon(R) CPU E7 v3 Product Family,306F4,Production,0x00000010,0x00000011
@@ -12,12 +12,12 @@ Haswell Xeon E3,Intel(R) Xeon(R) CPU E3-1200 v3 Product Family,306C3,Production,
 "Ivy Bridge E, EN, EP, EP4S",Intel(R) Xeon(R) CPU E5 v2 Product Family,306E4,Production,0x0000042a,0x0000042c
 Ivy Bridge EX,Intel(R) Xeon(R) CPU E7 v2 Product Family,306E7,Production,N/A,0x00000713
 Ivy Bridge Xeon E3,Intel(R) Xeon(R) CPU E3-1200 v2 Product Family,306A9,Production,N/A,0x0000001f
-"Nehalem EP, Nehalem WS",Intel(R) Xeon(R) CPU E55/L55/W55/X55 Product Family,106A5,Beta,N/A,N/A
-Nehalem EX,Intel(R) Xeon(R) CPU E65/E75/L75/X65/X75 Product Family,206E6,Pre-Beta,N/A,N/A
+"Nehalem EP, Nehalem WS",Intel(R) Xeon(R) CPU E55/L55/W55/X55 Product Family,106A5,Production,N/A,0x0000001c
+Nehalem EX,Intel(R) Xeon(R) CPU E65/E75/L75/X65/X75 Product Family,206E6,Production,N/A,0x0000000c
 Sandy Bridge EN/EP/EP4S,Intel(R) Xeon(R) CPU E5 Product Family,206D6,Production,N/A,0x0000061c
 Sandy Bridge EN/EP/EP4S,Intel(R) Xeon(R) CPU E5 Product Family,206D7,Production,N/A,0x00000713
 Sandy Bridge Xeon E3,Intel(R) Xeon(R) CPU E3-1200 Product Family,206A7,Production,N/A,0x0000002d
-Skylake,Intel(R) Xeon(R) CPU Scalable Processor Family,50654,Production,0x0200003a,0x2000043
+Skylake,Intel(R) Xeon(R) CPU Scalable Processor Family,50654,Production,0x0200003a,0x02000043
 Skylake Xeon E3,Intel(R) Xeon(R) CPU E3-1200 v5 Product Family,506E3,Production,N/A,0x000000c2
-"Westmere EP, WS",Intel(R) Xeon(R) CPU E56/L56/W36/X56 Product Family,206C2,Beta,N/A,N/A
-"Westmere EX (EGL, WSM)",Intel(R) Xeon(R) CPU E7-28/48/88 Product Family,206F2,Pre-Beta,N/A,N/A
+"Westmere EP, WS",Intel(R) Xeon(R) CPU E56/L56/W36/X56 Product Family,206C2,Production,N/A,0x0000001e
+"Westmere EX (EGL, WSM)",Intel(R) Xeon(R) CPU E7-28/48/88 Product Family,206F2,Production,N/A,0x0000003a

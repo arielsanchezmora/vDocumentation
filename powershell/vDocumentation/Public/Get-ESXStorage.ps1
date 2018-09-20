@@ -6,8 +6,10 @@
        Will get iSCSI Software and Fibre Channel Adapter (HBA) details including Datastores
        All this can be gathered for a vSphere Cluster, Datacenter or individual ESXi host
      .NOTES
-       Author     : Edgar Sanchez - @edmsanchez13
-       Contributor: Ariel Sanchez - @arielsanchezmor
+       File Name    : Get-ESXStorage.ps1
+       Author       : Edgar Sanchez - @edmsanchez13
+       Contributor  : Ariel Sanchez - @arielsanchezmor
+       Version      : 2.4.4
      .Link
        https://github.com/arielsanchezmora/vDocumentation
      .INPUTS
@@ -35,7 +37,7 @@
      .PARAMETER ExportExcel
        Switch to export all data to Excel file (No need to have Excel Installed). This relies on ImportExcel Module to be installed.
        ImportExcel Module can be installed directly from the PowerShell Gallery. See https://github.com/dfinke/ImportExcel for more information
-       File is saved to the current user directory from where the script was executed. Use -folderPath parameter to specify a alternate location
+       File is saved to the current user directory from where the script was executed. Use -folderPath parameter to specify an alternate location
      .EXAMPLE
        Get-ESXStorage -cluster production-cluster -ExportExcel
      .PARAMETER StorageAdapters
@@ -366,7 +368,14 @@
             foreach ($oneDS in $hostDSList) {
                 Write-Verbose -Message ((Get-Date -Format G) + "`tGet Datastore details for: " + $oneDS.Name)
                 $dsCName = $oneDS.ExtensionData.Info.Vmfs.Extent | Select-Object -ExpandProperty DiskName
-                $dsDisk = $esxcli1.storage.nmp.device.list.Invoke(@{device = $dsCName})
+                if ($oneDS.Type -eq "vsan" -or $oneDS.Type -eq "NFS") {
+                    Write-Verbose -Message ((Get-Date -Format G) + "`t" + $oneDS.Type + " type datastore found. Skipping storage multipathing policy validation")
+                    $dsDisk = $null
+                }
+                else {
+                    $dsDisk = $esxcli1.storage.nmp.device.list.Invoke(@{device = $dsCName})                    
+                } #END if/else
+
     
                 <#
                   Validate against exising collection
@@ -392,11 +401,19 @@
                     $dsView = $oneDS | Get-View
                     $dsSummary = $dsView | Select-Object -ExpandProperty Summary
                     $provisionedGB = [math]::round(($dsSummary.Capacity - $dsSummary.FreeSpace + $dsSummary.Uncommitted) / 1GB, 2)
-                    $dspath = $esxcli1.storage.core.path.list.Invoke(@{device = $dsCName}) | Select-Object -First 1
-                    $dsDisplayName = (($dspath.DeviceDisplayName -Split " [(]")[0])
-                    $LUN = $dspath.LUN
-                    $vmHBA = $dspath.Adapter
-                    $dsTransport = $vmhost | Get-VMHostHba | Select-Object Device, Type | Where-Object {$_.Device -eq $vmHBA}
+                    if ($oneDS.Type -eq "vsan" -or $oneDS.Type -eq "NFS") {
+                        Write-Verbose -Message ((Get-Date -Format G) + "`t" + $oneDS.Type + " type datastore found. Skipping storage path validation")
+                        $dsDisplayName = $null
+                        $LUN = $null
+                        $dsTransport = $null
+                    }
+                    else {
+                        $dspath = $esxcli1.storage.core.path.list.Invoke(@{device = $dsCName}) | Select-Object -First 1
+                        $dsDisplayName = (($dspath.DeviceDisplayName -Split " [(]")[0])
+                        $LUN = $dspath.LUN
+                        $vmHBA = $dspath.Adapter
+                        $dsTransport = $vmhost | Get-VMHostHba | Select-Object Device, Type | Where-Object {$_.Device -eq $vmHBA}                      
+                    } #END if/else
                     if ($oneDS.ParentFolder -eq $null -and $oneDS.ParentFolderId -match "StoragePod") {
                         $dsCluster = Get-DatastoreCluster -Id $oneDS.ParentFolderId | Select-Object -ExpandProperty Name
                         Write-Verbose -Message ((Get-Date -Format G) + "`tDatastore is part of Datastore Cluster: " + $dsCluster)
@@ -407,7 +424,7 @@
                     } #END if/else
                     $dsName = $oneDS.Name
                     $dsType = $oneDS.Type
-                    $dsCapacityGB = $oneDS.CapacityGB
+                    $dsCapacityGB = [math]::round($oneDS.CapacityGB, 2)
                     $dsFreeGB = [math]::round($oneDS.FreeSpaceGB, 2)
                     $dsTransportType = $dsTransport.Type
                     $dsMountPoint = (($dsSummary.Url -split "ds://")[1])
@@ -497,7 +514,7 @@
         } #END if/else
     } #END if
     if ($DatastoresCollection) {
-        Write-Host "`n" "ESXi FibreChannel HBA:" -ForegroundColor Green
+        Write-Host "`n" "ESXi Datastores:" -ForegroundColor Green
         if ($ExportCSV) {
             $DatastoresCollection | Export-Csv ($outputFile + "Datastores.csv") -NoTypeInformation
             Write-Host "`tData exported to" ($outputFile + "Datastores.csv") "file" -ForegroundColor Green

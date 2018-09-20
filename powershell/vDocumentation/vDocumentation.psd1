@@ -12,7 +12,7 @@
 RootModule = '.\vDocumentation.psm1'
 
 # Version number of this module.
-ModuleVersion = '2.4.1'
+ModuleVersion = '2.4.4'
 
 # ID used to uniquely identify this module
 GUID = 'e38fbdc9-ac76-4e62-bb18-ae9feb9c23dc'
@@ -97,7 +97,7 @@ PrivateData = @{
     PSData = @{
 
         # Tags applied to this module. These help with module discovery in online galleries.
-        Tags = @("Powershell","VMware","PowerCLI","Inventory","vSphere","ESXi","VUM","Patch","vSAN")
+        Tags = @("Powershell","VMware","PowerCLI","Inventory","vSphere","ESXi","VUM","Patch","vSAN","Spectre")
 
         # A URL to the license for this module.
          LicenseUri = "https://github.com/arielsanchezmora/vDocumentation/blob/master/LICENSE"

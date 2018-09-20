@@ -9,8 +9,10 @@
        Graphic Device - vmgfx*
        All this can be gathered for a vSphere Cluster, Datacenter or individual ESXi host
      .NOTES
-       Author     : Edgar Sanchez - @edmsanchez13
-       Contributor: Ariel Sanchez - @arielsanchezmor
+       File Name    : Get-ESXIODevice.ps1
+       Author       : Edgar Sanchez - @edmsanchez13
+       Contributor  : Ariel Sanchez - @arielsanchezmor
+       Version      : 2.4.4
      .Link
        https://github.com/arielsanchezmora/vDocumentation
      .INPUTS
