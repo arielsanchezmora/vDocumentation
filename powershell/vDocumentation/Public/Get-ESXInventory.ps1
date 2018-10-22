@@ -11,7 +11,7 @@
        File Name    : Get-ESXInventory.ps1
        Author       : Edgar Sanchez - @edmsanchez13
        Contributor  : Ariel Sanchez - @arielsanchezmor
-       Version      : 2.4.4
+       Version      : 2.4.5
      .Link
        https://github.com/arielsanchezmora/vDocumentation
      .INPUTS
@@ -19,45 +19,44 @@
      .OUTPUTS
        CSV file
        Excel file
-     .PARAMETER esxi
+     .PARAMETER VMhost
        The name(s) of the vSphere ESXi Host(s)
      .EXAMPLE
-       Get-ESXInventory -esxi devvm001.lab.local
-     .PARAMETER cluster
+       Get-ESXInventory -VMhost devvm001.lab.local
+     .PARAMETER Cluster
        The name(s) of the vSphere Cluster(s)
      .EXAMPLE
-       Get-ESXInventory -cluster production-cluster
-     .PARAMETER datacenter
+       Get-ESXInventory -Cluster production
+     .PARAMETER Datacenter
        The name(s) of the vSphere Virtual Datacenter(s).
      .EXAMPLE
-       Get-ESXInventory -datacenter vDC001
-       Get-ESXInventory -datacenter "all vdc" will gather all hosts in vCenter(s). This is the default if no Parameter (-esxi, -cluster, or -datacenter) is specified. 
+       Get-ESXInventory -Datacenter vDC001
      .PARAMETER ExportCSV
        Switch to export all data to CSV file. File is saved to the current user directory from where the script was executed. Use -folderPath parameter to specify a alternate location
      .EXAMPLE
-       Get-ESXInventory -cluster production-cluster -ExportCSV
+       Get-ESXInventory -Cluster production -ExportCSV
      .PARAMETER ExportExcel
        Switch to export all data to Excel file (No need to have Excel Installed). This relies on ImportExcel Module to be installed.
        ImportExcel Module can be installed directly from the PowerShell Gallery. See https://github.com/dfinke/ImportExcel for more information
        File is saved to the current user directory from where the script was executed. Use -folderPath parameter to specify a alternate location
      .EXAMPLE
-       Get-ESXInventory -cluster production-cluster -ExportExcel
+       Get-ESXInventory -Cluster production -ExportExcel
      .PARAMETER Hardware
        Switch to get Hardware inventory
      .EXAMPLE
-       Get-ESXInventory -cluster production-cluster -Hardware
+       Get-ESXInventory -Cluster production -Hardware
      .PARAMETER Configuration
        Switch to get system configuration details
      .EXAMPLE
-       Get-ESXInventory -cluster production-cluster -Configuration
+       Get-ESXInventory -Cluster production -Configuration
      .PARAMETER folderPath
        Specify an alternate folder path where the exported data should be saved.
      .EXAMPLE
-       Get-ESXInventory -cluster production-cluster -ExportExcel -folderPath C:\temp
+       Get-ESXInventory -Cluster production -ExportExcel -folderPath C:\temp
      .PARAMETER PassThru
        Switch to return object to command line
      .EXAMPLE
-       Get-ESXInventory -esxi 192.168.1.100 -Hardware -PassThru
+       Get-ESXInventory -VMhost 192.168.1.100 -Hardware -PassThru
     #> 
     
     <#
@@ -72,9 +71,21 @@
     [CmdletBinding()]
     [Diagnostics.CodeAnalysis.SuppressMessageAttribute("AvoidUsingConvertToSecureStringWithPlainText", "")]
     param (
-        $esxi,
-        $cluster,
-        $datacenter,
+        [Parameter(Mandatory = $false,
+            ParameterSetName = "VMhost")]
+        [ValidateNotNull()]
+        [ValidateNotNullOrEmpty()]
+        [String[]]$VMhost,
+        [Parameter(Mandatory = $false,
+            ParameterSetName = "Cluster")]
+        [ValidateNotNull()]
+        [ValidateNotNullOrEmpty()]
+        [String[]]$Cluster,
+        [Parameter(Mandatory = $false,
+            ParameterSetName = "DataCenter")]
+        [ValidateNotNull()]
+        [ValidateNotNullOrEmpty()]
+        [String[]]$DataCenter,        
         [switch]$ExportCSV,
         [switch]$ExportExcel,
         [switch]$Hardware,
@@ -83,11 +94,11 @@
         $folderPath
     )
     
-    $hardwareCollection = @()
-    $configurationCollection = @()
+    $hardwareCollection = [System.Collections.ArrayList]@()
+    $configurationCollection = [System.Collections.ArrayList]@()
     $skipCollection = @()
     $vHostList = @()
-    $ReturnCollection = @()
+    $returnCollection = @()
     $date = Get-Date -format s
     $date = $date -replace ":", "-"
     $outputFile = "Inventory" + $date
@@ -96,6 +107,8 @@
      ----------------------------------------------------------[Execution]----------------------------------------------------------
     #>
   
+    $stopWatch = [system.diagnostics.stopwatch]::startNew()
+
     <#
       Query PowerCLI and vDocumentation versions if
       running Verbose
@@ -118,77 +131,50 @@
         Write-Error -Message "You must be connected to a vSphere server before running this Cmdlet."
         break
     } #END if/else
-    
+        
     <#
-      Validate if a parameter was specified (-esxi, -cluster, or -datacenter)
-      Although all 3 can be specified, only the first one is used
-      Example: -esxi "host001" -cluster "test-cluster". -esxi is the first parameter
-      and what will be used.
-    #>
-    Write-Verbose -Message ((Get-Date -Format G) + "`tValidate parameters used")
-    if ([string]::IsNullOrWhiteSpace($esxi) -and [string]::IsNullOrWhiteSpace($cluster) -and [string]::IsNullOrWhiteSpace($datacenter)) {
-        Write-Verbose -Message ((Get-Date -Format G) + "`tA parameter (-esxi, -cluster, -datacenter) was not specified. Will gather all hosts")
-        $datacenter = "all vdc"
-    } #END if
-    
-    <#
-      Gather host list based on parameter used
+      Gather host list based on Parameter set used
     #>
     Write-Verbose -Message ((Get-Date -Format G) + "`tGather host list")
-    if ([string]::IsNullOrWhiteSpace($esxi)) {      
-        Write-Verbose -Message ((Get-Date -Format G) + "`t-esxi parameter is Null or Empty")
-        if ([string]::IsNullOrWhiteSpace($cluster)) {
-            Write-Verbose -Message ((Get-Date -Format G) + "`t-cluster parameter is Null or Empty")
-            if ([string]::IsNullOrWhiteSpace($datacenter)) {
-                Write-Verbose -Message ((Get-Date -Format G) + "`t-datacenter parameter is Null or Empty")
-            }
-            else {
-                Write-Verbose -Message ((Get-Date -Format G) + "`tExecuting Cmdlet using datacenter parameter")
-                if ($datacenter -eq "all vdc") {
-                    Write-Host "`tGathering all hosts from the following vCenter(s): " $Global:DefaultViServers
-                    $vHostList = Get-VMHost | Sort-Object -Property Name                    
-                }
-                else {
-                    Write-Host "`tGathering host list from the following DataCenter(s): " (@($datacenter) -join ',')
-                    foreach ($vDCname in $datacenter) {
-                        $tempList = Get-Datacenter -Name $vDCname.Trim() -ErrorAction SilentlyContinue | Get-VMHost 
-                        if ($tempList) {
-                            $vHostList += $tempList | Sort-Object -Property Name
-                        }
-                        else {
-                            Write-Warning -Message "`tDatacenter with name $vDCname was not found in $Global:DefaultViServers"
-                        } #END if/else
-                    } #END foreach
-                } #END if/else
-            } #END if/else
-        }
-        else {
-            Write-Verbose -Message ((Get-Date -Format G) + "`tExecuting Cmdlet using cluster parameter")
-            Write-Host "`tGathering host list from the following Cluster(s): " (@($cluster) -join ',')
-            foreach ($vClusterName in $cluster) {
-                $tempList = Get-Cluster -Name $vClusterName.Trim() -ErrorAction SilentlyContinue | Get-VMHost 
-                if ($tempList) {
-                    $vHostList += $tempList | Sort-Object -Property Name
-                }
-                else {
-                    Write-Warning -Message "`tCluster with name $vClusterName was not found in $Global:DefaultViServers"
-                } #END if/else
-            } #END foreach
-        } #END if/else
-    }
-    else { 
-        Write-Verbose -Message ((Get-Date -Format G) + "`tExecuting Cmdlet using esxi parameter")
-        Write-Host "`tGathering host list..."
-        foreach ($invidualHost in $esxi) {
+    if ($VMhost) {
+        Write-Verbose -Message ((Get-Date -Format G) + "`tExecuting Cmdlet using VMhost parameter set")
+        Write-Output "`tGathering host list..."
+        foreach ($invidualHost in $VMhost) {
             $tempList = Get-VMHost -Name $invidualHost.Trim() -ErrorAction SilentlyContinue
             if ($tempList) {
-                $vHostList += $tempList | Sort-Object -Property Name
+                $vHostList += $tempList
             }
             else {
                 Write-Warning -Message "`tESXi host $invidualHost was not found in $Global:DefaultViServers"
             } #END if/else
+        } #END foreach    
+    } #END if
+    if ($Cluster) {
+        Write-Verbose -Message ((Get-Date -Format G) + "`tExecuting Cmdlet using Cluster parameter set")
+        Write-Output "`tGathering host list from the following Cluster(s): " (@($Cluster) -join ',')
+        foreach ($vClusterName in $Cluster) {
+            $tempList = Get-Cluster -Name $vClusterName.Trim() -ErrorAction SilentlyContinue | Get-VMHost 
+            if ($tempList) {
+                $vHostList += $tempList
+            }
+            else {
+                Write-Warning -Message "`tCluster with name $vClusterName was not found in $Global:DefaultViServers"
+            } #END if/else
         } #END foreach
-    } #END if/else
+    } #END if
+    if ($DataCenter) {
+        Write-Verbose -Message ((Get-Date -Format G) + "`tExecuting Cmdlet using Datacenter parameter set")
+        Write-Output "`tGathering host list from the following DataCenter(s): " (@($DataCenter) -join ',')
+        foreach ($vDCname in $DataCenter) {
+            $tempList = Get-Datacenter -Name $vDCname.Trim() -ErrorAction SilentlyContinue | Get-VMHost 
+            if ($tempList) {
+                $vHostList += $tempList
+            }
+            else {
+                Write-Warning -Message "`tDatacenter with name $vDCname was not found in $Global:DefaultViServers"
+            } #END if/else
+        } #END foreach
+    } #END if
     $tempList = $null
     
     <#
@@ -263,14 +249,15 @@
     <#
       Main code execution
     #>
-    foreach ($vmhost in $vHostList) {
+    $vHostList = $vHostList | Sort-Object -Property Name
+    foreach ($esxiHost in $vHostList) {
     
         <#
           Skip if ESXi host is not in a Connected
           or Maintenance ConnectionState
         #>
-        Write-Verbose -Message ((Get-Date -Format G) + "`t$vmhost Connection State: " + $vmhost.ConnectionState)
-        if ($vmhost.ConnectionState -eq "Connected" -or $vmhost.ConnectionState -eq "Maintenance") {
+        Write-Verbose -Message ((Get-Date -Format G) + "`t$esxiHost Connection State: " + $esxiHost.ConnectionState)
+        if ($esxiHost.ConnectionState -eq "Connected" -or $esxiHost.ConnectionState -eq "Maintenance") {
             <#
               Do nothing - ESXi host is reachable
             #>
@@ -281,22 +268,22 @@
               hosts and continue to the next foreach loop
             #>
             $skipCollection += [pscustomobject]@{
-                'Hostname'         = $vmhost.Name
-                'Connection State' = $vmhost.ConnectionState
+                'Hostname'         = $esxiHost.Name
+                'Connection State' = $esxiHost.ConnectionState
             } #END [PSCustomObject]
             continue
         } #END if/else
-        $esxcli = Get-EsxCli -VMHost $vmhost -V2
-        $hostHardware = $vmhost | Get-VMHostHardware -WaitForAllData -SkipAllSslCertificateChecks -ErrorAction SilentlyContinue
-        $vmhostView = $vmhost | Get-View
+        $esxcli = Get-EsxCli -VMHost $esxiHost -V2
+        $hostHardware = $esxiHost | Get-VMHostHardware -WaitForAllData -SkipAllSslCertificateChecks -ErrorAction SilentlyContinue
+        $vmhostView = $esxiHost | Get-View
         $esxiVersion = $esxcli.system.version.get.Invoke()
                     
         <#
           Get Hardware invetory details
         #>
         if ($Hardware) {
-            Write-Host "`tGathering Hardware inventory from $vmhost ..."
-            $mgmtIP = $vmhost | Get-VMHostNetworkAdapter | Where-Object {$_.ManagementTrafficEnabled -eq 'True'} | Select-Object -ExpandProperty IP
+            Write-Output "`tGathering Hardware inventory from $esxiHost ..."
+            $mgmtIP = Get-VMHostNetworkAdapter -VMHost $esxiHost -VMKernel | Where-Object {$_.ManagementTrafficEnabled -eq 'True'} | Select-Object -ExpandProperty IP
             $hardwarePlatfrom = $esxcli.hardware.platform.get.Invoke()
     
             <#
@@ -305,36 +292,58 @@
             Write-Verbose -Message ((Get-Date -Format G) + "`tGathering RAC IP...")
             $cimServicesTicket = $vmhostView.AcquireCimServicesTicket()
             $credential = New-Object -TypeName System.Management.Automation.PSCredential -ArgumentList $cimServicesTicket.SessionId, (ConvertTo-SecureString $cimServicesTicket.SessionId -AsPlainText -Force)
-            $cimOpt = New-CimSessionOption -SkipCACheck -SkipCNCheck -SkipRevocationCheck -Encoding Utf8 –UseSsl
-            $session = New-CimSession -Authentication Basic -Credential $credential -ComputerName $vmhost -port 443 -SessionOption $cimOpt -ErrorAction SilentlyContinue
-            $rac = $session | Get-CimInstance CIM_IPProtocolEndpoint -ErrorAction SilentlyContinue | Where-Object {$_.Name -match "Management Controller IP"}
-            if ($rac.Name) {
-                $racIP = $rac.IPv4Address
-                $racMAC = $rac.MACAddress
-            }
-            else { 
+            try {
                 $racIP = $null
-            } #END if/ese
-            if ($bmc = $vmhost.ExtensionData.Runtime.HealthSystemRuntime.SystemHealthInfo.NumericSensorInfo | Where-Object {$_.Name -match "BMC Firmware"}) {
+                $racMAC = $null
+                $cimOpt = New-CimSessionOption -SkipCACheck -SkipCNCheck -SkipRevocationCheck -Encoding Utf8 –UseSsl
+                $session = New-CimSession -Authentication Basic -Credential $credential -ComputerName $esxiHost -port 443 -SessionOption $cimOpt -ErrorAction SilentlyContinue -ErrorVariable err
+                if ($err) {
+                    Write-Verbose -Message ((Get-Date -Format G) + "`t$err")
+                }
+                $rac = $session | Get-CimInstance CIM_IPProtocolEndpoint -ErrorAction SilentlyContinue  -ErrorVariable err | Where-Object {$_.Name -match "Management Controller IP"}
+                if ($rac.Name) {
+                    $racIP = $rac.IPv4Address
+                    $racMAC = $rac.MACAddress
+                } #END if
+            }
+            catch {
+                Write-Verbose -Message ((Get-Date -Format G) + "`tCIM session failed, error:")
+                Write-Verbose -Message ((Get-Date -Format G) + "`t$err")
+            } #END try/catch
+            if ($bmc = $esxiHost.ExtensionData.Runtime.HealthSystemRuntime.SystemHealthInfo.NumericSensorInfo | Where-Object {$_.Name -match "BMC Firmware"}) {
                 $bmcFirmware = (($bmc.Name -split "firmware")[1]) -split " " | Select-Object -Last 1
             }
             else {
-                $bmcFirmware = $null
+                Write-Verbose -Message ((Get-Date -Format G) + "`tFailed to get BMC firmware via CIM, testing using WSMan ...")
+                try {
+                    $bmcFirmware = $null
+                    $cimOpt = New-WSManSessionOption -SkipCACheck -SkipCNCheck -SkipRevocationCheck -ErrorAction SilentlyContinue -ErrorVariable err 
+                    $uri = "https`://" + $esxiHost.Name + "/wsman"
+                    $resourceURI = "http://schema.omc-project.org/wbem/wscim/1/cim-schema/2/OMC_MCFirmwareIdentity"
+                    $rac = Get-WSManInstance -Authentication basic -ConnectionURI $uri -Credential $credential -Enumerate -Port 443 -UseSSL -SessionOption $cimOpt -ResourceURI $resourceURI -ErrorAction SilentlyContinue -ErrorVariable err 
+                    if ($rac.VersionString) {
+                        $bmcFirmware = $rac.VersionString
+                    } #END if
+                }
+                catch {
+                    Write-Verbose -Message ((Get-Date -Format G) + "`tWSMan session failed, error:")
+                    Write-Verbose -Message ((Get-Date -Format G) + "`t$err")
+                } #END try/catch
             } #END if/else
     
             <#
               Use a custom object to store
               collected data
             #>
-            $hardwareCollection += [PSCustomObject]@{
-                'Hostname'           = $vmhost.Name
+            $output = [PSCustomObject]@{
+                'Hostname'           = $esxiHost.Name
                 'Management IP'      = $mgmtIP
                 'RAC IP'             = $racIP
                 'RAC MAC'            = $racMAC
                 'RAC Firmware'       = $bmcFirmware
                 'Product'            = $vmhostView.Config.Product.Name
                 'Version'            = $vmhostView.Config.Product.Version
-                'Build'              = $vmhost.Build
+                'Build'              = $esxiHost.Build
                 'Update'             = $esxiVersion.Update
                 'Patch'              = $esxiVersion.Patch
                 'Make'               = $hostHardware.Manufacturer
@@ -346,19 +355,20 @@
                 'CPU Count'          = $hostHardware.CpuCount
                 'CPU Core Total'     = $hostHardware.CpuCoreCountTotal
                 'Speed (MHz)'        = $hostHardware.MhzPerCpu
-                'Memory (GB)'        = $vmhost.MemoryTotalGB -as [int]
+                'Memory (GB)'        = $esxiHost.MemoryTotalGB -as [int]
                 'Memory Slots Count' = $hostHardware.MemorySlotCount
                 'Memory Slots Used'  = $hostHardware.MemoryModules.Count
                 'Power Supplies'     = $hostHardware.PowerSupplies.Count
                 'NIC Count'          = $hostHardware.NicCount
             } #END [PSCustomObject]
+            [void]$hardwareCollection.Add($output)
         } #END if
     
         <#
           Get ESXi configuration details
         #>
         if ($Configuration) {
-            Write-Host "`tGathering configuration details from $vmhost ..."
+            Write-Output "`tGathering configuration details from $esxiHost ..."
 
             <#
               Get ESXi licensing
@@ -366,25 +376,25 @@
             #>
             $vmhostID = $vmhostView.Config.Host.Value
             $vmhostLM = $licenseManagerAssign.QueryAssignedLicenses($vmhostID)
-            $vmhostPatch = $esxcli.software.vib.list.Invoke() | Where-Object {$_.ID -match $vmhost.Build} | Select-Object -First 1
-            $vmhostvDC = $vmhost | Get-Datacenter | Select-Object -ExpandProperty Name
-            $vmhostCluster = $vmhost | Get-Cluster | Select-Object -ExpandProperty Name
+            $vmhostPatch = $esxcli.software.vib.list.Invoke() | Where-Object {$_.ID -match $esxiHost.Build} | Select-Object -First 1
+            $vmhostvDC = $esxiHost | Get-Datacenter | Select-Object -ExpandProperty Name
+            $vmhostCluster = $esxiHost | Get-Cluster | Select-Object -ExpandProperty Name
             $imageProfile = $esxcli.software.profile.get.Invoke()
                    
             <#
               Get services configuration
             #>
             Write-Verbose -Message ((Get-Date -Format G) + "`tGathering services configuration...")
-            $vmServices = $vmhost | Get-VMHostService
-            $vmhostFireWall = $vmhost | Get-VMHostFirewallException
-            $ntpServerList = $vmhost | Get-VMHostNtpServer
+            $vmServices = $esxiHost | Get-VMHostService
+            $vmhostFireWall = $esxiHost | Get-VMHostFirewallException
+            $ntpServerList = $esxiHost | Get-VMHostNtpServer
             $ntpService = $vmServices | Where-Object {$_.key -eq "ntpd"}
             $ntpFWException = $vmhostFireWall | Select-Object -Property Name, Enabled | Where-Object {$_.Name -eq "NTP Client"}
             $sshService = $vmServices | Where-Object {$_.key -eq "TSM-SSH"}
             $sshServerFWException = $vmhostFireWall | Select-Object -Property Name, Enabled | Where-Object {$_.Name -eq "SSH Server"}
             $esxiShellService = $vmServices | Where-Object {$_.key -eq "TSM"}
-            $ShellTimeOut = (Get-AdvancedSetting -Entity $vmhost -Name "UserVars.ESXiShellTimeOut" -ErrorAction SilentlyContinue).value
-            $interactiveShellTimeOut = (Get-AdvancedSetting -Entity $vmhost -Name "UserVars.ESXiShellInteractiveTimeOut" -ErrorAction SilentlyContinue).value
+            $ShellTimeOut = (Get-AdvancedSetting -Entity $esxiHost -Name "UserVars.ESXiShellTimeOut" -ErrorAction SilentlyContinue).value
+            $interactiveShellTimeOut = (Get-AdvancedSetting -Entity $esxiHost -Name "UserVars.ESXiShellInteractiveTimeOut" -ErrorAction SilentlyContinue).value
     
             <#
               Get syslog configuration
@@ -392,7 +402,7 @@
             Write-Verbose -Message ((Get-Date -Format G) + "`tGathering Syslog Configuration...")
             $syslogList = @()
             $syslogFWException = $vmhostFireWall | Select-Object -Property Name, Enabled | Where-Object {$_.Name -eq "syslog"}
-            foreach ($syslog in  $vmhost | Get-VMHostSysLogServer) {
+            foreach ($syslog in  $esxiHost | Get-VMHostSysLogServer) {
                 $syslogList += $syslog.Host + ":" + $syslog.Port
             } #END foreach
     
@@ -453,16 +463,16 @@
               Use a custom object to store
               collected data
             #>
-            $configurationCollection += [PSCustomObject]@{
-                'Hostname'                  = $vmhost.Name
+            $output = [PSCustomObject]@{
+                'Hostname'                  = $esxiHost.Name
                 'Make'                      = $hostHardware.Manufacturer
                 'Model'                     = $hostHardware.Model
                 'CPU Model'                 = $hostHardware.CpuModel -replace '\s+', ' '
-                'Hyper-Threading'           = $vmhost.HyperthreadingActive
-                'Max EVC Mode'              = $vmhost.MaxEVCMode
+                'Hyper-Threading'           = $esxiHost.HyperthreadingActive
+                'Max EVC Mode'              = $esxiHost.MaxEVCMode
                 'Product'                   = $vmhostView.Config.Product.Name
                 'Version'                   = $vmhostView.Config.Product.Version
-                'Build'                     = $vmhost.Build
+                'Build'                     = $esxiHost.Build
                 'Update'                    = $esxiVersion.Update
                 'Patch'                     = $esxiVersion.Patch
                 'Install Type'              = $installType
@@ -479,8 +489,8 @@
                 'Last Patched'              = $vmhostPatch.InstallDate
                 'License Version'           = $vmhostLM.AssignedLicense.Name | Select-Object -Unique
                 'License Key'               = $vmhostLM.AssignedLicense.LicenseKey | Select-Object -Unique
-                'Connection State'          = $vmhost.ConnectionState
-                'Standalone'                = $vmhost.IsStandalone
+                'Connection State'          = $esxiHost.ConnectionState
+                'Standalone'                = $esxiHost.IsStandalone
                 'Cluster'                   = $vmhostCluster
                 'Virtual Datacenter'        = $vmhostvDC
                 'vCenter'                   = $vmhostView.CLient.ServiceUrl.Split('/')[2]
@@ -501,9 +511,12 @@
                 'Syslog Server'             = (@($syslogList) -join ',')
                 'Syslog Client Enabled'     = $syslogFWException.Enabled
             } #END [PSCustomObject]
+            [void]$configurationCollection.Add($output)
         } #END if
     } #END foreach
+    $stopWatch.Stop()
     Write-Verbose -Message ((Get-Date -Format G) + "`tMain code execution completed")
+    Write-Verbose -Message  ((Get-Date -Format G) + "`tScript Duration: " + $stopWatch.Elapsed.Duration())
     
     <#
       Display skipped hosts and their connection status
@@ -539,8 +552,8 @@
             Write-Host "`tData exported to" ($outputFile + ".xlsx") "file" -ForegroundColor Green
         }
         elseif ($PassThru) {
-            $ReturnCollection += $hardwareCollection 
-            $ReturnCollection 
+            $returnCollection += $hardwareCollection 
+            $returnCollection 
         }
         else {
             $hardwareCollection | Format-List
@@ -558,8 +571,8 @@
             Write-Host "`tData exported to" ($outputFile + ".xlsx") "file" -ForegroundColor Green
         }
         elseif ($PassThru) {
-            $ReturnCollection += $configurationCollection
-            $ReturnCollection  
+            $returnCollection += $configurationCollection
+            $returnCollection  
         }
         else {
             $configurationCollection | Format-List

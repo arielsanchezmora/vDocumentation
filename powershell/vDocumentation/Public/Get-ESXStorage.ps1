@@ -9,7 +9,7 @@
        File Name    : Get-ESXStorage.ps1
        Author       : Edgar Sanchez - @edmsanchez13
        Contributor  : Ariel Sanchez - @arielsanchezmor
-       Version      : 2.4.4
+       Version      : 2.4.5
      .Link
        https://github.com/arielsanchezmora/vDocumentation
      .INPUTS
@@ -17,46 +17,45 @@
      .OUTPUTS
        CSV file
        Excel file
-     .PARAMETER esxi
+     .PARAMETER VMhost
        The name(s) of the vSphere ESXi Host(s)
      .EXAMPLE
-       Get-ESXStorage -esxi devvm001.lab.local
-     .PARAMETER cluster
+       Get-ESXStorage -VMhost devvm001.lab.local
+     .PARAMETER Cluster
        The name(s) of the vSphere Cluster(s)
      .EXAMPLE
-       Get-ESXStorage -cluster production-cluster
-     .PARAMETER datacenter
+       Get-ESXStorage -Cluster production
+     .PARAMETER Datacenter
        The name(s) of the vSphere Virtual DataCenter(s)
      .EXAMPLE
-       Get-ESXStorage -datacenter vDC001
-       Get-ESXInventory -datacenter "all vdc" will gather all hosts in vCenter(s). This is the default if no Parameter (-esxi, -cluster, or -datacenter) is specified. 
+       Get-ESXStorage -Datacenter vDC001
      .PARAMETER ExportCSV
        Switch to export all data to CSV file. File is saved to the current user directory from where the script was executed. Use -folderPath parameter to specify a alternate location
      .EXAMPLE
-       Get-ESXStorage -cluster production-cluster -ExportCSV
+       Get-ESXStorage -Cluster production -ExportCSV
      .PARAMETER ExportExcel
        Switch to export all data to Excel file (No need to have Excel Installed). This relies on ImportExcel Module to be installed.
        ImportExcel Module can be installed directly from the PowerShell Gallery. See https://github.com/dfinke/ImportExcel for more information
        File is saved to the current user directory from where the script was executed. Use -folderPath parameter to specify an alternate location
      .EXAMPLE
-       Get-ESXStorage -cluster production-cluster -ExportExcel
+       Get-ESXStorage -Cluster production -ExportExcel
      .PARAMETER StorageAdapters
        Default switch to get iSCSI Software and Fibre Channel Adapter (HBA) details
        This is default option that will get processed if no switch parameter is provided.
      .EXAMPLE
-       Get-ESXStorage -cluster production-cluster -StorageAdapters
+       Get-ESXStorage -Cluster production -StorageAdapters
      .PARAMETER Datastores
        Switch to get Datastores details
      .EXAMPLE
-       Get-ESXStorage -cluster production-cluster -Datastores
+       Get-ESXStorage -Cluster production -Datastores
      .PARAMETER folderPath
        Specificies an alternate folder path of where the exported file should be saved.
      .EXAMPLE
-       Get-ESXStorage -cluster production-cluster -ExportExcel -folderPath C:\temp
+       Get-ESXStorage -Cluster production -ExportExcel -folderPath C:\temp
      .PARAMETER PassThru
        Returns the object to the console
      .EXAMPLE
-       Get-ESXStorage -esxi devvm001.lab.local -PassThru
+       Get-ESXStorage -VMhost devvm001.lab.local -PassThru
     #> 
     
     <#
@@ -64,9 +63,21 @@
     #>
     [CmdletBinding()]
     param (
-        $esxi,
-        $cluster,
-        $datacenter,
+        [Parameter(Mandatory = $false,
+            ParameterSetName = "VMhost")]
+        [ValidateNotNull()]
+        [ValidateNotNullOrEmpty()]
+        [String[]]$VMhost,
+        [Parameter(Mandatory = $false,
+            ParameterSetName = "Cluster")]
+        [ValidateNotNull()]
+        [ValidateNotNullOrEmpty()]
+        [String[]]$Cluster,
+        [Parameter(Mandatory = $false,
+            ParameterSetName = "DataCenter")]
+        [ValidateNotNull()]
+        [ValidateNotNullOrEmpty()]
+        [String[]]$DataCenter,        
         [switch]$ExportCSV,
         [switch]$ExportExcel,
         [switch]$StorageAdapters,
@@ -75,9 +86,9 @@
         $folderPath
     )
     
-    $FibreChannelCollection = @()
-    $iSCSICollection = @()
-    $DatastoresCollection = @()
+    $FibreChannelCollection = [System.Collections.ArrayList]@()
+    $iSCSICollection = [System.Collections.ArrayList]@()
+    $DatastoresCollection = [System.Collections.ArrayList]@()
     $skipCollection = @()
     $vHostList = @()
     $date = Get-Date -format s
@@ -87,6 +98,8 @@
     <#
      ----------------------------------------------------------[Execution]----------------------------------------------------------
     #>
+
+    $stopWatch = [system.diagnostics.stopwatch]::startNew()
     
     <#
       Query PowerCLI and vDocumentation versions if
@@ -112,75 +125,48 @@
     } #END if/else
     
     <#
-      Validate if a parameter was specified (-esxi, -cluster, or -datacenter)
-      Although all 3 can be specified, only the first is used
-      Example: -esxi "host001" -cluster "test-cluster". -esxi is the first parameter
-      and what will be used.
-    #>
-    Write-Verbose -Message ((Get-Date -Format G) + "`tValidate parameters used")
-    if ([string]::IsNullOrWhiteSpace($esxi) -and [string]::IsNullOrWhiteSpace($cluster) -and [string]::IsNullOrWhiteSpace($datacenter)) {
-        Write-Verbose -Message ((Get-Date -Format G) + "`tA parameter (-esxi, -cluster, -datacenter) was not specified. Will gather all hosts")
-        $datacenter = "all vdc"
-    } #END if
-    
-    <#
-      Gather host list based on parameter used
+      Gather host list based on Parameter set used
     #>
     Write-Verbose -Message ((Get-Date -Format G) + "`tGather host list")
-    if ([string]::IsNullOrWhiteSpace($esxi)) {      
-        Write-Verbose -Message ((Get-Date -Format G) + "`t-esxi parameter is Null or Empty")
-        if ([string]::IsNullOrWhiteSpace($cluster)) {
-            Write-Verbose -Message ((Get-Date -Format G) + "`t-cluster parameter is Null or Empty")
-            if ([string]::IsNullOrWhiteSpace($datacenter)) {
-                Write-Verbose -Message ((Get-Date -Format G) + "`t-datacenter parameter is Null or Empty")
-            }
-            else {
-                Write-Verbose -Message ((Get-Date -Format G) + "`tExecuting Cmdlet using datacenter parameter")
-                if ($datacenter -eq "all vdc") {
-                    Write-Host "`tGathering all hosts from the following vCenter(s): " $Global:DefaultViServers
-                    $vHostList = Get-VMHost | Sort-Object -Property Name                    
-                }
-                else {
-                    Write-Host "`tGathering host list from the following DataCenter(s): " (@($datacenter) -join ',')
-                    foreach ($vDCname in $datacenter) {
-                        $tempList = Get-Datacenter -Name $vDCname.Trim() -ErrorAction SilentlyContinue | Get-VMHost 
-                        if ($tempList) {
-                            $vHostList += $tempList | Sort-Object -Property Name
-                        }
-                        else {
-                            Write-Warning -Message "`tDatacenter with name $vDCname was not found in $Global:DefaultViServers"
-                        } #END if/else
-                    } #END foreach
-                } #END if/else
-            } #END if/else
-        }
-        else {
-            Write-Verbose -Message ((Get-Date -Format G) + "`tExecuting Cmdlet using cluster parameter")
-            Write-Host "`tGathering host list from the following Cluster(s): " (@($cluster) -join ',')
-            foreach ($vClusterName in $cluster) {
-                $tempList = Get-Cluster -Name $vClusterName.Trim() -ErrorAction SilentlyContinue | Get-VMHost 
-                if ($tempList) {
-                    $vHostList += $tempList | Sort-Object -Property Name
-                }
-                else {
-                    Write-Warning -Message "`tCluster with name $vClusterName was not found in $Global:DefaultViServers"
-                } #END if/else
-            } #END foreach
-        } #END if/else
-    }
-    else { 
-        Write-Verbose -Message ((Get-Date -Format G) + "`tExecuting Cmdlet using esxi parameter")
-        Write-Host "`tGathering host list..."
-        foreach ($invidualHost in $esxi) {
+    if ($VMhost) {
+        Write-Verbose -Message ((Get-Date -Format G) + "`tExecuting Cmdlet using VMhost parameter set")
+        Write-Output "`tGathering host list..."
+        foreach ($invidualHost in $VMhost) {
             $tempList = Get-VMHost -Name $invidualHost.Trim() -ErrorAction SilentlyContinue
             if ($tempList) {
-                $vHostList += $tempList | Sort-Object -Property Name
+                $vHostList += $tempList
             }
             else {
                 Write-Warning -Message "`tESXi host $invidualHost was not found in $Global:DefaultViServers"
             } #END if/else
+        } #END foreach    
+    } #END if
+    if ($Cluster) {
+        Write-Verbose -Message ((Get-Date -Format G) + "`tExecuting Cmdlet using Cluster parameter set")
+        Write-Output "`tGathering host list from the following Cluster(s): " (@($Cluster) -join ',')
+        foreach ($vClusterName in $Cluster) {
+            $tempList = Get-Cluster -Name $vClusterName.Trim() -ErrorAction SilentlyContinue | Get-VMHost 
+            if ($tempList) {
+                $vHostList += $tempList
+            }
+            else {
+                Write-Warning -Message "`tCluster with name $vClusterName was not found in $Global:DefaultViServers"
+            } #END if/else
         } #END foreach
-    } #END if/else
+    } #END if
+    if ($DataCenter) {
+        Write-Verbose -Message ((Get-Date -Format G) + "`tExecuting Cmdlet using Datacenter parameter set")
+        Write-Output "`tGathering host list from the following DataCenter(s): " (@($DataCenter) -join ',')
+        foreach ($vDCname in $DataCenter) {
+            $tempList = Get-Datacenter -Name $vDCname.Trim() -ErrorAction SilentlyContinue | Get-VMHost 
+            if ($tempList) {
+                $vHostList += $tempList
+            }
+            else {
+                Write-Warning -Message "`tDatacenter with name $vDCname was not found in $Global:DefaultViServers"
+            } #END if/else
+        } #END foreach
+    } #END if
     $tempList = $null
     
     <#
@@ -245,14 +231,15 @@
     <#
       Main code execution
     #>
-    foreach ($vmhost in $vHostList) {
+    $vHostList = $vHostList | Sort-Object -Property Name
+    foreach ($esxiHost in $vHostList) {
     
         <#
           Skip if ESXi host is not in a Connected
           or Maintenance ConnectionState
         #>
-        Write-Verbose -Message ((Get-Date -Format G) + "`t$vmhost Connection State: " + $vmhost.ConnectionState)
-        if ($vmhost.ConnectionState -eq "Connected" -or $vmhost.ConnectionState -eq "Maintenance") {
+        Write-Verbose -Message ((Get-Date -Format G) + "`t$esxiHost Connection State: " + $esxiHost.ConnectionState)
+        if ($esxiHost.ConnectionState -eq "Connected" -or $esxiHost.ConnectionState -eq "Maintenance") {
             <#
               Do nothing - ESXi host is reachable
             #>
@@ -263,24 +250,24 @@
               hosts and continue to the next foreach loop
             #>
             $skipCollection += [pscustomobject]@{
-                'Hostname'         = $vmhost.Name
-                'Connection State' = $vmhost.ConnectionState
+                'Hostname'         = $esxiHost.Name
+                'Connection State' = $esxiHost.ConnectionState
             } #END [PSCustomObject]
             continue
         } #END if/else
-        $esxcli1 = Get-EsxCli -VMHost $vmhost -V2
+        $esxcli1 = Get-EsxCli -VMHost $esxiHost -V2
     
         <#
           Get Storage adapters (HBA) details
         #>
         if ($StorageAdapters) {
-            Write-Host "`tGathering storage adapter details from $vmhost ..."
+            Write-Output "`tGathering storage adapter details from $esxiHost ..."
                 
             <#
               Get iSCSI HBA Details 
             #>
             Write-Verbose -Message ((Get-Date -Format G) + "`tGet iSCSI Software Adapter...")
-            if ($hba = $vmhost | Get-VMHostHba -Type iScsi | Where-Object {$_.Model -eq "iSCSI Software Adapter"}) {
+            if ($hba = $esxiHost | Get-VMHostHba -Type iScsi | Where-Object {$_.Model -eq "iSCSI Software Adapter"}) {
                 Write-Verbose -Message ((Get-Date -Format G) + "`tGet iSCSI HBA details for: " + $hba.Device)
                 $hbaBinding = $esxcli1.iscsi.networkportal.list.Invoke(@{adapter = $hba.Device})
                 $hbaTarget = Get-IScsiHbaTarget -IScsiHba $hba
@@ -294,29 +281,15 @@
                 #>
                 foreach ($vmkNic in $hbaBinding) {
                     Write-Verbose -Message ((Get-Date -Format G) + "`tGet active physical adapter for: " + $vmkNic.PortGroup)
-                    $vmNic = $vmhost | Get-VMHostNetworkAdapter | Where-Object {$_.Mac -eq $vmkNic.MACAddress}
+                    $vmNic = $esxiHost | Get-VMHostNetworkAdapter | Where-Object {$_.Mac -eq $vmkNic.MACAddress}
                     $nicList = $esxcli1.network.nic.list.Invoke() | Where-Object {$_.Name -eq $vmNic.Name}
-                    $portGroupTeam = Get-VirtualPortGroup -VMhost $vmhost -Name $vmkNic.PortGroup | Where-Object {$_.VirtualSwitchName -eq $vmkNic.Vswitch} | Get-NicTeamingPolicy
-                    if ($portGroup = Get-VirtualPortGroup -VMhost $vmhost -Name $vmkNic.PortGroup -Standard -ErrorAction SilentlyContinue | Where-Object {$_.VirtualSwitchName -eq $vmkNic.Vswitch}) {
-                        Write-Verbose -Message ((Get-Date -Format G) + "`tStandard vSwitch")
-                        $portGroupTeam = $portGroup | Get-NicTeamingPolicy
-                        $vSwitch = $esxcli1.network.vswitch.standard.list.Invoke(@{vswitchname = $vmkNic.Vswitch})
-                        $activeAdapters = (@($PortGroupTeam.ActiveNic) -join ',')
-                    }
-                    else {
-                        Write-Verbose -Message ((Get-Date -Format G) + "`tDistributed vSwitch")
-                        $portGroup = Get-VDPortgroup -Name $vmkNic.PortGroup -VDSwitch $vmkNic.Vswitch -ErrorAction SilentlyContinue
-                        $portGroupTeam = $portGroup | Get-VDUplinkTeamingPolicy
-                        $vSwitch = $esxcli1.network.vswitch.dvs.vmware.list.Invoke(@{vdsname = $vmkNic.Vswitch})
-                        $activeAdapters = (@($PortGroupTeam.ActiveUplinkPort) -join ',')
-                    } #END if/else
     
                     <#
                       Use a custom object to store
                       collected data
                     #>
-                    $iSCSICollection += [PSCustomObject]@{
-                        'Hostname'                 = $vmhost.Name
+                    $output = [PSCustomObject]@{
+                        'Hostname'                 = $esxiHost.Name
                         'Device'                   = $hba.Device
                         'iSCSI Name'               = $hba.IScsiName
                         'Model'                    = $hba.Model
@@ -328,6 +301,7 @@
                         'Path Status'              = $vmkNic.PathStatus
                         'Physical Network Adapter' = $vmNic.Name + " (" + $vmnic.BitRatePerSec / 1000 + " Gbit/s, " + $nicList.Duplex + ")"
                     } #END [PSCustomObject]
+                    [void]$iSCSICollection.Add($output)
                 } #END foreach
             } #END if
     
@@ -335,7 +309,7 @@
               Get Fibre Channel HBA details
             #>
             Write-Verbose -Message ((Get-Date -Format G) + "`tGet Fibre Channel Adapter...")
-            if ($hba = $vmhost | Get-VMHostHba -Type FibreChannel) {                    
+            if ($hba = $esxiHost | Get-VMHostHba -Type FibreChannel) {                    
                 foreach ($hbaDevice in $hba) {
                     Write-Verbose -Message ((Get-Date -Format G) + "`tGet Fibre Channel HBA details for: " + $hbaDevice.Device)
                     $nodeWWN = ([String]::Format("{0:X}", $HbaDevice.NodeWorldWideName) -split "(\w{2})" | Where-Object {$_ -ne ""}) -join ":"
@@ -345,8 +319,8 @@
                       Use a custom object to store
                       collected data
                     #>
-                    $FibreChannelCollection += [PSCustomObject]@{
-                        'Hostname'   = $vmhost.Name
+                    $output = [PSCustomObject]@{
+                        'Hostname'   = $esxiHost.Name
                         'Device'     = $hbaDevice.Device
                         'Model'      = $hbaDevice.Model
                         'Node WWN'   = $nodeWWN
@@ -355,6 +329,7 @@
                         'Speed (Gb)' = $hbaDevice.Speed
                         'Status'     = $hbaDevice.Status
                     } #END [PSCustomObject]
+                    [void]$FibreChannelCollection.Add($output)
                 } # END foreach
             } #END if
         } #END if
@@ -363,11 +338,11 @@
           Get Datastores details
         #>
         if ($Datastores) {
-            Write-Host "`tGathering Datastore details from $vmhost ..."
-            $hostDSList = $vmhost | Get-Datastore | Sort-Object -Property Name    
+            Write-Output "`tGathering Datastore details from $esxiHost ..."
+            $hostDSList = $esxiHost | Get-Datastore | Sort-Object -Property Name    
             foreach ($oneDS in $hostDSList) {
                 Write-Verbose -Message ((Get-Date -Format G) + "`tGet Datastore details for: " + $oneDS.Name)
-                $dsCName = $oneDS.ExtensionData.Info.Vmfs.Extent | Select-Object -ExpandProperty DiskName
+                $dsCName = $oneDS.ExtensionData.Info.Vmfs.Extent | Select-Object -First 1 -ExpandProperty DiskName
                 if ($oneDS.Type -eq "vsan" -or $oneDS.Type -eq "NFS") {
                     Write-Verbose -Message ((Get-Date -Format G) + "`t" + $oneDS.Type + " type datastore found. Skipping storage multipathing policy validation")
                     $dsDisk = $null
@@ -376,7 +351,6 @@
                     $dsDisk = $esxcli1.storage.nmp.device.list.Invoke(@{device = $dsCName})                    
                 } #END if/else
 
-    
                 <#
                   Validate against exising collection
                   to speed up foreach
@@ -412,9 +386,9 @@
                         $dsDisplayName = (($dspath.DeviceDisplayName -Split " [(]")[0])
                         $LUN = $dspath.LUN
                         $vmHBA = $dspath.Adapter
-                        $dsTransport = $vmhost | Get-VMHostHba | Select-Object Device, Type | Where-Object {$_.Device -eq $vmHBA}                      
+                        $dsTransport = $esxiHost | Get-VMHostHba | Select-Object Device, Type | Where-Object {$_.Device -eq $vmHBA}                      
                     } #END if/else
-                    if ($oneDS.ParentFolder -eq $null -and $oneDS.ParentFolderId -match "StoragePod") {
+                    if ($null -eq $oneDS.ParentFolder -and $oneDS.ParentFolderId -match "StoragePod") {
                         $dsCluster = Get-DatastoreCluster -Id $oneDS.ParentFolderId | Select-Object -ExpandProperty Name
                         Write-Verbose -Message ((Get-Date -Format G) + "`tDatastore is part of Datastore Cluster: " + $dsCluster)
                     }
@@ -435,8 +409,8 @@
                   Use a custom object to store
                   collected data
                 #>
-                $DatastoresCollection += [PSCustomObject]@{
-                    'Hostname'               = $vmhost.Name
+                $output = [PSCustomObject]@{
+                    'Hostname'               = $esxiHost.Name
                     'Datastore Name'         = $dsName
                     'Device Name'            = $dsDisplayName
                     'Canonical Name'         = $dsCName
@@ -451,10 +425,13 @@
                     'Multipath Policy'       = $dsDisk.PathSelectionPolicy
                     'File System Version'    = $dsFileSystem
                 } #END [PSCustomObject]
+                [void]$DatastoresCollection.Add($output)
             } #END foreach
         } #END if
     } #END foreach
+    $stopWatch.Stop()
     Write-Verbose -Message ((Get-Date -Format G) + "`tMain code execution completed")
+    Write-Verbose -Message  ((Get-Date -Format G) + "`tScript Duration: " + $stopWatch.Elapsed.Duration())
     
     <#
       Display skipped hosts and their connection status

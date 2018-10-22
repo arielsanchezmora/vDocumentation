@@ -10,7 +10,7 @@
        File Name    : Get-VMSpeculativeExecution.ps1
        Author       : Edgar Sanchez - @edmsanchez13
        Contributor  : Ariel Sanchez - @arielsanchezmor
-       Version      : 2.4.4
+       Version      : 2.4.5
      .Link
        https://github.com/arielsanchezmora/vDocumentation
      .PARAMETER VM
