@@ -13,7 +13,7 @@
        Author       : Edgar Sanchez - @edmsanchez13
        Contributor  : Ariel Sanchez - @arielsanchezmor
        Contributor : @pdpelsem
-       Version      : 2.4.5
+       Version      : 2.4.5.2
      .Link
        https://github.com/arielsanchezmora/vDocumentation
      .INPUTS
@@ -258,7 +258,7 @@
         $webRequest = $_.Exception.Response
     } #END try/catch
     if ([int]$webRequest.StatusCode -eq "200") {
-        $webElement = $webRequest.ParsedHtml.body.getElementsByTagName("script") | Where-Object { $_.type -eq "text/javascript"}
+        $webElement = $webRequest.AllElements | Where-Object { $_.tagName -eq "script"}
         foreach ($element in $webElement) {
             if ($null -ne $element.innerHTML -and $element.innerHTML.trim().StartsWith("var releases")) {
                 $webElementHtml = $element.innerHTML.trim()
@@ -431,7 +431,7 @@
                         $webRequest = $_.Exception.Response
                     } #END try/catch
                     if ([int]$webRequest.StatusCode -eq "200") {
-                        $webElement = $webRequest.ParsedHtml.body.getElementsByTagName("script") | Where-Object { $_.type -eq "text/javascript"}
+                        $webElement = $webRequest.AllElements | Where-Object { $_.tagName -eq "script"}
                         foreach ($element in $webElement) {
                             if ($null -ne $element.innerHTML -and $element.innerHTML.trim().StartsWith("var details")) {
                                 $webElementHtml = $element.innerHTML.trim()
