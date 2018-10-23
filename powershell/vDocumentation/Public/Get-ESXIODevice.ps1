@@ -275,6 +275,7 @@
     <#
       Main code execution
     #>
+    $vHostList = $vHostList | Sort-Object -Property Name
     foreach ($esxiHost in $vHostList) {
 
         <#
@@ -304,7 +305,7 @@
           Get IO Device details
         #>
         Write-Host "`tGathering information from $esxiHost ..."
-        $esxiUpdateLevel = (Get-AdvancedSetting -Name "Misc.HostAgentUpdateLevel" -Entity $vmhost -ErrorAction SilentlyContinue -ErrorVariable err).Value
+        $esxiUpdateLevel = (Get-AdvancedSetting -Name "Misc.HostAgentUpdateLevel" -Entity $esxiHost -ErrorAction SilentlyContinue -ErrorVariable err).Value
         if ($esxiUpdateLevel) {
             $esxiVersion = "ESXi " + ($esxiHost.ApiVersion) + " U" + $esxiUpdateLevel
         }
