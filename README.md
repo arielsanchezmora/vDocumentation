@@ -76,9 +76,9 @@ __v2.4.6__
 - Flagged by Michael White, we got a usability change that wasn't tracked in our changelogs: All cmdlets use parameterset now and there is not a default one, so now you really need to specify -VMhost or -Cluster or -Datacenter. Justin Sider has proposed setting a default value, and Edgar is now tinkering to bring it back to the old behavior.
 
 __v2.4.5.2__
-- Bug workaround to fix issue in Windows Server 2012 when retrieving HCL URLs  
-This fails:  
+- Bug workaround to fix issue in Windows Server 2012 when retrieving HCL URLs 
 
+This fails:  
 webElement = $webRequest.ParsedHtml.body.getElementsByTagName("script") | Where-Object { $_.type -eq "text/javascript"}
 
 changed to:  
