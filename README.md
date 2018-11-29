@@ -75,12 +75,13 @@ __v2.4.6__
 - For us to gather the ESXi version we used $vmhost.ApiVersion before, now its updated to be $vmhost.version and the update level. With this we have removed update and patch level columns in any of the cmdlet reports because the patch level did not reflect the patch level tracked under: https://kb.vmware.com/s/article/2143832  
 - Flagged by Michael White, we got a usability change that wasn't tracked in our changelogs: All cmdlets use parameterset now and there is not a default one, so now you really need to specify -VMhost or -Cluster or -Datacenter. Justin Sider has proposed setting a default value, and Edgar is now tinkering to bring it back to the old behavior.
 
-__2.4.5.2__
+__v2.4.5.2__
 - Bug workaround to fix issue in Windows Server 2012 when retrieving HCL URLs  
-This fails:
+This fails:  
+
 webElement = $webRequest.ParsedHtml.body.getElementsByTagName("script") | Where-Object { $_.type -eq "text/javascript"}
 
-changed to: 
+changed to:  
 $webElement = $webRequest.AllElements | Where-Object { $_.tagName -eq "script"}
 
 slower but it works!
@@ -97,7 +98,7 @@ __v2.4.5__
 
 - Minor code optimizations and fixes
 
-__2.4.1__ Meaty release updating three of the new cmdlets - lots of work by Edgar especially regarding Spectre/Meltdown checks. vDocumentation has has over 1000 downloads in the PowerShell Gallery!
+__v2.4.1__ Meaty release updating three of the new cmdlets - lots of work by Edgar especially regarding Spectre/Meltdown checks. vDocumentation has has over 1000 downloads in the PowerShell Gallery!
 
 **Get-vSANInfo** gets updates! Thanks Graham Barker (twitter <a href="https://twitter.com/VirtualG_UK" target="_blank"> @VirtualG_UK</a> website  <a href="https://virtualg.uk/" target="_blank"> virtualg.uk</a>)!
 Code cleaning:
