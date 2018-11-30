@@ -13,7 +13,7 @@
        Author       : Edgar Sanchez - @edmsanchez13
        Contributor  : Ariel Sanchez - @arielsanchezmor
        Contributor : @pdpelsem
-       Version      : 2.4.5.2
+       Version      : 2.4.7
      .Link
        https://github.com/arielsanchezmora/vDocumentation
      .INPUTS
@@ -56,13 +56,13 @@
     <#
      ----------------------------------------------------------[Declarations]----------------------------------------------------------
     #>
-    [CmdletBinding()]
+    [CmdletBinding(DefaultParameterSetName = 'VMhost')]
     param (
         [Parameter(Mandatory = $false,
             ParameterSetName = "VMhost")]
         [ValidateNotNull()]
         [ValidateNotNullOrEmpty()]
-        [String[]]$VMhost,
+        [String[]]$VMhost = "*",
         [Parameter(Mandatory = $false,
             ParameterSetName = "Cluster")]
         [ValidateNotNull()]
@@ -93,6 +93,9 @@
     #>
 
     $stopWatch = [system.diagnostics.stopwatch]::startNew()
+    if ($PSBoundParameters.ContainsKey('Cluster') -or $PSBoundParameters.ContainsKey('DataCenter')) {
+        [String[]]$VMhost = $null
+    } #END if
 
     <#
       Query PowerCLI and vDocumentation versions if
@@ -136,7 +139,7 @@
     } #END if
     if ($Cluster) {
         Write-Verbose -Message ((Get-Date -Format G) + "`tExecuting Cmdlet using Cluster parameter set")
-        Write-Output "`tGathering host list from the following Cluster(s): " (@($Cluster) -join ',')
+        Write-Output ("`tGathering host list from the following Cluster(s): " + (@($Cluster) -join ','))
         foreach ($vClusterName in $Cluster) {
             $tempList = Get-Cluster -Name $vClusterName.Trim() -ErrorAction SilentlyContinue | Get-VMHost 
             if ($tempList) {
@@ -149,7 +152,7 @@
     } #END if
     if ($DataCenter) {
         Write-Verbose -Message ((Get-Date -Format G) + "`tExecuting Cmdlet using Datacenter parameter set")
-        Write-Output "`tGathering host list from the following DataCenter(s): " (@($DataCenter) -join ',')
+        Write-Output ("`tGathering host list from the following DataCenter(s): " + (@($DataCenter) -join ','))
         foreach ($vDCname in $DataCenter) {
             $tempList = Get-Datacenter -Name $vDCname.Trim() -ErrorAction SilentlyContinue | Get-VMHost 
             if ($tempList) {
@@ -212,7 +215,7 @@
     Write-Verbose -Message ((Get-Date -Format G) + "`tValidating access to VMware HCL site...")
     $hclDataUrl = "https://www.vmware.com/resources/compatibility/js/data_io.js?"
     try {
-        $webRequest = Invoke-WebRequest -Uri $hclDataUrl
+        $webRequest = Invoke-WebRequest -Uri $hclDataUrl -UseBasicParsing
     } 
     catch [System.Net.WebException] {
         $webRequest = $_.Exception.Response
@@ -252,20 +255,15 @@
     $hclDataUrl = "https://www.vmware.com/resources/compatibility/search.php?deviceCategory=io"
     $brandJson = $null
     try {
-        $webRequest = Invoke-WebRequest -Uri $hclDataUrl
+        $webRequest = Invoke-WebRequest -Uri $hclDataUrl -UseBasicParsing
     } 
     catch [System.Net.WebException] {
         $webRequest = $_.Exception.Response
     } #END try/catch
     if ([int]$webRequest.StatusCode -eq "200") {
-        $webElement = $webRequest.AllElements | Where-Object { $_.tagName -eq "script"}
-        foreach ($element in $webElement) {
-            if ($null -ne $element.innerHTML -and $element.innerHTML.trim().StartsWith("var releases")) {
-                $webElementHtml = $element.innerHTML.trim()
-            } #END if
-        } #END foreach
-        $brandElement = $webElementHtml.Remove(0, $webElementHtml.IndexOf('var partners'))
-        $brandSubstring = $brandElement.Substring($brandElement.IndexOf("=") + 1, $brandElement.IndexOf("};") + 1 - $brandElement.IndexOf("=") - 1).trim()
+        $webContent = $webRequest.Content
+        $webContent = $webContent.Remove(0, $webContent.IndexOf('var partners =  {'))
+        $brandSubstring = $webContent.Substring($webContent.IndexOf("=") + 1, $webContent.IndexOf("};") + 1 - $webContent.IndexOf("=") - 1).trim()
         $brandJson = $brandSubstring | ConvertFrom-Json -ErrorAction SilentlyContinue
     }
     else {
@@ -307,10 +305,10 @@
         Write-Host "`tGathering information from $esxiHost ..."
         $esxiUpdateLevel = (Get-AdvancedSetting -Name "Misc.HostAgentUpdateLevel" -Entity $esxiHost -ErrorAction SilentlyContinue -ErrorVariable err).Value
         if ($esxiUpdateLevel) {
-            $esxiVersion = "ESXi " + ($esxiHost.ApiVersion) + " U" + $esxiUpdateLevel
+            $esxiVersion = "ESXi " + ($esxiHost.Version).Substring(0, 3) + " U" + $esxiUpdateLevel
         }
         else {
-            $esxiVersion = "ESXi " + ($esxiHost.ApiVersion)
+            $esxiVersion = "ESXi " + ($esxiHost.Version).Substring(0, 3)
             Write-Verbose -Message ((Get-Date -Format G) + "`tFailed to get ESXi Update Level, Error : " + $err)
         } #END if/else
         $pciDevices = $esxcli.hardware.pci.list.Invoke() | Where-Object {$_.VMKernelName -like "vmhba*" -or $_.VMKernelName -like "vmnic*" -or $_.VMKernelName -like "vmgfx*"} | Sort-Object -Property VMKernelName 
@@ -414,7 +412,7 @@
     #>
     if ($hclIoCollection -and $brandJson) {
         Write-Verbose -Message ((Get-Date -Format G) + "`tGathering IO device HCL details...")
-        $ioDevices = $ioDeviceCollection | Sort-Object -Property ProductId,Version -Unique
+        $ioDevices = $ioDeviceCollection | Sort-Object -Property ProductId, Version -Unique
         foreach ($ioDevice in $ioDevices) {
             if ($ioDevice.ProductId) {
                 $productIds = $ioDevice.ProductId.Split(',')
@@ -425,19 +423,16 @@
                     $ssid = $ioDevice.SSID
                     $hclDataUrl = "https://www.vmware.com/resources/compatibility/detail.php?deviceCategory=io&productid=$productId&deviceCategory=io&details=1&VID=$vid&DID=$did&SVID=$svid&SSID=$ssid&page=1&display_interval=10&sortColumn=Partner&sortOrder=Asc"
                     try {
-                        $webRequest = Invoke-WebRequest -Uri $hclDataUrl
+                        $webRequest = Invoke-WebRequest -Uri $hclDataUrl -UseBasicParsing
                     } 
                     catch [System.Net.WebException] {
                         $webRequest = $_.Exception.Response
                     } #END try/catch
                     if ([int]$webRequest.StatusCode -eq "200") {
-                        $webElement = $webRequest.AllElements | Where-Object { $_.tagName -eq "script"}
-                        foreach ($element in $webElement) {
-                            if ($null -ne $element.innerHTML -and $element.innerHTML.trim().StartsWith("var details")) {
-                                $webElementHtml = $element.innerHTML.trim()
-                            } #END if
-                        } #END foreach    
-                        $detailSubstring = $webElementHtml.Substring($webElementHtml.IndexOf("=[") + 1, $webElementHtml.IndexOf("];") + 1 - $webElementHtml.IndexOf("=[") - 1).trim()
+                        $webContent = $webRequest.Content
+                        $webElementHtml = $webContent.Remove(0, $webContent.IndexOf('<body>'))
+                        $webvarDetails = $webElementHtml.Remove(0, $webElementHtml.IndexOf('var details'))
+                        $detailSubstring = $webvarDetails.Substring($webvarDetails.IndexOf("=[") + 1, $webvarDetails.IndexOf("];") + 1 - $webvarDetails.IndexOf("=[") - 1).trim()
                         $detailJson = $detailSubstring | ConvertFrom-Json -ErrorAction SilentlyContinue
                         $deviceList = $detailJson | Where-Object {$_.ReleaseVersion -eq $ioDevice.Version}
 

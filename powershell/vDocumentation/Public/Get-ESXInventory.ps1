@@ -11,7 +11,7 @@
        File Name    : Get-ESXInventory.ps1
        Author       : Edgar Sanchez - @edmsanchez13
        Contributor  : Ariel Sanchez - @arielsanchezmor
-       Version      : 2.4.5
+       Version      : 2.4.7
      .Link
        https://github.com/arielsanchezmora/vDocumentation
      .INPUTS
@@ -68,14 +68,14 @@
       in PSScriptAnalyzer code analysis. It's a one time token
       that is converted to secure string, not clear text string
     #>
-    [CmdletBinding()]
+    [CmdletBinding(DefaultParameterSetName = 'VMhost')]
     [Diagnostics.CodeAnalysis.SuppressMessageAttribute("AvoidUsingConvertToSecureStringWithPlainText", "")]
     param (
         [Parameter(Mandatory = $false,
             ParameterSetName = "VMhost")]
         [ValidateNotNull()]
         [ValidateNotNullOrEmpty()]
-        [String[]]$VMhost,
+        [String[]]$VMhost = "*",
         [Parameter(Mandatory = $false,
             ParameterSetName = "Cluster")]
         [ValidateNotNull()]
@@ -108,6 +108,9 @@
     #>
   
     $stopWatch = [system.diagnostics.stopwatch]::startNew()
+    if ($PSBoundParameters.ContainsKey('Cluster') -or $PSBoundParameters.ContainsKey('DataCenter')) {
+        [String[]]$VMhost = $null
+    } #END if
 
     <#
       Query PowerCLI and vDocumentation versions if
@@ -151,7 +154,7 @@
     } #END if
     if ($Cluster) {
         Write-Verbose -Message ((Get-Date -Format G) + "`tExecuting Cmdlet using Cluster parameter set")
-        Write-Output "`tGathering host list from the following Cluster(s): " (@($Cluster) -join ',')
+        Write-Output ("`tGathering host list from the following Cluster(s): " + (@($Cluster) -join ','))
         foreach ($vClusterName in $Cluster) {
             $tempList = Get-Cluster -Name $vClusterName.Trim() -ErrorAction SilentlyContinue | Get-VMHost 
             if ($tempList) {
@@ -164,7 +167,7 @@
     } #END if
     if ($DataCenter) {
         Write-Verbose -Message ((Get-Date -Format G) + "`tExecuting Cmdlet using Datacenter parameter set")
-        Write-Output "`tGathering host list from the following DataCenter(s): " (@($DataCenter) -join ',')
+        Write-Output ("`tGathering host list from the following DataCenter(s): " + (@($DataCenter) -join ','))
         foreach ($vDCname in $DataCenter) {
             $tempList = Get-Datacenter -Name $vDCname.Trim() -ErrorAction SilentlyContinue | Get-VMHost 
             if ($tempList) {
@@ -276,7 +279,14 @@
         $esxcli = Get-EsxCli -VMHost $esxiHost -V2
         $hostHardware = $esxiHost | Get-VMHostHardware -WaitForAllData -SkipAllSslCertificateChecks -ErrorAction SilentlyContinue
         $vmhostView = $esxiHost | Get-View
-        $esxiVersion = $esxcli.system.version.get.Invoke()
+        $esxiUpdateLevel = (Get-AdvancedSetting -Name "Misc.HostAgentUpdateLevel" -Entity $esxiHost -ErrorAction SilentlyContinue -ErrorVariable err).Value
+        if ($esxiUpdateLevel) {
+            $esxiVersion = ($esxiHost.Version) + " U" + $esxiUpdateLevel
+        }
+        else {
+            $esxiVersion = $esxiHost.Version
+            Write-Verbose -Message ((Get-Date -Format G) + "`tFailed to get ESXi Update Level, Error : " + $err)
+        } #END if/else
                     
         <#
           Get Hardware invetory details
@@ -342,10 +352,8 @@
                 'RAC MAC'            = $racMAC
                 'RAC Firmware'       = $bmcFirmware
                 'Product'            = $vmhostView.Config.Product.Name
-                'Version'            = $vmhostView.Config.Product.Version
+                'Version'            = $esxiVersion
                 'Build'              = $esxiHost.Build
-                'Update'             = $esxiVersion.Update
-                'Patch'              = $esxiVersion.Patch
                 'Make'               = $hostHardware.Manufacturer
                 'Model'              = $hostHardware.Model
                 'S/N'                = $hardwarePlatfrom.serialNumber
@@ -471,10 +479,8 @@
                 'Hyper-Threading'           = $esxiHost.HyperthreadingActive
                 'Max EVC Mode'              = $esxiHost.MaxEVCMode
                 'Product'                   = $vmhostView.Config.Product.Name
-                'Version'                   = $vmhostView.Config.Product.Version
+                'Version'                   = $esxiVersion
                 'Build'                     = $esxiHost.Build
-                'Update'                    = $esxiVersion.Update
-                'Patch'                     = $esxiVersion.Patch
                 'Install Type'              = $installType
                 'Boot From'                 = $bootSource
                 'Device Model'              = $bootVendor

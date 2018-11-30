@@ -12,7 +12,7 @@ function Get-vSANInfo {
        Author       : Graham Barker - @VirtualG_UK
        Contributor  : Edgar Sanchez - @edmsanchez13
        Contributor  : Ariel Sanchez - @arielsanchezmor
-       Version      : 2.4.5
+       Version      : 2.4.7
      .Link
        https://github.com/arielsanchezmora/vDocumentation
      .INPUTS
@@ -49,10 +49,6 @@ function Get-vSANInfo {
     #>
     [CmdletBinding()]
     param (
-        [Parameter(Mandatory = $false,
-            ParameterSetName = "Cluster")]
-        [ValidateNotNull()]
-        [ValidateNotNullOrEmpty()]
         [String[]]$Cluster,
         [switch]$ExportCSV,
         [switch]$ExportExcel,
@@ -105,7 +101,7 @@ function Get-vSANInfo {
     Write-Verbose -Message ((Get-Date -Format G) + "`tValidate parameters used")
     if ([string]::IsNullOrWhiteSpace($cluster) ) {
         Write-Verbose -Message ((Get-Date -Format G) + "`tA parameter (-Cluster) was not specified. Will gather all clusters")
-        Write-Output "`tGathering all clusters from the following vCenter(s): " $Global:DefaultViServers
+        Write-Output ("`tGathering all clusters from the following vCenter(s): " + $Global:DefaultViServers)
         $vSANClusterList = Get-Cluster | Sort-Object -Property Name
     }
     else {

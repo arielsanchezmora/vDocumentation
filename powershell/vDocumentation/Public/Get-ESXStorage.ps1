@@ -9,7 +9,7 @@
        File Name    : Get-ESXStorage.ps1
        Author       : Edgar Sanchez - @edmsanchez13
        Contributor  : Ariel Sanchez - @arielsanchezmor
-       Version      : 2.4.5
+       Version      : 2.4.7
      .Link
        https://github.com/arielsanchezmora/vDocumentation
      .INPUTS
@@ -61,13 +61,13 @@
     <#
      ----------------------------------------------------------[Declarations]----------------------------------------------------------
     #>
-    [CmdletBinding()]
+    [CmdletBinding(DefaultParameterSetName = 'VMhost')]
     param (
         [Parameter(Mandatory = $false,
             ParameterSetName = "VMhost")]
         [ValidateNotNull()]
         [ValidateNotNullOrEmpty()]
-        [String[]]$VMhost,
+        [String[]]$VMhost = "*",
         [Parameter(Mandatory = $false,
             ParameterSetName = "Cluster")]
         [ValidateNotNull()]
@@ -100,6 +100,9 @@
     #>
 
     $stopWatch = [system.diagnostics.stopwatch]::startNew()
+    if ($PSBoundParameters.ContainsKey('Cluster') -or $PSBoundParameters.ContainsKey('DataCenter')) {
+        [String[]]$VMhost = $null
+    } #END if
     
     <#
       Query PowerCLI and vDocumentation versions if
@@ -143,7 +146,7 @@
     } #END if
     if ($Cluster) {
         Write-Verbose -Message ((Get-Date -Format G) + "`tExecuting Cmdlet using Cluster parameter set")
-        Write-Output "`tGathering host list from the following Cluster(s): " (@($Cluster) -join ',')
+        Write-Output ("`tGathering host list from the following Cluster(s): " + (@($Cluster) -join ','))
         foreach ($vClusterName in $Cluster) {
             $tempList = Get-Cluster -Name $vClusterName.Trim() -ErrorAction SilentlyContinue | Get-VMHost 
             if ($tempList) {
@@ -156,7 +159,7 @@
     } #END if
     if ($DataCenter) {
         Write-Verbose -Message ((Get-Date -Format G) + "`tExecuting Cmdlet using Datacenter parameter set")
-        Write-Output "`tGathering host list from the following DataCenter(s): " (@($DataCenter) -join ',')
+        Write-Output ("`tGathering host list from the following DataCenter(s): " + (@($DataCenter) -join ','))
         foreach ($vDCname in $DataCenter) {
             $tempList = Get-Datacenter -Name $vDCname.Trim() -ErrorAction SilentlyContinue | Get-VMHost 
             if ($tempList) {

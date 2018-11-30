@@ -11,7 +11,7 @@
        File Name    : Get-ESXSpeculativeExecution.ps1
        Author       : Edgar Sanchez - @edmsanchez13
        Contributor  : Ariel Sanchez - @arielsanchezmor
-       Version      : 2.4.5
+       Version      : 2.4.7
      .Link
        https://github.com/arielsanchezmora/vDocumentation
      .INPUTS
@@ -74,13 +74,13 @@
      ----------------------------------------------------------[Declarations]----------------------------------------------------------
     #>
   
-    [CmdletBinding()]
+    [CmdletBinding(DefaultParameterSetName = 'VMhost')]
     param (
         [Parameter(Mandatory = $false,
             ParameterSetName = "VMhost")]
         [ValidateNotNull()]
         [ValidateNotNullOrEmpty()]
-        [String[]]$VMhost,
+        [String[]]$VMhost = "*",
         [Parameter(Mandatory = $false,
             ParameterSetName = "Cluster")]
         [ValidateNotNull()]
@@ -142,6 +142,9 @@
     #>
 
     $stopWatch = [system.diagnostics.stopwatch]::startNew()
+    if ($PSBoundParameters.ContainsKey('Cluster') -or $PSBoundParameters.ContainsKey('DataCenter')) {
+        [String[]]$VMhost = $null
+    } #END if
 
     <#
       Query PowerCLI and vDocumentation versions if
@@ -185,7 +188,7 @@
     } #END if
     if ($Cluster) {
         Write-Verbose -Message ((Get-Date -Format G) + "`tExecuting Cmdlet using Cluster parameter set")
-        Write-Output "`tGathering host list from the following Cluster(s): " (@($Cluster) -join ',')
+        Write-Output ("`tGathering host list from the following Cluster(s): " + (@($Cluster) -join ','))
         foreach ($vClusterName in $Cluster) {
             $tempList = Get-Cluster -Name $vClusterName.Trim() -ErrorAction SilentlyContinue | Get-VMHost 
             if ($tempList) {
@@ -198,7 +201,7 @@
     } #END if
     if ($DataCenter) {
         Write-Verbose -Message ((Get-Date -Format G) + "`tExecuting Cmdlet using Datacenter parameter set")
-        Write-Output "`tGathering host list from the following DataCenter(s): " (@($DataCenter) -join ',')
+        Write-Output ("`tGathering host list from the following DataCenter(s): " + (@($DataCenter) -join ','))
         foreach ($vDCname in $DataCenter) {
             $tempList = Get-Datacenter -Name $vDCname.Trim() -ErrorAction SilentlyContinue | Get-VMHost 
             if ($tempList) {
@@ -404,8 +407,8 @@
         Write-Verbose -Message ((Get-Date -Format G) + "`tGathering last patched date...")
         $esxPatches = $esxcli.software.vib.list.Invoke()
         $vmhostPatch = $esxPatches | Where-Object {$_.ID -match $esxiHost.Build} | Select-Object -First 1
-        if ($vmhost.ApiVersion -ge '6.5') {
-            Write-Verbose -Message ((Get-Date -Format G) + "`tESXi version " + $esxiHost.ApiVersion + ". Gathering VIB " + $vmhostPatch.Name + " install date through ImageConfigManager" )
+        if ($vmhost.Version -ge '6.5') {
+            Write-Verbose -Message ((Get-Date -Format G) + "`tESXi version " + $esxiHost.Version + ". Gathering VIB " + $vmhostPatch.Name + " install date through ImageConfigManager" )
             $configManagerView = Get-View $vmhostView.ConfigManager.ImageConfigManager
             $softwarePackages = $configManagerView.fetchSoftwarePackages() | Where-Object {$_.CreationDate -ge $vmhostPatch.InstallDate}
             $dateInstalledUTC = ($softwarePackages | Where-Object {$_.Name -eq $vmhostPatch.Name -and $_.Version -eq $vmhostPatch.Version}).CreationDate
@@ -422,7 +425,7 @@
         Write-Verbose -Message ((Get-Date -Format G) + "`tGathering VMSA-2018-0020 patch details...")
         $esxFrameworkStatus = $null
         $esxv2McuStatus = $null
-        if ($esxiHost.ApiVersion -eq "5.5") {
+        if (($esxiHost.Version).Substring(0, 3) -eq "5.5") {
             $esxFrameworkStatus = "Framework Missing"
             $esxv2McuStatus = "New MCU Missing"
             if ([int]$esxiHost.Build -ge $esx55Build) {
@@ -440,7 +443,7 @@
                 } #END if
             } #END if
         } #END if
-        if ($esxiHost.ApiVersion -eq "6.0") {
+        if (($esxiHost.Version).Substring(0, 3) -eq "6.0") {
             $esxFrameworkStatus = "Framework Missing"
             $esxv2McuStatus = "New MCU Missing"
             if ([int]$esxiHost.Build -ge $esx60Build) {
@@ -458,7 +461,7 @@
                 } #END if
             } #END if
         } #END if
-        if ($esxiHost.ApiVersion -eq "6.5") {
+        if (($esxiHost.Version).Substring(0, 3) -eq "6.5") {
             $esxFrameworkStatus = "Framework Missing"
             $esxv2McuStatus = "New MCU Missing"
             if ([int]$esxiHost.Build -ge $esx65Build) {
@@ -476,7 +479,7 @@
                 } #END if
             } #END if
         } #END if
-        if ($esxiHost.ApiVersion -eq "6.7") {
+        if (($esxiHost.Version).Substring(0, 3) -eq "6.7") {
             $esxFrameworkStatus = "Framework Missing"
             $esxv2McuStatus = "New MCU Missing"
             if ([int]$esxiHost.Build -ge $esx67Build) {
@@ -743,7 +746,7 @@
                 }
                 else {
                     $vmGuestOs = $vm.ExtensionData.Config.GuestFullName
-                } #END if
+                } #END if/else
 
                 <#
                   Validate VM Hardware
@@ -800,10 +803,10 @@
                 } #END if/else
                 if ($vmCpuid) {
                     $vmMcuCpuid = (@($vmCpuid.split('.') | Where-Object {$_ -ne "cpuid"}) -join ',')
-                } #END if/else
+                } #END if
                 if ($vmPcid) {
                     $vmCpuPcid = (@($vmPcid.split('.') | Where-Object {$_ -ne "cpuid"}) -join ',')
-                } #END if/else
+                } #END if
 
                 <#
                   Use a custom object to store

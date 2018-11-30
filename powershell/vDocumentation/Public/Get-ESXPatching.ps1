@@ -8,7 +8,7 @@
        File Name    : Get-ESXPatching.ps1
        Author       : Edgar Sanchez - @edmsanchez13
        Contributor  : Ariel Sanchez - @arielsanchezmor
-       Version      : 2.4.5
+       Version      : 2.4.7
      .Link
        https://github.com/arielsanchezmora/vDocumentation
      .INPUTS
@@ -56,13 +56,13 @@
      ----------------------------------------------------------[Declarations]----------------------------------------------------------
     #>
   
-    [CmdletBinding()]
+    [CmdletBinding(DefaultParameterSetName = 'VMhost')]
     param (
         [Parameter(Mandatory = $false,
             ParameterSetName = "VMhost")]
         [ValidateNotNull()]
         [ValidateNotNullOrEmpty()]
-        [String[]]$VMhost,
+        [String[]]$VMhost = "*",
         [Parameter(Mandatory = $false,
             ParameterSetName = "Cluster")]
         [ValidateNotNull()]
@@ -95,6 +95,9 @@
     #>
     
     $stopWatch = [system.diagnostics.stopwatch]::startNew()
+    if ($PSBoundParameters.ContainsKey('Cluster') -or $PSBoundParameters.ContainsKey('DataCenter')) {
+        [String[]]$VMhost = $null
+    } #END if
 
     <#
       Query PowerCLI and vDocumentation versions if
@@ -166,7 +169,7 @@
     } #END if
     if ($Cluster) {
         Write-Verbose -Message ((Get-Date -Format G) + "`tExecuting Cmdlet using Cluster parameter set")
-        Write-Output "`tGathering host list from the following Cluster(s): " (@($Cluster) -join ',')
+        Write-Output ("`tGathering host list from the following Cluster(s): " + (@($Cluster) -join ','))
         foreach ($vClusterName in $Cluster) {
             $tempList = Get-Cluster -Name $vClusterName.Trim() -ErrorAction SilentlyContinue | Get-VMHost 
             if ($tempList) {
@@ -187,7 +190,7 @@
     } #END if
     if ($DataCenter) {
         Write-Verbose -Message ((Get-Date -Format G) + "`tExecuting Cmdlet using Datacenter parameter set")
-        Write-Output "`tGathering host list from the following DataCenter(s): " (@($DataCenter) -join ',')
+        Write-Output ("`tGathering host list from the following DataCenter(s): " + (@($DataCenter) -join ','))
         foreach ($vDCname in $DataCenter) {
             $tempList = Get-Datacenter -Name $vDCname.Trim() -ErrorAction SilentlyContinue | Get-VMHost 
             if ($tempList) {
@@ -289,7 +292,14 @@
         #>
         $esxcli = Get-EsxCli -VMHost $esxiHost -V2
         $vmhostView = $esxiHost | Get-View
-        $esxiVersion = $esxcli.system.version.get.Invoke()
+        $esxiUpdateLevel = (Get-AdvancedSetting -Name "Misc.HostAgentUpdateLevel" -Entity $esxiHost -ErrorAction SilentlyContinue -ErrorVariable err).Value
+        if ($esxiUpdateLevel) {
+            $esxiVersion = ($esxiHost.Version) + " U" + $esxiUpdateLevel
+        }
+        else {
+            $esxiVersion = $esxiHost.Version
+            Write-Verbose -Message ((Get-Date -Format G) + "`tFailed to get ESXi Update Level, Error : " + $err)
+        } #END if/else
 
         <#
           Get ESXi Patch Compliance
@@ -317,11 +327,11 @@
               based on Date and time (UTC), which is
               converted to local time
             #>
-            if ($esxiHost.ApiVersion -notmatch '6.5') {
+            if ($esxiHost.Version -notmatch '6.5') {
                 $lastPatched = Get-Date $vmhostPatch.InstallDate -Format d
             }
             else {
-                Write-Verbose -Message ((Get-Date -Format G) + "`tESXi version " + $esxiHost.ApiVersion + ". Gathering VIB " + $vmhostPatch.Name + " install date through ImageConfigManager" )
+                Write-Verbose -Message ((Get-Date -Format G) + "`tESXi version " + $esxiHost.Version + ". Gathering VIB " + $vmhostPatch.Name + " install date through ImageConfigManager" )
                 $configManagerView = Get-View $vmhostView.ConfigManager.ImageConfigManager
                 $softwarePackages = $configManagerView.fetchSoftwarePackages() | Where-Object {$_.CreationDate -ge $vmhostPatch.InstallDate}
                 $dateInstalledUTC = ($softwarePackages | Where-Object {$_.Name -eq $vmhostPatch.Name -and $_.Version -eq $vmhostPatch.Version}).CreationDate
@@ -335,10 +345,8 @@
             $output = [PSCustomObject]@{
                 'Hostname'     = $esxiHost.Name
                 'Product'      = $vmhostView.Config.Product.Name
-                'Version'      = $vmhostView.Config.Product.Version
+                'Version'      = $esxiVersion
                 'Build'        = $esxiHost.Build
-                'Update'       = $esxiVersion.Update
-                'Patch'        = $esxiVersion.Patch
                 'Baseline'     = $vmbaseline.Baseline.Name
                 'Compliance'   = $vmbaseline.Status
                 'Last Patched' = $lastPatched
@@ -375,11 +383,11 @@
                       based on Date and time (UTC), which is
                       converted to loal time
                     #>
-                    if ($esxiHost.ApiVersion -notmatch '6.5') {
+                    if ($esxiHost.Version -notmatch '6.5') {
                         $dateInstalled = Get-Date $vmPatch.InstallDate -Format d
                     }
                     else {
-                        Write-Verbose -Message ((Get-Date -Format G) + "`tESXi version " + $esxiHost.ApiVersion + ". Gathering VIB " + $vmPatch.Name + " install date through ImageConfigManager" )
+                        Write-Verbose -Message ((Get-Date -Format G) + "`tESXi version " + $esxiHost.Version + ". Gathering VIB " + $vmPatch.Name + " install date through ImageConfigManager" )
                         $configManagerView = Get-View $vmhostView.ConfigManager.ImageConfigManager
                         $softwarePackages = $configManagerView.fetchSoftwarePackages() | Where-Object {$_.CreationDate -ge $vmPatch.InstallDate}
                         $dateInstalledUTC = ($softwarePackages | Where-Object {$_.Name -eq $vmPatch.Name -and $_.Version -eq $vmPatch.Version}).CreationDate
@@ -404,7 +412,7 @@
                     $output = [PSCustomObject]@{
                         'Hostname'       = $esxiHost.Name
                         'Product'        = $vmhostView.Config.Product.Name
-                        'Version'        = $vmhostView.Config.Product.Version
+                        'Version'        = $esxiVersion
                         'Build'          = $esxiHost.Build
                         'Baseline'       = $vmbaseline.Baseline.Name
                         'VIB Name(s)'    = $vmPatch.Name
@@ -442,7 +450,7 @@
                 $output = [PSCustomObject]@{
                     'Hostname'     = $esxiHost.Name
                     'Product'      = $vmhostView.Config.Product.Name
-                    'Version'      = $vmhostView.Config.Product.Version
+                    'Version'      = $esxiVersion
                     'Build'        = $esxiHost.Build
                     'Baseline'     = $vmbaseline.Baseline.Name
                     'Patch Name'   = $notCompliantPatch.Name
