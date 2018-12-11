@@ -10,7 +10,7 @@
        File Name    : Get-VMSpeculativeExecution.ps1
        Author       : Edgar Sanchez - @edmsanchez13
        Contributor  : Ariel Sanchez - @arielsanchezmor
-       Version      : 2.4.4
+       Version      : 2.4.7
      .Link
        https://github.com/arielsanchezmora/vDocumentation
      .PARAMETER VM
@@ -18,8 +18,7 @@
      .EXAMPLE
        C:\PS> Get-VM -Server $VCServer | Get-VMSpeculativeExecution
 
-       Retrieves the compliance status on Spectre of all virtual machines which run in the $VCServer vCenter Server.
-     
+       Retrieves the compliance status on Spectre of all virtual machines which run in the $VCServer vCenter Server.     
      .EXAMPLE
        C:\PS> Get-VM -Name "labvm001" | Get-VMSpeculativeExecution
 
@@ -39,17 +38,14 @@
 
      .EXAMPLE
        C:\PS> Get-VM -Location "MyClusterName" | Get-VMSpeculativeExecution
-
        Retrieves the compliance status on Spectre of all virtual machines which run in the "MyClusterName" cluster.
  
      .EXAMPLE
        C:\PS> Get-VMHost "MyESXiHostName" | Get-VM | Get-VMSpeculativeExecution
-
        Retrieves the compliance status on Spectre of all virtual machines which run on the "MyESXiHostName" ESXi host.
      
        .EXAMPLE
       C:\PS> Get-VMHost "MyESXiHostName" | Get-VM | Get-VMSpeculativeExecution | Export-Excel "VMValidation.xlsx" -WorkSheetname "VMresults"
-
        Retrieves the compliance status on Spectre of all virtual machines which run on the "MyESXiHostName" ESXi host and exports to Excel
 
      .NOTES

@@ -12,7 +12,7 @@ function Get-vSANInfo {
        Author       : Graham Barker - @VirtualG_UK
        Contributor  : Edgar Sanchez - @edmsanchez13
        Contributor  : Ariel Sanchez - @arielsanchezmor
-       Version      : 2.4.4
+       Version      : 2.4.7
      .Link
        https://github.com/arielsanchezmora/vDocumentation
      .INPUTS
@@ -20,20 +20,20 @@ function Get-vSANInfo {
      .OUTPUTS
        CSV file
        Excel file
-     .PARAMETER cluster
+     .PARAMETER Cluster
        The name(s) of the vSphere Cluster(s)
      .EXAMPLE
-       Get-vSANInfo -cluster production-cluster
+       Get-vSANInfo -Cluster production
      .PARAMETER ExportCSV
        Switch to export all data to CSV file. File is saved to the current user directory from where the script was executed. Use -folderPath parameter to specify a alternate location
      .EXAMPLE
-       Get-vSANInfo -cluster production-cluster -ExportCSV
+       Get-vSANInfo -Cluster production -ExportCSV
      .PARAMETER ExportExcel
        Switch to export all data to Excel file (No need to have Excel Installed). This relies on ImportExcel Module to be installed.
        ImportExcel Module can be installed directly from the PowerShell Gallery. See https://github.com/dfinke/ImportExcel for more information
        File is saved to the current user directory from where the script was executed. Use -folderPath parameter to specify a alternate location
      .EXAMPLE
-       Get-vSANInfo -cluster production-cluster -ExportExcel
+       Get-vSANInfo -Cluster production -ExportExcel
      .PARAMETER folderPath
        Specify an alternate folder path where the exported data should be saved.
      .EXAMPLE
@@ -41,7 +41,7 @@ function Get-vSANInfo {
      .PARAMETER PassThru
        Switch to return object to command line
      .EXAMPLE
-       Get-vSANInfo -cluster production-cluster
+       Get-vSANInfo -Cluster production
     #> 
     
     <#
@@ -49,14 +49,14 @@ function Get-vSANInfo {
     #>
     [CmdletBinding()]
     param (
-        $cluster,
+        [String[]]$Cluster,
         [switch]$ExportCSV,
         [switch]$ExportExcel,
         [switch]$PassThru,
         $folderPath
     )
     
-    $configurationCollection = @()
+    $configurationCollection = [System.Collections.ArrayList]@()
     $skipCollection = @()
     $vSANClusterList = @()
     $returnCollection = @()
@@ -68,6 +68,8 @@ function Get-vSANInfo {
      ----------------------------------------------------------[Execution]----------------------------------------------------------
     #>
   
+    $stopWatch = [system.diagnostics.stopwatch]::startNew()
+
     <#
       Query PowerCLI and vDocumentation versions if
       running Verbose
@@ -94,17 +96,17 @@ function Get-vSANInfo {
     } #END if/else
     
     <#
-      Validate parameter (-cluster) and gather cluster list.
+      Validate parameter (-Cluster) and gather cluster list.
     #>
     Write-Verbose -Message ((Get-Date -Format G) + "`tValidate parameters used")
     if ([string]::IsNullOrWhiteSpace($cluster) ) {
-        Write-Verbose -Message ((Get-Date -Format G) + "`tA parameter (-cluster) was not specified. Will gather all clusters")
-        Write-Host "`tGathering all clusters from the following vCenter(s): " $Global:DefaultViServers
+        Write-Verbose -Message ((Get-Date -Format G) + "`tA parameter (-Cluster) was not specified. Will gather all clusters")
+        Write-Output ("`tGathering all clusters from the following vCenter(s): " + $Global:DefaultViServers)
         $vSANClusterList = Get-Cluster | Sort-Object -Property Name
     }
     else {
         Write-Verbose -Message ((Get-Date -Format G) + "`tExecuting Cmdlet using cluster parameter")
-        Write-Host "`tGathering cluster list..."
+        Write-Output "`tGathering cluster list..."
         foreach ($vClusterName in $cluster) {
             $tempList = Get-Cluster -Name $vClusterName.Trim() -ErrorAction SilentlyContinue
             if ([string]::IsNullOrWhiteSpace($tempList)) {
@@ -115,6 +117,7 @@ function Get-vSANInfo {
             } #END if/else
         } #END foreach        
     } #END if/else
+    $tempList = $null
     
     <#
       Validate export switches,
@@ -187,7 +190,7 @@ function Get-vSANInfo {
         <#
           Get vSAN oldest system version
         #>
-        Write-Host "`tGathering configuration details from vSAN Cluster: $vSAN ..."
+        Write-Output "`tGathering configuration details from vSAN Cluster: $vSAN ..."
         Write-Verbose -Message ((Get-Date -Format G) + "`tGathering claimed disks configuration...")
         $clusterMoRef = $vSAN.ExtensionData.MoRef
         $vSanClusterHealth = Get-VSANView -Id "VsanVcClusterHealthSystem-vsan-cluster-health-system"
@@ -248,7 +251,7 @@ function Get-vSANInfo {
         <#
           Get vSAN Capacity
         #>
-        $vSanDS = Get-View $vSanView.Datastore
+        $vSanDS = Get-View $vSanView.Datastore | Where-Object {$_.Summary.Type -eq 'vsan'}
         $vSanDsCapacityGB = [math]::round(($vSanDS.Summary.Capacity) / 1GB, 2)
         $vSanProvisionedGB = [math]::round(($vSanDS.Summary.Capacity - $vSanDS.Summary.FreeSpace + $vSanDS.Summary.Uncommitted) / 1GB, 2)
         $vSanDsFreeGB = [math]::round(($vSanDS.Summary.FreeSpace) / 1GB, 2)
@@ -263,7 +266,7 @@ function Get-vSANInfo {
         <#
           Use a custom object to store collected data
         #>
-        $configurationCollection += [PSCustomObject]@{
+        $output = [PSCustomObject]@{
             'vSAN Cluster Name'                   = $vSAN.Name
             'Effective Hosts'                     = $vSanView.Summary.NumEffectiveHosts
             'Oldest vSAN Version'                 = $oldestvSanSystemVersion
@@ -280,14 +283,17 @@ function Get-vSANInfo {
             'Provisioned Space (GB)'              = $vSanProvisionedGB
             'Free Space (GB)'                     = $vSanDsFreeGB
         } #END [PSCustomObject]
+        [void]$configurationCollection.Add($output)
     } #END foreach
+    $stopWatch.Stop()
     Write-Verbose -Message ((Get-Date -Format G) + "`tMain code execution completed")
+    Write-Verbose -Message  ((Get-Date -Format G) + "`tScript Duration: " + $stopWatch.Elapsed.Duration())
 
     <#
       Display skipped clusters and their vSAN status
     #>
     If ($skipCollection) {
-        Write-Host "`n"
+        Write-Output "`n"
         Write-Warning -Message "`tCheck vSAN configuration or cluster name"
         Write-Warning -Message "`tSkipped cluster(s):"
         $skipCollection | Format-Table -AutoSize

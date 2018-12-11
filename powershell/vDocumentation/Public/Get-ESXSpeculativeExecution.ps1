@@ -6,11 +6,12 @@
        Will validate ESXi host for Spectre/Hypervisor-Assisted Guest Mitigation
        https://www.vmware.com/security/advisories/VMSA-2018-0004.html
        https://www.vmware.com/security/advisories/VMSA-2018-0012.1.html
+       https://www.vmware.com/security/advisories/VMSA-2018-0020.html
      .NOTES
        File Name    : Get-ESXSpeculativeExecution.ps1
        Author       : Edgar Sanchez - @edmsanchez13
        Contributor  : Ariel Sanchez - @arielsanchezmor
-       Version      : 2.4.4
+       Version      : 2.4.7
      .Link
        https://github.com/arielsanchezmora/vDocumentation
      .INPUTS
@@ -20,65 +21,76 @@
      .OUTPUTS
        CSV file
        Excel file
-     .PARAMETER esxi
+     .PARAMETER VMhost
        The name(s) of the vSphere ESXi Host(s)
      .EXAMPLE
-       Get-ESXSpeculativeExecution -esxi devvm001.lab.local
-     .PARAMETER cluster
+       Get-ESXSpeculativeExecution -VMhost devvm001.lab.local
+     .PARAMETER Cluster
        The name(s) of the vSphere Cluster(s)
      .EXAMPLE
-       Get-ESXSpeculativeExecution -cluster production-cluster
-     .PARAMETER datacenter
+       Get-ESXSpeculativeExecution -Cluster production
+     .PARAMETER Datacenter
        The name(s) of the vSphere Virtual Datacenter(s).
      .EXAMPLE
        Get-ESXSpeculativeExecution -datacenter vDC001
-       Get-ESXSpeculativeExecution -datacenter "all vdc" will gather all hosts in vCenter(s). This is the default if no Parameter (-esxi, -cluster, or -datacenter) is specified.
      .PARAMETER inputBiosFile
        Specify input CSV file containing BIOS versions to validate against. Use this if you do not have access to the internet or wish to use your own offline version
      .EXAMPLE
-       Get-ESXSpeculativeExecution -cluster production-cluster -inputBiosFile "c:\temp\BIOSUpdates.csv"       
+       Get-ESXSpeculativeExecution -Cluster production -inputBiosFile "c:\temp\BIOSUpdates.csv"       
      .PARAMETER inputMcuFile
        Specify input CSV file containing Intel MCU version to validate against. Use this if you do not have access to the internet or wish to use your own offline version
      .EXAMPLE
-       Get-ESXSpeculativeExecution -cluster production-cluster -inputMcuFile "c:\temp\Intel_MCU.csv"
+       Get-ESXSpeculativeExecution -Cluster production -inputMcuFile "c:\temp\Intel_MCU.csv"
      .PARAMETER UseSSH
-       Switch to use SSH to gahter specific MCU revisions details from the ESXi host. This needs to be specified if needed. This relies on Posh-SSH Module to be installed.
+       Switch to use SSH to gahter specific MCU revisions details from the ESXi host. This needs to be specified if needed and relies on Posh-SSH Module being installed.
        Posh-SSH Module can be installed directly from the PowerShell Gallery. See https://github.com/darkoperator/Posh-SSH for more information
      .EXAMPLE
-       Get-ESXSpeculativeExecution -cluster production-cluster -ReportOnVMS       
+       Get-ESXSpeculativeExecution -Cluster production -UseSSH
      .PARAMETER ReportOnVMs
        Switch to report on virtual machines. This needs to be specified if needed.
      .EXAMPLE
-       Get-ESXSpeculativeExecution -cluster production-cluster -ReportOnVMS       
+       Get-ESXSpeculativeExecution -Cluster production -ReportOnVMS       
      .PARAMETER ExportCSV
        Switch to export all data to CSV file. File is saved to the current user directory from where the script was executed. Use -folderPath parameter to specify a alternate location
      .EXAMPLE
-       Get-ESXSpeculativeExecution -cluster production-cluster -ExportCSV
+       Get-ESXSpeculativeExecution -Cluster production -ExportCSV
      .PARAMETER ExportExcel
        Switch to export all data to Excel file (No need to have Excel Installed). This relies on ImportExcel Module to be installed.
        ImportExcel Module can be installed directly from the PowerShell Gallery. See https://github.com/dfinke/ImportExcel for more information
        File is saved to the current user directory from where the script was executed. Use -folderPath parameter to specify a alternate location
      .EXAMPLE
-       Get-ESXSpeculativeExecution -cluster production-cluster -ExportExcel
+       Get-ESXSpeculativeExecution -Cluster production -ExportExcel
      .PARAMETER folderPath
        Specify an alternate folder path where the exported data should be saved.
      .EXAMPLE
-       Get-ESXSpeculativeExecution -cluster production-cluster -ExportExcel -folderPath C:\temp
+       Get-ESXSpeculativeExecution -Cluster production -ExportExcel -folderPath C:\temp
      .PARAMETER PassThru
        Switch to return object to command line
      .EXAMPLE
-       Get-ESXSpeculativeExecution -esxi 192.168.1.100 -Hardware -PassThru
+       Get-ESXSpeculativeExecution -VMhost 192.168.1.100 -PassThru
     #> 
     
     <#
      ----------------------------------------------------------[Declarations]----------------------------------------------------------
     #>
   
-    [CmdletBinding()]
+    [CmdletBinding(DefaultParameterSetName = 'VMhost')]
     param (
-        $esxi,
-        $cluster,
-        $datacenter,
+        [Parameter(Mandatory = $false,
+            ParameterSetName = "VMhost")]
+        [ValidateNotNull()]
+        [ValidateNotNullOrEmpty()]
+        [String[]]$VMhost = "*",
+        [Parameter(Mandatory = $false,
+            ParameterSetName = "Cluster")]
+        [ValidateNotNull()]
+        [ValidateNotNullOrEmpty()]
+        [String[]]$Cluster,
+        [Parameter(Mandatory = $false,
+            ParameterSetName = "DataCenter")]
+        [ValidateNotNull()]
+        [ValidateNotNullOrEmpty()]
+        [String[]]$DataCenter,
         $inputBiosFile,
         $inputMcuFile,
         [switch]$UseSSH,
@@ -89,9 +101,9 @@
         $folderPath
     )
     
-    $patchCollection = @()
+    $patchCollection = [System.Collections.ArrayList]@()
     $skipCollection = @()
-    $vmCollection = @()
+    $vmCollection = [System.Collections.ArrayList]@()
     $vHostList = @()
     $returnCollection = @()
     $biosCsvCollection = @()
@@ -101,18 +113,39 @@
     $date = Get-Date -format s
     $date = $date -replace ":", "-"
     $outputFile = "SpeculativeExecution" + $date
+
     <#
       VMSA-2018-0004.3 Build IDs
+      esx55Build = "7967571"
+      esx60Build = "7967664"
+      esx65Build = "7967591"
     #>
-    $esx55Build = "8934887"
-    $esx60Build = "8934903"
-    $esx65Build = "8935087"
-    $esx67Build = "8941472"
-    
+
+    <#
+      VMSA-2018-0012.1 Build IDs
+      esx55Build = "8934887"
+      esx60Build = "8934903"
+      esx65Build = "8935087"
+      esx67Build = "8941472"
+    #>
+
+    <#
+      VMSA-2018-0020 Build IDs
+    #>
+    $esx55Build = "9313066"
+    $esx60Build = "9313334"
+    $esx65Build = "9298722"
+    $esx67Build = "9484548"
+
     <#
      ----------------------------------------------------------[Execution]----------------------------------------------------------
     #>
-  
+
+    $stopWatch = [system.diagnostics.stopwatch]::startNew()
+    if ($PSBoundParameters.ContainsKey('Cluster') -or $PSBoundParameters.ContainsKey('DataCenter')) {
+        [String[]]$VMhost = $null
+    } #END if
+
     <#
       Query PowerCLI and vDocumentation versions if
       running Verbose
@@ -137,75 +170,48 @@
     } #END if/else
     
     <#
-      Validate if a parameter was specified (-esxi, -cluster, or -datacenter)
-      Although all 3 can be specified, only the first one is used
-      Example: -esxi "host001" -cluster "test-cluster". -esxi is the first parameter
-      and what will be used.
-    #>
-    Write-Verbose -Message ((Get-Date -Format G) + "`tValidate parameters used")
-    if ([string]::IsNullOrWhiteSpace($esxi) -and [string]::IsNullOrWhiteSpace($cluster) -and [string]::IsNullOrWhiteSpace($datacenter)) {
-        Write-Verbose -Message ((Get-Date -Format G) + "`tA parameter (-esxi, -cluster, -datacenter) was not specified. Will gather all hosts")
-        $datacenter = "all vdc"
-    } #END if
-    
-    <#
-      Gather host list based on parameter used
+      Gather host list based on Parameter set used
     #>
     Write-Verbose -Message ((Get-Date -Format G) + "`tGather host list")
-    if ([string]::IsNullOrWhiteSpace($esxi)) {      
-        Write-Verbose -Message ((Get-Date -Format G) + "`t-esxi parameter is Null or Empty")
-        if ([string]::IsNullOrWhiteSpace($cluster)) {
-            Write-Verbose -Message ((Get-Date -Format G) + "`t-cluster parameter is Null or Empty")
-            if ([string]::IsNullOrWhiteSpace($datacenter)) {
-                Write-Verbose -Message ((Get-Date -Format G) + "`t-datacenter parameter is Null or Empty")
-            }
-            else {
-                Write-Verbose -Message ((Get-Date -Format G) + "`tExecuting Cmdlet using datacenter parameter")
-                if ($datacenter -eq "all vdc") {
-                    Write-Host "`tGathering all hosts from the following vCenter(s): " $Global:DefaultViServers
-                    $vHostList = Get-VMHost | Sort-Object -Property Name                    
-                }
-                else {
-                    Write-Host "`tGathering host list from the following DataCenter(s): " (@($datacenter) -join ',')
-                    foreach ($vDCname in $datacenter) {
-                        $tempList = Get-Datacenter -Name $vDCname.Trim() -ErrorAction SilentlyContinue | Get-VMHost 
-                        if ($tempList) {
-                            $vHostList += $tempList | Sort-Object -Property Name
-                        }
-                        else {
-                            Write-Warning -Message "`tDatacenter with name $vDCname was not found in $Global:DefaultViServers"
-                        } #END if/else
-                    } #END foreach
-                } #END if/else
-            } #END if/else
-        }
-        else {
-            Write-Verbose -Message ((Get-Date -Format G) + "`tExecuting Cmdlet using cluster parameter")
-            Write-Host "`tGathering host list from the following Cluster(s): " (@($cluster) -join ',')
-            foreach ($vClusterName in $cluster) {
-                $tempList = Get-Cluster -Name $vClusterName.Trim() -ErrorAction SilentlyContinue | Get-VMHost 
-                if ($tempList) {
-                    $vHostList += $tempList | Sort-Object -Property Name
-                }
-                else {
-                    Write-Warning -Message "`tCluster with name $vClusterName was not found in $Global:DefaultViServers"
-                } #END if/else
-            } #END foreach
-        } #END if/else
-    }
-    else { 
-        Write-Verbose -Message ((Get-Date -Format G) + "`tExecuting Cmdlet using esxi parameter")
-        Write-Host "`tGathering host list..."
-        foreach ($invidualHost in $esxi) {
+    if ($VMhost) {
+        Write-Verbose -Message ((Get-Date -Format G) + "`tExecuting Cmdlet using VMhost parameter set")
+        Write-Output "`tGathering host list..."
+        foreach ($invidualHost in $VMhost) {
             $tempList = Get-VMHost -Name $invidualHost.Trim() -ErrorAction SilentlyContinue
             if ($tempList) {
-                $vHostList += $tempList | Sort-Object -Property Name
+                $vHostList += $tempList
             }
             else {
                 Write-Warning -Message "`tESXi host $invidualHost was not found in $Global:DefaultViServers"
             } #END if/else
+        } #END foreach    
+    } #END if
+    if ($Cluster) {
+        Write-Verbose -Message ((Get-Date -Format G) + "`tExecuting Cmdlet using Cluster parameter set")
+        Write-Output ("`tGathering host list from the following Cluster(s): " + (@($Cluster) -join ','))
+        foreach ($vClusterName in $Cluster) {
+            $tempList = Get-Cluster -Name $vClusterName.Trim() -ErrorAction SilentlyContinue | Get-VMHost 
+            if ($tempList) {
+                $vHostList += $tempList
+            }
+            else {
+                Write-Warning -Message "`tCluster with name $vClusterName was not found in $Global:DefaultViServers"
+            } #END if/else
         } #END foreach
-    } #END if/else
+    } #END if
+    if ($DataCenter) {
+        Write-Verbose -Message ((Get-Date -Format G) + "`tExecuting Cmdlet using Datacenter parameter set")
+        Write-Output ("`tGathering host list from the following DataCenter(s): " + (@($DataCenter) -join ','))
+        foreach ($vDCname in $DataCenter) {
+            $tempList = Get-Datacenter -Name $vDCname.Trim() -ErrorAction SilentlyContinue | Get-VMHost 
+            if ($tempList) {
+                $vHostList += $tempList
+            }
+            else {
+                Write-Warning -Message "`tDatacenter with name $vDCname was not found in $Global:DefaultViServers"
+            } #END if/else
+        } #END foreach
+    } #END if
     $tempList = $null
     
     <#
@@ -285,9 +291,9 @@
         } 
         catch [System.Net.WebException] {
             $webRequest = $_.Exception.Response
-        } #END try
+        } #END try/catch
         if ([int]$webRequest.StatusCode -eq "200") {
-            $biosCsvCollection = $webRequest | ConvertFrom-Csv
+            $biosCsvCollection = ConvertFrom-Csv -InputObject $webRequest
         }
         else {
             Write-Warning -Message ("`tonline CSV file: '$biosUrl' is NOT reachable/unavailable (Return code: " + ([int]$webRequest.StatusCode) + ")")
@@ -313,9 +319,9 @@
         } 
         catch [System.Net.WebException] {
             $webRequest = $_.Exception.Response
-        } #END try
+        } #END try/catch
         if ([int]$webRequest.StatusCode -eq "200") {
-            $mcuCsvCollection = $webRequest | ConvertFrom-Csv
+            $mcuCsvCollection = ConvertFrom-Csv -InputObject $webRequest
         }
         else {
             Write-Warning -Message ("`tonline CSV file: '$mcuUrl' is NOT reachable/unavailable (Return code: " + ([int]$webRequest.StatusCode) + ")")
@@ -337,14 +343,15 @@
     <#
       Main code execution
     #>
-    foreach ($vmhost in $vHostList) {
+    $vHostList = $vHostList | Sort-Object -Property Name
+    foreach ($esxiHost in $vHostList) {
     
         <#
           Skip if ESXi host is not in a Connected
           or Maintenance ConnectionState
         #>
-        Write-Verbose -Message ((Get-Date -Format G) + "`t$vmhost Connection State: " + $vmhost.ConnectionState)
-        if ($vmhost.ConnectionState -eq "Connected" -or $vmhost.ConnectionState -eq "Maintenance") {
+        Write-Verbose -Message ((Get-Date -Format G) + "`t$esxiHost Connection State: " + $esxiHost.ConnectionState)
+        if ($esxiHost.ConnectionState -eq "Connected" -or $esxiHost.ConnectionState -eq "Maintenance") {
             <#
               Do nothing - ESXi host is reachable
             #>
@@ -355,8 +362,8 @@
               hosts and continue to the next foreach loop
             #>
             $skipCollection += [PSCustomObject]@{
-                'Hostname'         = $vmhost.Name
-                'Connection State' = $vmhost.ConnectionState
+                'Hostname'         = $esxiHost.Name
+                'Connection State' = $esxiHost.ConnectionState
             } #END [PSCustomObject]
             continue
         } #END if/else
@@ -364,12 +371,20 @@
         <#
           Get ESXi CPUID details
         #>
-        Write-Host "`tGathering details from $vmhost ..."
-        $esxcli = Get-EsxCli -VMHost $vmhost -V2
-        $vmhostView = $vmhost | Get-View
-        $mgmtIP = $vmhost | Get-VMHostNetworkAdapter | Where-Object {$_.ManagementTrafficEnabled -eq 'True'} | Select-Object -ExpandProperty IP
+        Write-Output "`tGathering details from $esxiHost ..."
+        $esxcli = Get-EsxCli -VMHost $esxiHost -V2
+        $vmhostView = Get-View -VIObject $esxiHost
+        $esxiUpdateLevel = (Get-AdvancedSetting -Name "Misc.HostAgentUpdateLevel" -Entity $esxiHost -ErrorAction SilentlyContinue -ErrorVariable err).Value
+        if ($esxiUpdateLevel) {
+            $esxiVersion = $vmhostView.Config.Product.Version + " U" + $esxiUpdateLevel
+        }
+        else {
+            $esxiVersion = $vmhostView.Config.Product.Version
+            Write-Verbose -Message ((Get-Date -Format G) + "`tFailed to get ESXi Update Level, Error : " + $err)
+        } #END if/else
+        $mgmtIP = $esxiHost | Get-VMHostNetworkAdapter | Where-Object {$_.ManagementTrafficEnabled -eq 'True'} | Select-Object -ExpandProperty IP
         $cpuList = $esxcli.hardware.cpu.list.Invoke() | Where-Object {$_.Id -eq "0"}
-        $cpuModel = $vmhost.ProcessorType -replace '\s+', ' '
+        $cpuModel = $esxiHost.ProcessorType -replace '\s+', ' '
         Write-Verbose -Message ((Get-Date -Format G) + "`tGathering ESXi CPUID details...")
         $hostCpuPcid = $false
         $hostMcuCPuid = $null
@@ -391,9 +406,9 @@
         #>
         Write-Verbose -Message ((Get-Date -Format G) + "`tGathering last patched date...")
         $esxPatches = $esxcli.software.vib.list.Invoke()
-        $vmhostPatch = $esxPatches | Where-Object {$_.ID -match $vmhost.Build} | Select-Object -First 1
-        if ($vmhost.ApiVersion -ge '6.5') {
-            Write-Verbose -Message ((Get-Date -Format G) + "`tESXi version " + $vmhost.ApiVersion + ". Gathering VIB " + $vmhostPatch.Name + " install date through ImageConfigManager" )
+        $vmhostPatch = $esxPatches | Where-Object {$_.ID -match $esxiHost.Build} | Select-Object -First 1
+        if ($vmhost.Version -ge '6.5') {
+            Write-Verbose -Message ((Get-Date -Format G) + "`tESXi version " + $esxiHost.Version + ". Gathering VIB " + $vmhostPatch.Name + " install date through ImageConfigManager" )
             $configManagerView = Get-View $vmhostView.ConfigManager.ImageConfigManager
             $softwarePackages = $configManagerView.fetchSoftwarePackages() | Where-Object {$_.CreationDate -ge $vmhostPatch.InstallDate}
             $dateInstalledUTC = ($softwarePackages | Where-Object {$_.Name -eq $vmhostPatch.Name -and $_.Version -eq $vmhostPatch.Version}).CreationDate
@@ -404,83 +419,111 @@
         } #END if/else
         
         <#
-          Get ESXi VMSA-2018-0012.1
-          path details
+          Get ESXi VMSA-2018-0020
+          patch details
         #>
+        Write-Verbose -Message ((Get-Date -Format G) + "`tGathering VMSA-2018-0020 patch details...")
         $esxFrameworkStatus = $null
         $esxv2McuStatus = $null
-        if ($vmhost.ApiVersion -eq "5.5") {
+        if (($esxiHost.Version).Substring(0, 3) -eq "5.5") {
             $esxFrameworkStatus = "Framework Missing"
             $esxv2McuStatus = "New MCU Missing"
-            if ($vmhost.Build -ge $esx55Build) {
+            if ([int]$esxiHost.Build -ge $esx55Build) {
                 $esxFrameworkPatch = $esxPatches | Where-Object {$_.Name -eq "esx-base"}
                 $esxv2McuPatch = $esxPatches | Where-Object {$_.Name -eq "cpu-microcode"}
                 if ($esxFrameworkPatch) {
-                    if (($esxFrameworkPatch.Version.Split('.') | Select-Object -Last 1) -ge $esx55Build) {
+                    if ([int]($esxFrameworkPatch.Version.Split('.') | Select-Object -Last 1) -ge $esx55Build) {
                         $esxFrameworkStatus = "Framework Installed"
                     } #END if
                 } #END if
                 if ($esxv2McuPatch) {
-                    if (($esxv2McuPatch.Version.Split('.') | Select-Object -Last 1) -ge $esx55Build) {
+                    if ([int]($esxv2McuPatch.Version.Split('.') | Select-Object -Last 1) -ge $esx55Build) {
                         $esxv2McuStatus = "New MCU Installed"
                     } #END if
                 } #END if
             } #END if
         } #END if
-        if ($vmhost.ApiVersion -eq "6.0") {
+        if (($esxiHost.Version).Substring(0, 3) -eq "6.0") {
             $esxFrameworkStatus = "Framework Missing"
             $esxv2McuStatus = "New MCU Missing"
-            if ($vmhost.Build -ge $esx60Build) {
+            if ([int]$esxiHost.Build -ge $esx60Build) {
                 $esxFrameworkPatch = $esxPatches | Where-Object {$_.Name -eq "esx-base"}
                 $esxv2McuPatch = $esxPatches | Where-Object {$_.Name -eq "cpu-microcode"}
                 if ($esxFrameworkPatch) {
-                    if (($esxFrameworkPatch.Version.Split('.') | Select-Object -Last 1) -ge $esx60Build) {
+                    if ([int]($esxFrameworkPatch.Version.Split('.') | Select-Object -Last 1) -ge $esx60Build) {
                         $esxFrameworkStatus = "Framework Installed"
                     } #END if
                 } #END if
                 if ($esxv2McuPatch) {
-                    if (($esxv2McuPatch.Version.Split('.') | Select-Object -Last 1) -ge $esx60Build) {
+                    if ([int]($esxv2McuPatch.Version.Split('.') | Select-Object -Last 1) -ge $esx60Build) {
                         $esxv2McuStatus = "New MCU Installed"
                     } #END if
                 } #END if
             } #END if
         } #END if
-        if ($vmhost.ApiVersion -eq "6.5") {
+        if (($esxiHost.Version).Substring(0, 3) -eq "6.5") {
             $esxFrameworkStatus = "Framework Missing"
             $esxv2McuStatus = "New MCU Missing"
-            if ($vmhost.Build -ge $esx65Build) {
+            if ([int]$esxiHost.Build -ge $esx65Build) {
                 $esxFrameworkPatch = $esxPatches | Where-Object {$_.Name -eq "esx-base"}
                 $esxv2McuPatch = $esxPatches | Where-Object {$_.Name -eq "cpu-microcode"}
                 if ($esxFrameworkPatch) {
-                    if (($esxFrameworkPatch.Version.Split('.') | Select-Object -Last 1) -ge $esx65Build) {
+                    if ([int]($esxFrameworkPatch.Version.Split('.') | Select-Object -Last 1) -ge $esx65Build) {
                         $esxFrameworkStatus = "Framework Installed"
                     } #END if
                 } #END if
                 if ($esxv2McuPatch) {
-                    if (($esxv2McuPatch.Version.Split('.') | Select-Object -Last 1) -ge $esx65Build) {
+                    if ([int]($esxv2McuPatch.Version.Split('.') | Select-Object -Last 1) -ge $esx65Build) {
                         $esxv2McuStatus = "New MCU Installed"
                     } #END if
                 } #END if
             } #END if
         } #END if
-        if ($vmhost.ApiVersion -eq "6.7") {
+        if (($esxiHost.Version).Substring(0, 3) -eq "6.7") {
             $esxFrameworkStatus = "Framework Missing"
             $esxv2McuStatus = "New MCU Missing"
-            if ($vmhost.Build -ge $esx67Build) {
+            if ([int]$esxiHost.Build -ge $esx67Build) {
                 $esxFrameworkPatch = $esxPatches | Where-Object {$_.Name -eq "esx-base"}
                 $esxv2McuPatch = $esxPatches | Where-Object {$_.Name -eq "cpu-microcode"}
                 if ($esxFrameworkPatch) {
-                    if (($esxFrameworkPatch.Version.Split('.') | Select-Object -Last 1) -ge $esx67Build) {
+                    if ([int]($esxFrameworkPatch.Version.Split('.') | Select-Object -Last 1) -ge $esx67Build) {
                         $esxFrameworkStatus = "Framework Installed"
                     } #END if
                 } #END if
                 if ($esxv2McuPatch) {
-                    if (($esxv2McuPatch.Version.Split('.') | Select-Object -Last 1) -ge $esx67Build) {
+                    if ([int]($esxv2McuPatch.Version.Split('.') | Select-Object -Last 1) -ge $esx67Build) {
                         $esxv2McuStatus = "New MCU Installed"
                     } #END if
                 } #END if
             } #END if
         } #END if
+
+        <#
+          Get VMSA-2018-0020/L1TF Mitigation status
+          https://www.vmware.com/security/advisories/VMSA-2018-0020.html
+          Checks for Sequential-context attack vector and Concurrent-context attack vector
+        #>
+        Write-Verbose -Message ((Get-Date -Format G) + "`tGathering ESXi L1TF mitigation details...")
+        $esxSc = "Sequential-context attack vector NOT mitigated"
+        $esxCc = "Concurrent-context attack vector NOT mitigated"
+        if ($esxFrameworkStatus -eq "Framework Installed" -and $esxv2McuStatus -eq "New MCU Installed") {
+            $esxSc = "Sequential-context attack vector mitigated"
+        } #END if
+        $kernelArgs = $esxcli.system.settings.kernel.list.CreateArgs()
+        $kernelArgs.option = "hyperthreadingMitigation"
+        try {
+            $esxHtMitigation = $esxcli.system.settings.kernel.list.Invoke($kernelArgs)
+            if ($esxHtMitigation.Configured -eq "TRUE" -and $esxHtMitigation.Runtime -eq "TRUE") {
+                $esxCc = "Concurrent-context attack vector mitigated"
+            }
+            elseif ($esxHtMitigation.Configured -eq "TRUE" -and $esxHtMitigation.Runtime -eq "FALSE") {
+                $esxCc = "Concurrent-context attack vector mitigated (Reboot Required)"
+            } #END if/else
+        }
+        catch {
+            Write-Verbose -Message ((Get-Date -Format G) + "`tFailed to query for hyperthreadingMitigation advanced option, error:")
+            Write-Verbose -Message ((Get-Date -Format G) + "`t" + $_.Exception)
+        } #END try/catch
 
         <#
           Get UpTime
@@ -502,18 +545,18 @@
         $biosReleaseDate = $null
         if ($poshSSH) {
             Write-Verbose -Message ((Get-Date -Format G) + "`tGathering ESXi MCU revisions and BIOS release date through SSH...")
-            $sshServerFWException = $vmhost | Get-VMHostFirewallException -Name "SSH Server"
+            $sshServerFWException = $esxiHost | Get-VMHostFirewallException -Name "SSH Server"
             if ($sshServerFWException.Enabled -eq $false) {
                 $sshServerFWException | Set-VMHostFirewallException -Enabled $true -Confirm:$false | Out-Null
             } #END if
-            $vmServices = $vmhost | Get-VMHostService
+            $vmServices = $esxiHost | Get-VMHostService
             $vmServices | Where-Object {$_.Key -eq "TSM-SSH"} | Start-VMHostService -Confirm:$false | Out-Null
-            $sshSession = New-SSHSession -ComputerName $vmhost -Credential $rootCreds -ConnectionTimeout 90 -KeepAliveInterval 5 -AcceptKey -ErrorAction SilentlyContinue
+            $sshSession = New-SSHSession -ComputerName $esxiHost -Credential $rootCreds -ConnectionTimeout 90 -KeepAliveInterval 5 -AcceptKey -ErrorAction SilentlyContinue
             if ($Global:Error[0].Exception.Message -match "Key exchange negotiation failed") {
                 $Global:Error.Clear()
                 Write-Warning "Cached SSH Key fingerprint mismatch. Removing cached Key..."
-                Remove-SSHTrustedHost -SSHHost $vmhost
-                $sshSession = New-SSHSession -ComputerName $vmhost -Credential $rootCreds -ConnectionTimeout 90 -KeepAliveInterval 5 -AcceptKey -ErrorAction SilentlyContinue
+                Remove-SSHTrustedHost -SSHHost $esxiHost
+                $sshSession = New-SSHSession -ComputerName $esxiHost -Credential $rootCreds -ConnectionTimeout 90 -KeepAliveInterval 5 -AcceptKey -ErrorAction SilentlyContinue
             } #END if
 
             if ($sshSession) {
@@ -565,7 +608,7 @@
         #>        
         Write-Verbose -Message ((Get-Date -Format G) + "`tGathering BIOS details...")
         if ($biosCsvCollection) {
-            $minVersion = $biosCsvCollection | Where-Object {$_.Model -eq $vmhost.Model}
+            $minVersion = $biosCsvCollection | Where-Object {$_.Model -eq $esxiHost.Model}
             if ($minVersion) {
 
                 <#
@@ -647,25 +690,26 @@
           Use a custom object to store
           collected data
         #>
-        $patchCollection += [PSCustomObject]@{
-            'Hostname'             = $vmhost.Name
+        $output = [PSCustomObject]@{
+            'Hostname'             = $esxiHost.Name
             'Management IP'        = $mgmtIP
-            'Cluster'              = $vmhost.Parent            
+            'Cluster'              = $esxiHost.Parent            
             'Product'              = $vmhostView.Config.Product.Name
-            'Version'              = $vmhostView.Config.Product.Version
-            'Build'                = $vmhost.Build            
+            'Version'              = $esxiVersion
+            'Build'                = $esxiHost.Build            
             'Last patched'         = $lastPatched
             'Boot time'            = $bootTime
             'Uptime'               = "$upTimeDays Day(s), $upTimeHours Hr(s), $upTimeMinutes Min(s)"            
-            'Make'                 = $vmhost.Manufacturer
-            'Model'                = $vmhost.Model
+            'Make'                 = $esxiHost.Manufacturer
+            'Model'                = $esxiHost.Model
             'CPU model'            = $cpuModel
             'CPUID'                = $cpuidHEX
-            'Max EVC mode'         = $vmhost.MaxEVCMode
+            'Max EVC mode'         = $esxiHost.MaxEVCMode
             'BIOS version'         = $vmhostView.Hardware.BiosInfo.BiosVersion
             'BIOS release date'    = $biosReleaseDate
             'BIOS guidance'        = $biosComplianceStatus
             'ESXi guidance'        = $esxFrameworkStatus + "/" + $esxv2McuStatus
+            'L1TF summary'         = $esxSc + "/" + $esxCc
             'MCU CPUID'            = $hostMcuCPuid
             'PCID/INVPCID'         = $hostCpuPcid
             'ESXi applied MCU'     = $mcuUpdate
@@ -674,15 +718,16 @@
             'Intel product'        = $intelProduct
             'Intel MCU status'     = $prodStatus
             'Intel production MCU' = $prodMCU
-        } #END [PSCustomObject]      
+        } #END [PSCustomObject]
+        [void]$patchCollection.Add($output)
 
         <#
           Report on VMs if switch was specified
         #>
         if ($ReportOnVMs) {
-            $vmlist = $vmhost | Get-VM | Sort-Object -Property Name
-            if ($vmhost.Parent.EVCMode) {
-                $clusEvcMode = $vmhost.Parent.EVCMode
+            $vmlist = $esxiHost | Get-VM | Sort-Object -Property Name
+            if ($esxiHost.Parent.EVCMode) {
+                $clusEvcMode = $esxiHost.Parent.EVCMode
             }
             else {
                 $clusEvcMode = "Disabled"
@@ -691,7 +736,7 @@
                 $vmMcuCpuid = $null
                 $vmCpuPcid = $null
                 $powerOnEvent = $null
-                Write-Host "`tGathering VM hypervisor-assisted guest mitigation details from $vm ..."
+                Write-Output "`tGathering VM hypervisor-assisted guest mitigation details from $vm ..."
                 $hardwareVersion = ($vm.Version.ToString()).Split('v')[1]              
                 $vmFeatureRequirement = $vm.ExtensionData.Runtime.FeatureRequirement
                 $vmCpuid = $vmFeatureRequirement | Where-Object {$_.FeatureName -eq "cpuid.IBRS" -or $_.Featurename -eq "cpuid.IBPB" -or $_.Featurename -eq "cpuid.STIBP" -or $_.Featurename -eq "cpuid.SSBD"} | Select-Object -ExpandProperty FeatureName
@@ -701,7 +746,7 @@
                 }
                 else {
                     $vmGuestOs = $vm.ExtensionData.Config.GuestFullName
-                } #END if
+                } #END if/else
 
                 <#
                   Validate VM Hardware
@@ -758,21 +803,21 @@
                 } #END if/else
                 if ($vmCpuid) {
                     $vmMcuCpuid = (@($vmCpuid.split('.') | Where-Object {$_ -ne "cpuid"}) -join ',')
-                } #END if/else
+                } #END if
                 if ($vmPcid) {
                     $vmCpuPcid = (@($vmPcid.split('.') | Where-Object {$_ -ne "cpuid"}) -join ',')
-                } #END if/else
+                } #END if
 
                 <#
                   Use a custom object to store
                   collected data
                 #>
-                $vmCollection += [PSCustomObject]@{
+                $output = [PSCustomObject]@{
                     'Name'                                 = $vm.Name
                     'Power state'                          = $vm.PowerState
                     'VM guest OS'                          = $vmGuestOs
-                    'ESXi'                                 = $vmhost.Name
-                    'Cluster'                              = $vmhost.Parent
+                    'ESXi'                                 = $esxiHost.Name
+                    'Cluster'                              = $esxiHost.Parent
                     'Cluster EVC mode'                     = $clusEvcMode
                     'Hardware version'                     = $vm.Version
                     'ESXi MCU CPUID'                       = $hostMcuCPuid
@@ -783,10 +828,13 @@
                     'Hypervisor-Assisted Guest mitigation' = $spectreStatus
                     'PCID optimization'                    = $pcidStatus
                 } #END [PSCustomObject]
+                [void]$vmCollection.Add($output)
             } #END foreach
         } #END if
     } #END foreach
+    $stopWatch.Stop()
     Write-Verbose -Message ((Get-Date -Format G) + "`tMain code execution completed")
+    Write-Verbose -Message  ((Get-Date -Format G) + "`tScript Duration: " + $stopWatch.Elapsed.Duration())
     
     <#
       Display skipped hosts and their connection status
