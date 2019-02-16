@@ -70,6 +70,11 @@ _Each script will output the corresponding data to terminal, and optionally crea
 
 # Changelog
 
+__v2.4.7__
+
+Fixed default parameterSet to gather all hosts information if a -VMhost, -Cluster, or -Datacenter is not specified  
+Fixed Get-ESXIODevice, so that all Invoke-WebRequest cmdlet now uses -UseBasicParsing  
+
 __v2.4.6__
     
 - For us to gather the ESXi version we used $vmhost.ApiVersion before, now its updated to be $vmhost.version and the update level. With this we have removed update and patch level columns in any of the cmdlet reports because the patch level did not reflect the patch level tracked under: https://kb.vmware.com/s/article/2143832  
