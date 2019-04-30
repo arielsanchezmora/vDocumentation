@@ -97,7 +97,7 @@ __v2.4.5__
 
 - Fixed bug reported by Jeffery Barrow in Get-vSANInfo Cmdlet
 
-- Improvement added, suggested by @pdpelsem to include VMware HCL URLs as part of the Get-ESXIODevice Cmdlet. We expanded on his idea by adding a 2nd tab output that will dump the pertinent HCL information gathered against the VMware HCL IO online site (if you have internet connection)
+- Improvement added, suggested by @pdpelsem to include VMware HCL URLs as part of the Get-ESXIODevice Cmdlet. We expanded on his idea by adding a 2nd tab output that will dump the pertinent HCL information gathered against the VMware HCL IO online site (if you have internet connection), see his code and issue report here https://github.com/arielsanchezmora/vDocumentation/issues/44
 
 - All Cmdlet now use -VMhost instead of -ESXi, these were changed to parameter set and will help with future code improvements
 
