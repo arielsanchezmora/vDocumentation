@@ -16,4 +16,4 @@ Contributors:
 - Ken Saunders  
 - [Ariel Sanchez](https://twitter.com/arielsanchezmor)  
 
-Please let us know any additions in the VMware Code Slack, in the #vDocumentation folder.
+Please let us know any additions in the [VMware Code Slack](https://code.vmware.com/web/code/join), in the #vDocumentation folder.
