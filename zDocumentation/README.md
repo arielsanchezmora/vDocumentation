@@ -13,7 +13,7 @@ Contributors:
 - [Nicholas Scuola](https://twitter.com/nscuola)  
 - [Wes Carroll](https://twitter.com/WesCarrollTech)  
 - Lee Copper  
-- Ken Saunders  
+- [Kent Saunders](https://twitter.com/kentsaunders)  
 - [Ariel Sanchez](https://twitter.com/arielsanchezmor)  
 
 Please let us know any additions in the [VMware Code Slack](https://code.vmware.com/web/code/join), in the #vDocumentation channel.
