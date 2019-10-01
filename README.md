@@ -33,7 +33,7 @@ _Paste in a PowerShell window that has been Run as Administrator and answer Y_
 _You can now close the PowerShell window that ran as Administrator_ 
 
 _In a new, **normal** PowerShell console, paste the below commands answering Y (this only affects your user, and it may take a while)_
-**Set-PowerCLIConfiguration -InvalidCertificateAction Ignore -Confirm:$false**  
+  
 
 **Install-Module -Name VMware.PowerCLI -Scope CurrentUser**  
 **Install-Module ImportExcel -scope CurrentUser**  
@@ -49,7 +49,9 @@ _vDocumentation is now installed! You can verify with_
 
 ## The vDocumentation module gives you eight _new_ PowerCLI Commands you can use to create documentation of a vSphere environment
 
-_Before you can use them, connect to your vCenter(s) using PowerCLI_
+_Before you can use them, connect to your vCenter(s) using PowerCLI. Although if you have invalid certs, you will need this command first:_  
+
+**Set-PowerCLIConfiguration -InvalidCertificateAction Ignore -Confirm:$false**
 
 **Connect-VIServer [IP_or_FQDN_of_vCenter]**      _# Connect to one, or repeat for many vCenters_
 
