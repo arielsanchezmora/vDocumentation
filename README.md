@@ -33,6 +33,7 @@ _Paste in a PowerShell window that has been Run as Administrator and answer Y_
 _You can now close the PowerShell window that ran as Administrator_ 
 
 _In a new, **normal** PowerShell console, paste the below commands answering Y (this only affects your user, and it may take a while)_
+**Set-PowerCLIConfiguration -InvalidCertificateAction Ignore -Confirm:$false**  
 
 **Install-Module -Name VMware.PowerCLI -Scope CurrentUser**  
 **Install-Module ImportExcel -scope CurrentUser**  
